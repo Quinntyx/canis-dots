@@ -1,0 +1,47 @@
+{
+  "lastChangelogVersion": "0.83.0",
+  "theme": "everforest-tui-light",
+  "defaultProvider": "opencode",
+  "defaultModel": "deepseek-v4-flash-free",
+  "defaultThinkingLevel": "high",
+  "enabledModels": [
+    "featherless/poolside/Laguna-S-2.1",
+    "featherless/zai-org/GLM-5.2",
+    "antigravity/gemini-3.6-flash-high",
+    "openai-codex/gpt-5.6-sol",
+    "opencode/deepseek-v4-flash-free",
+    "featherless/moonshotai/Kimi-K3",
+    "openrouter/deepseek/deepseek-v4-flash-0731"
+  ],
+  "providers": {
+    "openrouter": {
+      "modelOverrides": {
+        "deepseek/deepseek-v4-flash-0731": {
+          "compat": {
+            "openRouterRouting": {
+              "only": [
+                "deepinfra"
+              ],
+              "allow_fallbacks": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "packages": [
+    "git:github.com/Quinntyx/pi-ptc-next@152f309272e5548f01d61235dc2d0c37140f0c66",
+    "npm:@narumitw/pi-btw",
+    "git:github.com/Quinntyx/pi-antigravity-auth@90c5addbcf61028bc12a661a8be5ffab280b9750",
+    "npm:pi-everforest-tui",
+    "git:github.com/Quinntyx/pi-session-move@5a80119c12494f6612154f9696cf6db4011327e1",
+    "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
+    "npm:pi-hashline-edit@0.8.3",
+    "npm:pi-permissions"
+  ],
+  "hideThinkingBlock": false,
+  "compaction": {
+    "reserveTokens": 0
+  },
+  "enableSkillCommands": true
+}

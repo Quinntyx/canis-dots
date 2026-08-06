@@ -1,0 +1,150 @@
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "FiraCode Nerd Font", "Fira Code", "JetBrainsMono Nerd Font", monospace;
+    font-size: 13px;
+    min-height: 0;
+}
+
+window#waybar {
+    background: rgba(250, 244, 214, 0.80);
+    color: #2e2a1d;
+}
+
+.modules-left {
+    margin-left: 4px;
+}
+
+.modules-right {
+    margin-right: 4px;
+}
+
+.modules-center {
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+#workspaces,
+#mode,
+#scratchpad,
+#window,
+#mpd,
+#pulseaudio,
+#cpu,
+#memory,
+#temperature,
+#backlight,
+#battery,
+#clock,
+#tray,
+#custom-mpris {
+    background: rgba(255, 244, 191, 0.96);
+    color: #2e2a1d;
+    padding: 0 9px;
+    margin: 6px 3px;
+    min-height: 18px;
+    border: 1px solid rgba(214, 164, 0, 0.85);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#workspaces {
+    padding: 0;
+}
+
+#workspaces button {
+    background: transparent;
+    color: #2e2a1d;
+    padding: 0 9px;
+    margin: 0;
+    min-height: 18px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#workspaces button.focused,
+#workspaces button.active {
+    background: rgba(242, 183, 5, 0.85);
+    color: #2e2a1d;
+}
+
+#workspaces button:hover {
+    background: rgba(242, 183, 5, 0.35);
+    color: #2e2a1d;
+}
+
+#workspaces button.urgent {
+    background: rgba(214, 87, 57, 0.95);
+    color: #fffaf0;
+}
+
+#tray {
+    padding: 0 7px;
+}
+
+#custom-power {
+    background: rgba(255, 244, 191, 0.96);
+    color: #2e2a1d;
+    padding: 0 4px 0 2px;
+    margin: 6px 3px;
+    min-width: 18px;
+    min-height: 18px;
+    border: 1px solid rgba(214, 164, 0, 0.85);
+    border-radius: 0;
+    box-shadow: none;
+    font-weight: 700;
+}
+
+#custom-power:hover {
+    background: rgba(242, 183, 5, 0.85);
+}
+
+#custom-mpris.playing {
+    color: #4a7c3e;
+}
+
+#custom-mpris.paused {
+    color: #8a6914;
+}
+
+#custom-mpris.stopped {
+    color: #6b6553;
+}
+
+#custom-mpris-cycle,
+#custom-mpris-stop {
+    background: rgba(255, 244, 191, 0.96);
+    color: #2e2a1d;
+    padding: 0 9px;
+    margin: 6px 3px;
+    min-height: 18px;
+    border: 1px solid rgba(214, 164, 0, 0.85);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#custom-mpris-stop {
+    color: #8b3a2e;
+}
+
+#battery.warning {
+    background: rgba(244, 201, 92, 0.95);
+    color: #3f3214;
+}
+
+#battery.critical {
+    background: rgba(214, 87, 57, 0.95);
+    color: #fffaf0;
+}
+
+tooltip {
+    background: rgba(255, 252, 232, 0.98);
+    color: #4f4a3a;
+    border: 1px solid rgba(214, 164, 0, 0.85);
+    border-radius: 0;
+}
+
+tooltip label {
+    color: #4f4a3a;
+}

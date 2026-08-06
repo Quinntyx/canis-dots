@@ -1,0 +1,88 @@
+theme = "everforest_light_transparent"
+
+[keys.normal]
+# Workman directional movement
+y = "move_char_left"
+n = "move_line_down"
+e = "move_line_up"
+o = "move_char_right"
+
+# Remap the displaced keys
+j = "yank"
+h = "search_next"
+l = "move_next_word_end"
+k = "open_below"
+
+# Uppercase counterparts (preserving their shifted functionality)
+J = "yank_joined"
+H = "search_prev"
+L = "move_next_long_word_end"
+K = "open_above"
+
+[keys.select]
+# Select mode uses the "extend_" variants of movements
+y = "extend_char_left"
+n = "extend_line_down"
+e = "extend_line_up"
+o = "extend_char_right"
+
+# Remap the displaced keys in select mode
+j = "yank"
+h = "search_next"
+l = "extend_next_word_end"
+k = "open_below"
+
+# Uppercase counterparts in select mode
+J = "yank_joined"
+H = "search_prev"
+L = "extend_next_long_word_end"
+K = "open_above"
+
+
+# ==========================================
+# Window Navigation (Ctrl+W)
+# ==========================================
+[keys.normal."C-w"]
+y = "jump_view_left"
+n = "jump_view_down"
+e = "jump_view_up"
+o = "jump_view_right"
+Y = "swap_view_left"
+N = "swap_view_down"
+E = "swap_view_up"
+O = "swap_view_right"
+
+[keys.select."C-w"]
+y = "jump_view_left"
+n = "jump_view_down"
+e = "jump_view_up"
+o = "jump_view_right"
+Y = "swap_view_left"
+N = "swap_view_down"
+E = "swap_view_up"
+O = "swap_view_right"
+
+
+# ==========================================
+# Window Navigation (Space+W)
+# ==========================================
+[keys.normal."space".w]
+y = "jump_view_left"
+n = "jump_view_down"
+e = "jump_view_up"
+o = "jump_view_right"
+Y = "swap_view_left"
+N = "swap_view_down"
+E = "swap_view_up"
+O = "swap_view_right"
+
+[keys.select."space".w]
+y = "jump_view_left"
+n = "jump_view_down"
+e = "jump_view_up"
+o = "jump_view_right"
+Y = "swap_view_left"
+N = "swap_view_down"
+E = "swap_view_up"
+O = "swap_view_right"
+

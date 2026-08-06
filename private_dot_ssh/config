@@ -1,0 +1,19 @@
+Host syssec-adwaith1
+    Hostname syssec-docker0.utdallas.edu
+    Port 2227
+    User henryh@syssec.utdallas.edu
+
+Host kjee-ub1
+    Hostname 10.176.90.187
+    Port 22
+    User henryh@syssec.utdallas.edu
+
+Host pylingual-train
+    Hostname 10.176.150.86
+    Port 22
+    User henryh@syssec.utdallas.edu
+
+Host syssec-gpu0
+    Hostname 10.176.150.45
+    Port 22
+    User henryh@syssec.utdallas.edu

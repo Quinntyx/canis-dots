@@ -1,0 +1,11 @@
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[user]
+	name = Quinntyx
+	email = 70780971+Quinntyx@users.noreply.github.com
+[init]
+	defaultBranch = main

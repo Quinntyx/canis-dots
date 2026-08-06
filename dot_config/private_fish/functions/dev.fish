@@ -19,6 +19,9 @@ function dev
             set helix_cmd (string join ' ' helix (string escape -- "$target"))
         end
     end
+    # Run helix inside a fish subshell so :q drops you to a fish prompt
+    # in that directory instead of closing the pane (reopen with `hx`).
+    set helix_cmd (string join -- ' ' fish -C (string escape -- "$helix_cmd"))
     set -l broot_cmd 'broot -g -c ":watch"'
 
     if test -n "$TMUX"

@@ -2,7 +2,7 @@ function dev
     # ---- resolve optional target (file or folder) ----
     set -l target $argv[1]
     set -l dir $PWD
-    set -l helix_cmd 'helix'
+    set -l helix_cmd helix
     if test -n "$target"
         if test -d "$target"
             set dir (realpath "$target")
@@ -29,27 +29,38 @@ function dev
         # The pane you run `dev` in becomes the left (pi) pane.
         tmux split-window -h -p 80 -c "$dir" "$helix_cmd"
         tmux split-window -h -p 25 -c "$dir" "$broot_cmd"
-        tmux select-pane -t '{left-of}'    # focus helix (middle)
+        tmux select-pane -t '{left-of}' # focus helix (middle)
         cd "$dir"
-        exec pi -c
+        exec ppi use main -c
     else
-        # Outside tmux: fresh session every time — never re-attaches.
-        # Use the session ID ($N), not the name: auto-names are bare numbers
-        # and `-t 0` would be ambiguous with pane 0.
-        # Create the session at the current terminal size: a detached
-        # session defaults to 80x24, and tmux's attach-resize hands each
-        # pane roughly equal extra columns, collapsing 20/60/20 toward
-        # thirds (16/47/16 at 80 cols becomes 114/146/114 at 376).
-        set -l cols (tput cols 2>/dev/null)
-        set -l rows (tput rows 2>/dev/null)
+        # Resolve the terminal size so the split happens at real width:
+        # a detached session defaults to 80x24 and tmux's attach-resize
+        # hands each pane roughly equal extra columns, collapsing 20/60/20
+        # toward thirds (16/47/16 at 80 cols becomes 114/146/114 at 376).
+        # Note: `tput rows` is not a valid capability everywhere (rc=4;
+        # the terminfo name is `lines`), so prefer `stty size`, which
+        # reads the winsize directly and needs no terminfo.
+        set -l dims (stty size 2>/dev/null)
+        set -l cols
+        set -l rows
+        if test (count $dims) -eq 2
+            set rows $dims[1]
+            set cols $dims[2]
+        else if string match -qr '^[0-9]+$' -- "$COLUMNS"
+            set cols $COLUMNS
+            set rows $LINES
+        else
+            set cols (tput cols 2>/dev/null)
+            set rows (tput lines 2>/dev/null)
+        end
         set -l size_flags
-        if string match -qr '^[0-9]+$' -- "$cols" ; and string match -qr '^[0-9]+$' -- "$rows"
+        if string match -qr '^[0-9]+$' -- "$cols"; and string match -qr '^[0-9]+$' -- "$rows"
             set size_flags -x $cols -y $rows
         end
         set -l sid (tmux new-session -d -P -F '#{session_id}' $size_flags -c "$dir" 'pi -c')
         tmux split-window -h -p 80 -t "$sid" -c "$dir" "$helix_cmd"
         tmux split-window -h -p 25 -t "$sid" -c "$dir" "$broot_cmd"
-        tmux select-pane -t "$sid":.1    # focus helix (middle)
+        tmux select-pane -t "$sid":.1 # focus helix (middle)
         tmux attach -t "$sid"
     end
 end

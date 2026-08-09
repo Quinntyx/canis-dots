@@ -79,6 +79,7 @@ symbol = " "
 
 [gcloud]
 symbol = "󱇶 "
+disabled = true
 
 [gleam]
 symbol = " "
@@ -128,8 +129,6 @@ symbol = "󱃾 "
 [lua]
 symbol = " "
 
-[maven]
-symbol = " "
 
 [memory_usage]
 symbol = "󰍛 "
@@ -310,7 +309,6 @@ symbol = " "
 
 [line_break]
 disabled = true
-add_newline = false
 
 [palettes.light]
 # Invert white/black so default text becomes your dark foreground

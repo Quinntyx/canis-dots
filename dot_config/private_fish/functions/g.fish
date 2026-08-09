@@ -171,7 +171,7 @@ function __g_fork
         return 1
     end
 
-    if not gh repo fork $other/$repo --remote=false
+    if not gh repo fork $other/$repo --clone=false
         echo "g fork: gh repo fork failed" >&2
         return 1
     end

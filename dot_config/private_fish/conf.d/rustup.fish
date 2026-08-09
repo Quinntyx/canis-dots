@@ -1,1 +1,4 @@
-source "$HOME/.cargo/env.fish"
+# Source rustup env if present (cargo/env.fish only exists on some machines)
+if test -f "$HOME/.cargo/env.fish"
+    source "$HOME/.cargo/env.fish"
+end

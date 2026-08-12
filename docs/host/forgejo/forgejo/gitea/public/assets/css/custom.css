@@ -1,0 +1,5 @@
+/* Fix: lugit theme ships no #navbar rules; stock spacing came from .ui.menu .item
+   which the theme's navbar template doesn't use. Restore horizontal padding. */
+#navbar .item {
+  padding: 3px 1.14285714em;
+}

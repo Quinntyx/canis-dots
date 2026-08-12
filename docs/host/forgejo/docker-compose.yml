@@ -1,0 +1,40 @@
+services:
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:16
+    container_name: forgejo
+    restart: always
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - FORGEJO__server__DOMAIN=git.quinntyx.dev
+      - FORGEJO__server__ROOT_URL=https://git.quinntyx.dev/
+      - FORGEJO__server__HTTP_PORT=3000
+      - FORGEJO__server__SSH_PORT=22          # advertised to clients — no :port suffix in clone URLs
+      - FORGEJO__server__SSH_LISTEN_PORT=22   # listen inside the container
+      - FORGEJO__server__LANDING_PAGE=login   # anonymous / redirects to login
+      # lugit theme (dark/light/auto)
+      - FORGEJO__ui__THEMES=dark,light,auto
+      - FORGEJO__ui__DEFAULT_THEME=auto   # follows system: lugit light/dark via theme-auto.css
+    volumes:
+      - ./forgejo:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "127.0.0.1:3000:3000"   # web — loopback only, cloudflared is on the host
+      # - "127.0.0.1:2222:22"    # SSH — matches tcp://localhost:2222 ingress, if re-enabled
+
+  # Forgejo Actions runner (Forgejo 15+ flow: UUID + token in config, not env).
+  # Starts only with: docker compose --profile runner up -d runner
+  # Registration: Site Admin → Actions → Runners → Create new runner → paste UUID/token into runner-data/runner-config.yml
+  runner:
+    image: data.forgejo.org/forgejo/runner:13
+    container_name: forgejo-runner
+    restart: always
+    profiles: ["runner"]
+    user: "1000:1000"   # matches ownership of ./runner-data
+    group_add:
+      - "963"          # host docker group — socket access to spawn job containers
+    volumes:
+      - ./runner-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: forgejo-runner daemon --config /data/runner-config.yml

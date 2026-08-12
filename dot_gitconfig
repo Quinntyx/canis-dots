@@ -9,3 +9,5 @@
 	email = 70780971+Quinntyx@users.noreply.github.com
 [init]
 	defaultBranch = main
+[credential "https://git.quinntyx.dev"]
+	helper = store

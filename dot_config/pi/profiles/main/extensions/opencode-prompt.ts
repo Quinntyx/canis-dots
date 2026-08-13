@@ -380,6 +380,7 @@ export default function (pi: ExtensionAPI) {
   let activeTui: TUI | undefined;
   let runStartedAt: number | undefined;
   let lastCompletion: string | undefined;
+  let routerStatus: string | undefined;
   let refreshBranch: (() => Promise<void>) | undefined;
 
   const stopSpinner = () => {
@@ -412,6 +413,11 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("model_select", () => activeTui?.requestRender());
   pi.on("thinking_level_select", () => activeTui?.requestRender());
+
+  pi.events.on("deepseek-router:status", (data) => {
+    routerStatus = typeof data === "string" && data.length > 0 ? data : undefined;
+    activeTui?.requestRender();
+  });
   pi.on("context", (_event, ctx) => reconcileBacon(ctx));
   if (!baconExitHooked) {
     baconExitHooked = true;
@@ -424,6 +430,7 @@ export default function (pi: ExtensionAPI) {
     refreshBranch = undefined;
     runStartedAt = undefined;
     lastCompletion = undefined;
+    routerStatus = undefined;
     stopBacon();
     baconRender = undefined;
     baconLastCwd = undefined;
@@ -440,6 +447,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     ctx.ui.setWorkingVisible(false);
     ctx.ui.setFooter(() => new EmptyFooter());
+    pi.events.emit("deepseek-router:request", undefined);
 
     let branch: string | undefined;
     refreshBranch = async () => {
@@ -586,6 +594,7 @@ export default function (pi: ExtensionAPI) {
             theme.fg("success", `saved ${formatTokens(tokensSaved)}`),
           );
         rightItems.push(theme.fg("muted", location));
+        if (routerStatus) rightItems.unshift(theme.fg("muted", routerStatus));
         const statusRight = rightItems.join(theme.fg("dim", " · "));
 
         const statusText = formatStatusRow(

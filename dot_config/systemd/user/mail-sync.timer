@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic mail sync fallback (if goimapnotify is down)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

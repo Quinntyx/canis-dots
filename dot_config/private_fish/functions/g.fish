@@ -9,7 +9,7 @@
 # Subcommands:
 #     g cd [name]          cd to ~/docs/src[/name]
 #     g clone [owner/]repo worktree-style clone (owner defaults to you)
-#     g wt [base-variant]  add a worktree; bare `g wt` lists worktrees
+#     g wt [base][-variant]  add a worktree (base defaults to main); bare `g wt` lists worktrees
 #     g fork other/foo     gh-fork someone's repo, clone, add upstream remote
 #
 # Test/override hooks (fish globals):
@@ -57,7 +57,8 @@ function __g_usage
     echo "  g cd [name]           cd to ~/docs/src[/name]"
     echo "  g clone [owner/]repo  clone into <src>/<repo>/main"
     echo "                        (a foreign owner becomes <src>/<owner>_<repo>/main)"
-    echo "  g wt [base-variant]   add a worktree; no args lists existing worktrees"
+    echo "  g wt [base][-variant]  add a worktree (base defaults to main)"
+    echo "                        no args lists existing worktrees"
     echo "  g fork other/foo      gh-fork, clone, add an upstream remote"
     echo
     echo "examples:"
@@ -65,6 +66,7 @@ function __g_usage
     echo "  g clone other/pylingual"
     echo "  g wt dev-extended_masking    # attach to the remote branch"
     echo "  g wt dev-extended_feature    # new branch from dev, pushed to origin"
+    echo "  g wt hotfix                  # new branch hotfix from main, pushed"
 end
 
 # --- g cd ---------------------------------------------------------------------
@@ -226,12 +228,14 @@ function __g_wt
     set -l name $argv[1]
 
     # Split on the LAST '-' so base-variant and base-a-b stay discoverable.
+    # No separator -> the base defaults to main.
+    set -l base
     set -l parts (string split -r -m 1 -- '-' $name)
-    if test (count $parts) -lt 2
-        echo "g wt: '$name' has no '-' separator (expected base-variant)" >&2
-        return 1
+    if test (count $parts) -ge 2
+        set base $parts[1]
+    else
+        set base main
     end
-    set -l base $parts[1]
 
     set -l target $container/$name
 

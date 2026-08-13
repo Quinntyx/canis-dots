@@ -1,0 +1,12 @@
+[Unit]
+Description=Mail sync (mbsync + notmuch index)
+
+[Service]
+Type=oneshot
+ExecStart=/home/zlare/.local/bin/mail-sync.sh
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+Environment=PPI_PI_ROOT=/home/zlare/.config/pi
+Environment=PATH=/home/zlare/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

@@ -12,6 +12,8 @@ Use the generated Python helpers (`read`, `grep`, `glob`, `find`, `ls`, and `ptc
 
 Use direct tools instead for a single simple lookup, one-file inspection, or precise file mutations where programmatic composition provides no benefit. Do not force `code_execution` onto trivial tasks.
 
+Never use `python3 -c`. Use the PTC tool instead. 
+
 ## Numerical analysis and plotting
 
 Use `code_execution` whenever the user requests a chart or when visualizing tabular/numerical data would materially help identify distributions, trends, outliers, clusters, or relationships.
@@ -27,6 +29,7 @@ When the active model does not support image input, image attachments (from PTC 
 ## Tooling defaults (hard rules)
 
 - "Analyze / compare / audit / parity" tasks START in `code_execution` — never open with `ls`/`cat`/`find`. Read candidates with `ptc.read_many`, parse, and return a compact comparison.
+- DO NOT USE `grep` or `rm`. They are blocked by system policy. Prefer `rg` and `trash`. Also note that `rg` is recursive by default, and the `-r` flag is replace instead. 
 - Never chain `ls` → `cat` → `find` in bash when you'll touch more than 2 files. That is the signal to switch to PTC mid-task, not after being asked.
 - Never run broad `find` / `ls --recursive` over trees that may contain `node_modules`, `.git`, `repos/`, or other vendor dirs. Filter first (`rg --files -g '!node_modules'`, `glob(..., '-g', '!node_modules')`, or `ptc.find_files`) and keep output compact.
 - Searching from `bash`: use `rg` (ripgrep), not `grep` / `find -name`. The PTC `grep()` helper already wraps ripgrep — keep the two consistent.
@@ -41,3 +44,39 @@ When the active model does not support image input, image attachments (from PTC 
 - Never use `rm` to delete files or directories — it is blocked by policy (the `block-rm` extension force-rejects any bash `rm`). Use `trash <path>` instead (installed at `/usr/bin/trash`); recover with `trash-restore` / list with `trash-list`.
 - This covers every form (`rm`, `rm -rf`, `sudo rm`, `xargs rm`, `/bin/rm`, …) and applies inside any script you write or edit. For git, stage removals explicitly (`git rm --cached` keeps the working-tree file; otherwise `trash` the file then `git add -A`).
 - If `trash` is unavailable in a given environment, stop and ask the user before deleting — never fall back to `rm`.
+
+## Installing Software and Sudo Access
+
+You do not have sudo access. Installing software should be left up to the user. Do not offer to install software for the user. Instead, provide a simple, copy-pastable install command.
+
+To check availability of software, use `pacman -Ss` and `yay -Ss`. 
+
+## System Details
+
+The system runs on endeavourOS linux and is managed by the `pacman` package manager, with the `yay` AUR helper.
+
+For more hardware details, `neofetch` is available as a quick overview.
+
+## Pi Setup
+
+You are running through the Pi coding harness. The user's Pi configuration is located in `~/.config/pi`, set using the env var `$PPI_PI_DIR`.
+
+The user uses `pi-profiles` to manage their Pi instances. You are currently running in the **main profile**, located in `~/.config/pi/profiles/main`.
+
+## Terminology
+
+"I" refers to the user. "You" refers to the agent. 
+
+If the user says "I want to do X", they mean that they want to do it, not that they want you to do it. Such requests should be interpreted as a request for information, and you should perform research about the topic and tell the user how to accomplish their goal.
+
+Only write code if the user says "Please do," "Do it", "Build it", etc.
+
+## Tmux Policy and Long-Running Commands
+
+The Pi instance will be run inside of `tmux`. Therefore, long-running shell commands should be run in a `tmux` pane, especially commands that may require the user's interaction.
+
+Any command that is projected to take more than 10 to 15 seconds to complete (eg. tasks like compiling code in larger projects, for example) should be run via `tmux`.
+
+Run commands using `tmux split-window '{command}'` (e.g. `tmux split-window 'cargo build'`). Then use `tmux wait-for` to wait until completion if needed.
+
+Don't use `sleep` or guess how long a command will take. 

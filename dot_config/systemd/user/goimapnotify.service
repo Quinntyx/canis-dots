@@ -1,0 +1,15 @@
+[Unit]
+Description=goimapnotify - IMAP IDLE mail trigger
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/goimapnotify -conf %h/.config/goimapnotify/goimapnotify.yaml
+Restart=on-failure
+RestartSec=10
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+Environment=PPI_PI_ROOT=/home/zlare/.config/pi
+Environment=PATH=/home/zlare/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

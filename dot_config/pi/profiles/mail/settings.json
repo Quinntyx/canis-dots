@@ -1,0 +1,14 @@
+{
+  "defaultProvider": "antigravity",
+  "defaultModel": "gemini-3.6-flash-medium",
+  "defaultThinkingLevel": "low",
+  "enabledModels": [
+    "antigravity/gemini-3.6-flash-medium"
+  ],
+  "defaultProjectTrust": "never",
+  "hideThinkingBlock": true,
+  "quietStartup": true,
+  "packages": [
+    "git:github.com/Quinntyx/pi-antigravity-auth@90c5addbcf61028bc12a661a8be5ffab280b9750"
+  ]
+}

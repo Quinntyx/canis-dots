@@ -1,0 +1,16 @@
+configurations:
+    -
+        host: outlook.office365.com
+        port: 993
+        tls: true
+        tlsOptions:
+            rejectUnauthorized: true
+            starttls: false
+        idleLogoutTimeout: 20
+        username: dal558183@utdallas.edu
+        xoAuth2: true
+        passwordCMD: /home/zlare/.config/goimapnotify/o365-xoauth2.sh
+        boxes:
+            -
+                mailbox: INBOX
+                onNewMail: '/home/zlare/.local/bin/mail-sync.sh'

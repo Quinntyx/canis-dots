@@ -1,0 +1,6 @@
+# aerc virtual folders -> notmuch queries
+inbox=tag:inbox and not tag:deleted
+unread=tag:unread and tag:inbox
+routed=tag:routed
+sent=tag:sent
+all=*

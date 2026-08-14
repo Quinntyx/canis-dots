@@ -1,0 +1,15 @@
+# Java LSP via jdtls (install: yay -S jdtls)
+# The AUR jdtls launcher (bin/jdtls.py) auto-resolves java + per-project
+# workspace cache (~/.cache/jdtls/jdtls-<cwd-hash>), so no
+# -configuration/-data args are needed here.
+[[language]]
+name = "java"
+language-servers = ["jdtls"]
+
+[language-server.jdtls]
+command = "jdtls"
+
+[language-server.jdtls.config]
+extendedClientCapabilities.classFileContentsSupport = true
+# optional inlay hints:
+# java.inlayHints.parameterNames.enabled = "all"

@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.84.1",
   "theme": "everforest-tui-light",
-  "defaultProvider": "deepseek-router",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "deepseek-router/deepseek-v4-flash",
@@ -34,7 +34,21 @@
     "git:github.com/Quinntyx/pi-session-move@5a80119c12494f6612154f9696cf6db4011327e1",
     "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
     "npm:pi-hashline-edit@0.8.3",
-    "npm:pi-permissions"
+    "npm:pi-permissions",
+    "git:git.quinntyx.dev/quinntyx/pi-auto-continue-after-compact",
+    "git:git.quinntyx.dev/quinntyx/pi-autopilot",
+    "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
+    "git:git.quinntyx.dev/quinntyx/pi-block-rm",
+    "git:git.quinntyx.dev/quinntyx/pi-cwd-handoff",
+    "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
+    "git:git.quinntyx.dev/quinntyx/pi-exit-command",
+    "git:git.quinntyx.dev/quinntyx/pi-gemini-compaction",
+    "git:git.quinntyx.dev/quinntyx/pi-image-fallback",
+    "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
+    "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
+    "git:git.quinntyx.dev/quinntyx/pi-setup-command",
+    "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
+    "git:git.quinntyx.dev/quinntyx/pi-update-command"
   ],
   "hideThinkingBlock": false,
   "compaction": {

@@ -1,33 +1,58 @@
 # ---- secrets: never manage (restore manually per machine) ----
 .git-credentials
+.ssh/authorized_keys
+.ssh/id_*
+.ssh/known_hosts*
 .local/share/forgejo-cli/keys.json
+.config/fish/conf.d/canvas-private.fish
 .config/pi/agent/auth.json
 .config/pi/agent/antigravity-accounts.json
 .config/pi/agent/deepseek-router.json
-.config/pi/profiles/*/auth.json
+# Generated unit embeds FEATHERLESS_API_KEY; do not commit it verbatim.
+.config/systemd/user/openclaw-gateway.service
 
 # ---- forgejo instance: secrets, repo data, runtime state ----
 docs/host/forgejo/.env
 docs/host/forgejo/.wrangler/
 docs/host/forgejo/custom.tar.gz
 docs/host/forgejo/runner-data/
+docs/host/forgejo/forgejo/custom/
 docs/host/forgejo/forgejo/ssh/
 docs/host/forgejo/forgejo/git/
 docs/host/forgejo/forgejo/gitea/gitea.db*
 docs/host/forgejo/forgejo/gitea/actions_id_token
+docs/host/forgejo/forgejo/gitea/actions_artifacts/
+docs/host/forgejo/forgejo/gitea/attachments/
 docs/host/forgejo/forgejo/gitea/avatars/
+docs/host/forgejo/forgejo/gitea/f3/
 docs/host/forgejo/forgejo/gitea/jwt/
 docs/host/forgejo/forgejo/gitea/indexers/
+docs/host/forgejo/forgejo/gitea/log/
+docs/host/forgejo/forgejo/gitea/packages/
 docs/host/forgejo/forgejo/gitea/sessions/
 docs/host/forgejo/forgejo/gitea/queues/
 docs/host/forgejo/forgejo/gitea/actions_log/
 docs/host/forgejo/forgejo/gitea/home/
-docs/host/forgejo/forgejo/gitea/conf/app.ini
+docs/host/forgejo/forgejo/gitea/repo-archive/
+docs/host/forgejo/forgejo/gitea/repo-avatars/
+docs/host/forgejo/forgejo/gitea/tmp/
+docs/host/forgejo/forgejo/gitea/conf/
 
-# ---- pi runtime state ----
+# ---- generated/runtime state ----
 .config/fish/fish_variables
+.config/systemd/user/.#*
+**/__pycache__
 **/node_modules
 .config/pi/git
 .config/pi/profiles/*/sessions
+.config/pi/profiles/*/session-move
+.config/pi/profiles/*/session-store
+.config/pi/profiles/*/tmux-client-*.log
 .config/pi/profiles/*/models-store.json
-.config/pi/profiles/*/git
+# These profiles contain real repository checkouts; other profile git paths are managed symlinks.
+.config/pi/profiles/daily_assistant/git
+.config/pi/profiles/mail/git
+.local/bin/forge-git
+.local/bin/gh
+.local/bin/python3.14
+.local/bin/spacetime

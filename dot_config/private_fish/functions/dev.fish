@@ -31,7 +31,10 @@ function dev
         tmux split-window -h -p 25 -c "$dir" "$broot_cmd"
         tmux select-pane -t '{left-of}' # focus helix (middle)
         cd "$dir"
-        exec ppi use main -c
+        # Route through the fish `pi` function (profile routing + cwd handoff).
+        # `exit` closes this pane when pi exits, matching the old `exec`.
+        pi -c
+        exit
     else
         # Resolve the terminal size so the split happens at real width:
         # a detached session defaults to 80x24 and tmux's attach-resize

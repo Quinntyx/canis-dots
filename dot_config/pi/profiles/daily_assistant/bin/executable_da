@@ -1,0 +1,397 @@
+#!/usr/bin/env python3
+"""da — deterministic course registry for the daily_assistant pi profile.
+
+Single source of truth for which courses are registered, their status,
+their syllabus file location, and per-course source URLs / notes.
+
+This is deliberately deterministic code, NOT model-driven: it only moves
+files and edits one SQLite database, and there is no external data that
+could benefit from LLM judgment. The pi extension commands `/register` and
+`/archive` are thin wrappers around this CLI, so the model never touches
+course state directly.
+
+State lives in $DA_HOME (default ~/.local/share/daily-assistant/):
+    courses.db   SQLite registry
+    active/      syllabi of active courses
+    archived/    syllabi of archived courses
+    browser/     persistent browser profile used by `bb`
+
+Usage:
+    da register <syllabus-path> [course-key]
+    da backdate <course-key> [--name NAME] [--term TERM]
+                [--type course|test-credit] [--source SOURCE] [--date DATE]
+    da archive  <course-key> [completed|dropped|withdrawn]   (default completed)
+    da list [--json]
+    da get <course-key>
+    da path <course-key>              # print syllabus path only (for the model)
+    da name <course-key> [new-name]   # set display name
+    da source <course-key> add <url> | list | clear
+    da note  <course-key> set <key> <value> | get | del <key>
+"""
+import argparse
+import json
+import os
+import re
+import shutil
+import sqlite3
+import sys
+from datetime import datetime, timezone
+
+DA_HOME = os.environ.get("DA_HOME") or os.path.expanduser("~/.local/share/daily-assistant")
+DB = os.path.join(DA_HOME, "courses.db")
+ACTIVE = os.path.join(DA_HOME, "active")
+ARCHIVED = os.path.join(DA_HOME, "archived")
+
+STATUSES = ("active", "completed", "dropped", "withdrawn")
+ARCHIVE_STATUSES = STATUSES[1:]
+RECORD_TYPES = ("course", "test_credit")
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def connect() -> sqlite3.Connection:
+    os.makedirs(DA_HOME, exist_ok=True)
+    con = sqlite3.connect(DB)
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS courses (
+            key           TEXT PRIMARY KEY,
+            name          TEXT NOT NULL,
+            syllabus      TEXT NOT NULL,
+            status        TEXT NOT NULL
+                          CHECK (status IN ('active','completed','dropped','withdrawn')),
+            sources       TEXT NOT NULL DEFAULT '[]',
+            notes         TEXT NOT NULL DEFAULT '{}',
+            registered_at TEXT NOT NULL,
+            archived_at   TEXT,
+            term          TEXT,
+            record_type   TEXT NOT NULL DEFAULT 'course'
+                          CHECK (record_type IN ('course','test_credit')),
+            credit_source TEXT,
+            completed_on  TEXT
+        )"""
+    )
+
+    # Migrate registries created before historical/test-credit records existed.
+    columns = {row[1] for row in con.execute("PRAGMA table_info(courses)")}
+    migrations = {
+        "term": "TEXT",
+        "record_type": "TEXT NOT NULL DEFAULT 'course' CHECK (record_type IN ('course','test_credit'))",
+        "credit_source": "TEXT",
+        "completed_on": "TEXT",
+    }
+    for column, definition in migrations.items():
+        if column not in columns:
+            con.execute(f"ALTER TABLE courses ADD COLUMN {column} {definition}")
+    con.commit()
+    return con
+
+
+def normalize_key(s: str) -> str:
+    """Course keys are uppercase alnum+underscore, derived from a syllabus
+    filename (e.g. CS4337-syllabus.pdf -> CS4337) or an explicit arg."""
+    s = os.path.splitext(os.path.basename(s))[0]
+    s = re.sub(r"(?i)[\s_\-]*(?:syllabus|outline|course[-_]?outline)[\s_\-]*$", "", s)
+    s = re.sub(r"[\s\-]+", "_", s)
+    s = re.sub(r"[^A-Za-z0-9_]", "", s)
+    s = s.upper().strip("_")
+    return s or "COURSE"
+
+
+def row_to_dict(r: tuple) -> dict:
+    return {
+        "key": r[0],
+        "name": r[1],
+        "syllabus": r[2],
+        "status": r[3],
+        "sources": json.loads(r[4]),
+        "notes": json.loads(r[5]),
+        "registered_at": r[6],
+        "archived_at": r[7],
+        "term": r[8],
+        "record_type": r[9],
+        "credit_source": r[10],
+        "completed_on": r[11],
+    }
+
+
+def find(con: sqlite3.Connection, key: str) -> dict | None:
+    row = con.execute("SELECT * FROM courses WHERE key=?", (key,)).fetchone()
+    return row_to_dict(row) if row else None
+
+
+def cmd_register(args) -> None:
+    src = os.path.abspath(args.path)
+    if not os.path.isfile(src):
+        sys.exit(f"error: syllabus file not found: {src}")
+    key = normalize_key(args.key or os.path.basename(src))
+    ext = os.path.splitext(src)[1]
+    final = os.path.join(ACTIVE, key + ext)
+
+    con = connect()
+    existing = find(con, key)
+    if existing:
+        sys.exit(f"error: course '{key}' is already registered (status: {existing['status']})")
+
+    os.makedirs(ACTIVE, exist_ok=True)
+    try:
+        con.execute(
+            "INSERT INTO courses (key, name, syllabus, status, registered_at) VALUES (?,?,?,?,?)",
+            (key, key, final, "active", now_iso()),
+        )
+        shutil.move(src, final)  # move AFTER row insert so a failure rolls back cleanly
+        con.commit()
+    except BaseException:
+        con.rollback()
+        if os.path.exists(final):
+            shutil.move(final, src)  # best-effort restore of the user's file
+        raise
+    print(f"registered {key}  status=active  syllabus={final}")
+
+
+def normalize_historical_date(value: str | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            datetime.fromisoformat(value)
+            return value
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.isoformat(timespec="seconds")
+    except ValueError:
+        sys.exit("error: --date must be an ISO-8601 date or datetime")
+
+
+def cmd_backdate(args) -> None:
+    """Insert a historical course or test-credit record without a syllabus."""
+    key = normalize_key(args.key)
+    record_type = args.record_type.replace("-", "_")
+    status = args.status.lower()
+    if record_type == "test_credit" and status != "completed":
+        sys.exit("error: test-credit records must have status completed")
+
+    con = connect()
+    existing = find(con, key)
+    if existing:
+        sys.exit(f"error: course '{key}' is already registered (status: {existing['status']})")
+
+    timestamp = now_iso()
+    con.execute(
+        """INSERT INTO courses
+           (key, name, syllabus, status, registered_at, archived_at,
+            term, record_type, credit_source, completed_on)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (key, args.name or key, "", status, timestamp, timestamp,
+         args.term, record_type, args.source, normalize_historical_date(args.date)),
+    )
+    con.commit()
+
+    details = [f"status={status}", f"type={record_type}"]
+    if args.term:
+        details.append(f"term={args.term}")
+    if args.source:
+        details.append(f"source={args.source}")
+    if args.date:
+        details.append(f"date={normalize_historical_date(args.date)}")
+    print(f"backdated {key}  " + "  ".join(details))
+
+
+def cmd_archive(args) -> None:
+    key = normalize_key(args.key)
+    status = (args.status or "completed").lower()
+    if status not in ARCHIVE_STATUSES:
+        sys.exit(f"error: archive status must be one of: {', '.join(ARCHIVE_STATUSES)}")
+
+    con = connect()
+    old = find(con, key)
+    if not old:
+        known = ", ".join(r[0] for r in con.execute("SELECT key FROM courses ORDER BY key"))
+        sys.exit(f"error: no course '{key}'" + (f" (known: {known})" if known else ""))
+
+    if old["status"] == status:
+        print(f"{key} is already {status}")
+        return
+
+    os.makedirs(ARCHIVED, exist_ok=True)
+    new_path = os.path.join(ARCHIVED, os.path.basename(old["syllabus"]))
+    try:
+        con.execute("UPDATE courses SET status=?, archived_at=? WHERE key=?",
+                    (status, now_iso(), key))
+        if os.path.exists(old["syllabus"]):
+            shutil.move(old["syllabus"], new_path)
+            con.execute("UPDATE courses SET syllabus=? WHERE key=?", (new_path, key))
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    print(f"{key}: {old['status']} -> {status}")
+
+
+def cmd_list(args) -> None:
+    con = connect()
+    rows = [find(con, r[0]) for r in con.execute("SELECT key FROM courses ORDER BY key")]
+    if args.json:
+        print(json.dumps(rows, indent=2))
+        return
+    if not rows:
+        print("no courses registered")
+        return
+    marks = {"active": "[active]", "completed": "[done]",
+             "dropped": "[dropped]", "withdrawn": "[withdrawn]"}
+    for r in rows:
+        metadata = []
+        if r["term"]:
+            metadata.append(r["term"])
+        if r["record_type"] == "test_credit":
+            metadata.append("test credit" + (f": {r['credit_source']}" if r["credit_source"] else ""))
+        suffix = f"  ({'; '.join(metadata)})" if metadata else ""
+        syllabus = r["syllabus"] or "(no syllabus)"
+        print(f"{r['key']:<14} {marks[r['status']]:<10} {r['name']}{suffix}  {syllabus}")
+
+
+def cmd_get(args) -> None:
+    con = connect()
+    r = find(con, normalize_key(args.key))
+    if not r:
+        sys.exit(f"error: no course '{args.key}'")
+    print(json.dumps(r, indent=2))
+
+
+def cmd_path(args) -> None:
+    con = connect()
+    r = find(con, normalize_key(args.key))
+    if not r:
+        sys.exit(f"error: no course '{args.key}'")
+    if not r["syllabus"]:
+        sys.exit(f"error: course '{r['key']}' has no syllabus (historical record)")
+    print(r["syllabus"])
+
+
+def cmd_name(args) -> None:
+    con = connect()
+    r = find(con, normalize_key(args.key))
+    if not r:
+        sys.exit(f"error: no course '{args.key}'")
+    if args.new is None:
+        print(r["name"])
+        return
+    con.execute("UPDATE courses SET name=? WHERE key=?", (args.new, r["key"]))
+    con.commit()
+    print(f"{r['key']} name -> {args.new}")
+
+
+def cmd_source(args) -> None:
+    con = connect()
+    r = find(con, normalize_key(args.key))
+    if not r:
+        sys.exit(f"error: no course '{args.key}'")
+    sources = r["sources"]
+    if args.action == "add":
+        if args.url not in sources:
+            sources.append(args.url)
+            con.execute("UPDATE courses SET sources=? WHERE key=?", (json.dumps(sources), r["key"]))
+            con.commit()
+        print(f"{r['key']} sources ({len(sources)}):")
+        for u in sources:
+            print(f"  {u}")
+    elif args.action == "list":
+        for u in sources:
+            print(u)
+        if not sources:
+            print("(none)")
+    elif args.action == "clear":
+        con.execute("UPDATE courses SET sources=? WHERE key=?", ("[]", r["key"]))
+        con.commit()
+        print(f"{r['key']} sources cleared")
+
+
+def cmd_note(args) -> None:
+    con = connect()
+    r = find(con, normalize_key(args.key))
+    if not r:
+        sys.exit(f"error: no course '{args.key}'")
+    notes = r["notes"]
+    if args.action == "set":
+        if not args.note_key or args.value is None:
+            sys.exit("usage: da note <key> set <note_key> <value>")
+        notes[args.note_key] = args.value
+        con.execute("UPDATE courses SET notes=? WHERE key=?", (json.dumps(notes), r["key"]))
+        con.commit()
+        print(f"{r['key']} note '{args.note_key}' set")
+    elif args.action == "get":
+        print(json.dumps(notes, indent=2))
+    elif args.action == "del":
+        if not args.note_key:
+            sys.exit("usage: da note <key> del <note_key>")
+        notes.pop(args.note_key, None)
+        con.execute("UPDATE courses SET notes=? WHERE key=?", (json.dumps(notes), r["key"]))
+        con.commit()
+        print(f"{r['key']} note '{args.note_key}' removed")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="daily-assistant course registry")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("register", help="register a course from a syllabus file")
+    p.add_argument("path")
+    p.add_argument("key", nargs="?")
+    p.set_defaults(fn=cmd_register)
+
+    p = sub.add_parser("backdate", help="add a historical course or test credit without a syllabus")
+    p.add_argument("key")
+    p.add_argument("--name", help="display name (defaults to the course key)")
+    p.add_argument("--term", help="historical term, e.g. '2025 Fall'")
+    p.add_argument("--type", dest="record_type", choices=("course", "test-credit"), default="course")
+    p.add_argument("--source", help="credit source, e.g. 'AP Calculus BC'")
+    p.add_argument("--date", help="historical completion/archive date (ISO-8601)")
+    p.add_argument("--status", choices=ARCHIVE_STATUSES, default="completed")
+    p.set_defaults(fn=cmd_backdate)
+
+    p = sub.add_parser("archive", help="mark a course completed/dropped/withdrawn")
+    p.add_argument("key")
+    p.add_argument("status", nargs="?", default="completed")
+    p.set_defaults(fn=cmd_archive)
+
+    p = sub.add_parser("list", help="list courses")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_list)
+
+    p = sub.add_parser("get", help="show full course record as JSON")
+    p.add_argument("key")
+    p.set_defaults(fn=cmd_get)
+
+    p = sub.add_parser("path", help="print syllabus path")
+    p.add_argument("key")
+    p.set_defaults(fn=cmd_path)
+
+    p = sub.add_parser("name", help="get/set display name")
+    p.add_argument("key")
+    p.add_argument("new", nargs="?")
+    p.set_defaults(fn=cmd_name)
+
+    p = sub.add_parser("source", help="manage per-course source URLs")
+    p.add_argument("key")
+    p.add_argument("action", choices=("add", "list", "clear"))
+    p.add_argument("url", nargs="?")
+    p.set_defaults(fn=cmd_source)
+
+    p = sub.add_parser("note", help="manage per-course notes (JSON)")
+    p.add_argument("key")
+    p.add_argument("action", choices=("set", "get", "del"))
+    p.add_argument("note_key", nargs="?")
+    p.add_argument("value", nargs="?")
+    p.set_defaults(fn=cmd_note)
+
+    args = ap.parse_args()
+    try:
+        args.fn(args)
+    except SystemExit:
+        raise
+    except Exception as e:  # surface any failure as a clean error
+        sys.exit(f"error: {e}")
+
+
+if __name__ == "__main__":
+    main()

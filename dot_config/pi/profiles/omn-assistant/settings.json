@@ -1,0 +1,43 @@
+{
+  "theme": "everforest-tui-light",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "high",
+  "enabledModels": [
+    "deepseek-router/deepseek-v4-flash",
+    "deepseek-router/deepseek-v4-pro",
+    "openai-codex/gpt-5.6-sol",
+    "deepseek-router/deepseek-v4-flash-1m"
+  ],
+  "providers": {
+    "openrouter": {
+      "modelOverrides": {
+        "deepseek/deepseek-v4-flash-0731": {
+          "compat": {
+            "openRouterRouting": {
+              "only": [
+                "deepinfra"
+              ],
+              "allow_fallbacks": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "packages": [
+    "git:github.com/Quinntyx/pi-ptc-next@152f309272e5548f01d61235dc2d0c37140f0c66",
+    "git:git.quinntyx.dev/quinntyx/pi-auto-continue-after-compact",
+    "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
+    "git:git.quinntyx.dev/quinntyx/pi-block-rm",
+    "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
+    "git:git.quinntyx.dev/quinntyx/pi-exit-command",
+    "git:git.quinntyx.dev/quinntyx/pi-gemini-compaction",
+    "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
+    "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
+    "git:git.quinntyx.dev/quinntyx/pi-update-command",
+    "npm:pi-everforest-tui"
+  ],
+  "enableSkillCommands": true,
+  "lastChangelogVersion": "0.84.1"
+}

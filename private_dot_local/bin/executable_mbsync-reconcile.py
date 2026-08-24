@@ -43,7 +43,7 @@ PORT = 993
 
 def get_token():
     return subprocess.check_output(
-        ["oama", "access", ACCOUNT], text=True).strip()
+        ["oama", "access", ACCOUNT], text=True, timeout=30).strip()
 
 
 def xoauth2(tok):
@@ -51,7 +51,9 @@ def xoauth2(tok):
 
 
 def connect():
-    m = imaplib.IMAP4_SSL(HOST, PORT)
+    # a stalled Exchange connection must not block forever: every socket
+    # op gets a hard timeout so a hung cycle releases the sync lock.
+    m = imaplib.IMAP4_SSL(HOST, PORT, timeout=90)
     m.authenticate("XOAUTH2", lambda _: xoauth2(get_token()))
     return m
 
@@ -90,11 +92,12 @@ def local_mids(folder):
 
 
 def server_chunks(m, folder):
-    """Select folder and return (count, [(chunk_bytes,)], uid_list)."""
+    """Select folder and return (count, [(chunk_bytes,)], uid_list).
+    Raises RuntimeError if the folder cannot be selected, so a connection
+    failure is never mistaken for an empty mailbox."""
     typ, data = m.select(imap_name(folder))
     if typ != "OK":
-        print("  select %r failed: %r" % (folder, data), file=sys.stderr)
-        return 0, [], []
+        raise RuntimeError("select %r failed: %r" % (folder, data))
     typ, data = m.uid("search", None, "ALL")
     uids = data[0].split() if data and data[0] else []
     CH = 200
@@ -103,32 +106,46 @@ def server_chunks(m, folder):
     return len(uids), chunks, uids
 
 
-def fetch_one(conn, folder, chunk):
-    """Fetch message-ids for one chunk on its own connection."""
-    conn.select(imap_name(folder))
-    t, fetch = conn.uid("fetch", chunk,
-                        "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
-    if t != "OK":
-        print("  fetch failed at %r: %r" % (chunk, fetch), file=sys.stderr)
-        return {}
-    res = {}
-    for i in range(0, len(fetch)):
-        part = fetch[i]
-        if not isinstance(part, tuple):
-            continue
-        payload = part[1]
-        # the UID appears in the next non-tuple element, e.g. b' UID 908)'
-        nxt = fetch[i + 1] if i + 1 < len(fetch) else b""
-        mm = re.search(rb"UID (\d+)", nxt) if isinstance(nxt, bytes) else None
-        mid = None
+def fetch_one(folder, chunk):
+    """Fetch message-ids for one chunk. Each worker owns its connection;
+    Exchange occasionally drops a parallel connection (EOF), so retry once
+    on a fresh connection instead of failing the whole reconcile."""
+    conn = None
+    for attempt in (1, 2):
         try:
-            msg = email.message_from_bytes(payload)
-            mid = msg.get("Message-ID")
-        except Exception:
-            mid = None
-        if mm and mid:
-            res[int(mm.group(1))] = norm_mid(mid)
-    return res
+            conn = connect()
+            conn.select(imap_name(folder))
+            t, fetch = conn.uid("fetch", chunk,
+                                "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
+            if t != "OK":
+                print("  fetch failed at %r: %r" % (chunk, fetch), file=sys.stderr)
+                return {}
+            res = {}
+            for i in range(0, len(fetch)):
+                part = fetch[i]
+                if not isinstance(part, tuple):
+                    continue
+                payload = part[1]
+                # the UID appears in the next non-tuple element, e.g. b' UID 908)'
+                nxt = fetch[i + 1] if i + 1 < len(fetch) else b""
+                mm = re.search(rb"UID (\d+)", nxt) if isinstance(nxt, bytes) else None
+                mid = None
+                try:
+                    msg = email.message_from_bytes(payload)
+                    mid = msg.get("Message-ID")
+                except Exception:
+                    mid = None
+                if mm and mid:
+                    res[int(mm.group(1))] = norm_mid(mid)
+            return res
+        except (imaplib.IMAP4.abort, imaplib.IMAP4.error, OSError) as e:
+            print("  retry %s... (%s)" % (chunk[:40], e), file=sys.stderr)
+            try:
+                conn.logout()
+            except Exception:
+                pass
+            conn = None
+    raise RuntimeError("chunk %s failed after retries" % chunk[:40])
 
 
 def main():
@@ -141,11 +158,29 @@ def main():
     jobs = []              # (folder, chunk_bytes)
     uid_of = {}            # folder -> original uid list (for the diff loop)
     srv_count = {}         # folder -> total server messages
+    had_errors = False
     m = connect()
     try:
         for folder in args.folders:
             print("== %s ==" % folder)
-            n, chunks, uids = server_chunks(m, folder)
+            try:
+                n, chunks, uids = server_chunks(m, folder)
+            except (imaplib.IMAP4.abort, imaplib.IMAP4.error,
+                    OSError, RuntimeError):
+                # connection dropped mid-scan; reconnect and retry once
+                try:
+                    m.logout()
+                except Exception:
+                    pass
+                try:
+                    m = connect()
+                    n, chunks, uids = server_chunks(m, folder)
+                except (imaplib.IMAP4.abort, imaplib.IMAP4.error,
+                        OSError, RuntimeError) as e:
+                    print("  WARN %s: scan failed twice: %s" % (folder, e),
+                          file=sys.stderr)
+                    had_errors = True
+                    continue
             if not uids:
                 print("  (no server messages parsed)")
                 continue
@@ -158,22 +193,13 @@ def main():
         except Exception:
             pass
 
-    # 2) fetch all headers over one parallel pool
-    conns = [connect() for _ in range(min(8, len(jobs) or 1))]
+    # 2) fetch all headers over one parallel pool (4 connections: fewer
+    #    simultaneous fetches are less likely to be dropped by Exchange)
     results = []
-    try:
-        with cf.ThreadPoolExecutor(max_workers=len(conns)) as ex:
-            futs = [ex.submit(fetch_one,
-                              conns[i % len(conns)], folder, chunk)
-                    for i, (folder, chunk) in enumerate(jobs)]
-            results = [f.result() for f in futs]
-    finally:
-        for conn in conns:
-            try:
-                conn.logout()
-            except Exception:
-                pass
-
+    with cf.ThreadPoolExecutor(max_workers=4) as ex:
+        futs = [ex.submit(fetch_one, folder, chunk)
+                for (folder, chunk) in jobs]
+        results = [f.result(timeout=300) for f in futs]
     srv = {folder: {} for folder, _ in jobs}
     for (folder, _), res in zip(jobs, results):
         srv[folder].update(res)
@@ -247,6 +273,10 @@ def main():
             pass
 
     print("REUIDED=%d" % total)
+    if had_errors:
+        print("WARN: partial scan (connection problems) - not refreshing stamp",
+              file=sys.stderr)
+        return 1
     return 0
 
 

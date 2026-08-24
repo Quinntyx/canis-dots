@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+"""bb — minimal browser surface for the daily_assistant pi profile.
+
+Drives ONE persistent Chromium profile (login state survives between runs)
+via Playwright. This script is deliberately dumb: it exposes browser state
+through a stable CLI and lets the model decide what to open, wait for,
+read, click, and evaluate. It is a surface, not a scraper.
+
+One-time setup (the user must run this; it is the only install step):
+    python3 -m pip install --user playwright
+    python3 -m playwright install chromium
+
+If Playwright is not installed, bb exits with that hint and the model can
+fall back to `chromium --headless=new --dump-dom <url>` for static reads
+(no login state) or tell the user to finish the install.
+
+Usage:
+    bb login [url]            open a VISIBLE browser on the persistent profile;
+                              authenticate manually, then press Enter in the terminal
+    bb open <url>             goto URL, wait for network idle, print title/url/state
+    bb goto <url>             goto URL (no wait)
+    bb text                   print visible text of the current page
+    bb html                   print page HTML
+    bb title                  print page title + URL
+    bb shot [path]            screenshot to PNG (default $DA_HOME/shot.png)
+    bb eval <js>              evaluate a JS expression, print JSON result
+    bb click <css-selector>   click an element
+    bb scroll [px]            scroll down by px (default 800)
+    bb session                print the profile directory
+
+All commands use the persistent profile under $DA_HOME/browser
+(default ~/.local/share/daily-assistant/browser).
+"""
+import argparse
+import json
+import os
+import sys
+import time
+
+DA_HOME = os.environ.get("DA_HOME") or os.path.expanduser("~/.local/share/daily-assistant")
+PROFILE = os.path.join(DA_HOME, "browser")
+STATE = os.path.join(DA_HOME, "browser-state.json")
+LAST_URL = os.path.join(DA_HOME, "browser-last-url")
+
+
+def save_last_url(url: str) -> None:
+    with open(LAST_URL, "w", encoding="utf-8") as f:
+        f.write(url)
+    os.chmod(LAST_URL, 0o600)
+
+
+def load_last_url() -> str | None:
+    try:
+        with open(LAST_URL, encoding="utf-8") as f:
+            return f.read().strip() or None
+    except OSError:
+        return None
+
+
+def restore_session_cookies(ctx) -> None:
+    """Restore session cookies that Chromium normally discards on exit."""
+    if not os.path.exists(STATE):
+        return
+    try:
+        with open(STATE, encoding="utf-8") as f:
+            cookies = json.load(f).get("cookies", [])
+        if cookies:
+            ctx.add_cookies(cookies)
+    except (OSError, ValueError, TypeError):
+        pass
+
+
+def need_playwright():
+    try:
+        import playwright  # noqa: F401
+    except ImportError:
+        sys.exit(
+            "error: playwright is not installed.\n"
+            "  python3 -m pip install --user playwright\n"
+            "  python3 -m playwright install chromium\n"
+            "Until then you can use: chromium --headless=new --dump-dom <url>"
+        )
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="daily-assistant browser surface")
+    ap.add_argument("--headed", action="store_true", help="show the browser window")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("login", help="open persistent profile for manual authentication")
+    p.add_argument("url", nargs="?", default="https://elearning.utdallas.edu/")
+    p.add_argument("--timeout", type=int, default=600000)
+
+    p = sub.add_parser("open", help="goto URL, wait for load, print state")
+    p.add_argument("url")
+    p.add_argument("--timeout", type=int, default=45000)
+    p.add_argument("--wait", type=int, default=15000, help="networkidle timeout")
+    p = sub.add_parser("goto", help="goto URL without waiting for network idle")
+    p.add_argument("url")
+
+    sub.add_parser("text", help="print visible text")
+    sub.add_parser("html", help="print page HTML")
+    sub.add_parser("title", help="print title + URL")
+    p = sub.add_parser("shot", help="screenshot to PNG")
+    p.add_argument("path", nargs="?", default=os.path.join(DA_HOME, "shot.png"))
+    p = sub.add_parser("eval", help="evaluate JS expression, print JSON")
+    p.add_argument("js")
+    p = sub.add_parser("click", help="click element by CSS selector")
+    p.add_argument("selector")
+    p = sub.add_parser("scroll", help="scroll down")
+    p.add_argument("px", type=int, nargs="?", default=800)
+    sub.add_parser("session", help="print profile dir")
+
+    args = ap.parse_args()
+
+    if args.cmd == "session":
+        print(PROFILE)
+        return
+
+    need_playwright()
+    from playwright.sync_api import sync_playwright
+
+    headless = not (args.headed or args.cmd == "login")
+    with sync_playwright() as pw:
+        ctx = pw.chromium.launch_persistent_context(
+            PROFILE,
+            headless=headless,
+            viewport={"width": 1440, "height": 1000},
+        )
+        page = ctx.pages[0] if ctx.pages else ctx.new_page()
+
+        if args.cmd == "login":
+            print(f"profile: {PROFILE}")
+            print("authenticate now (NetID + Duo push). Keep the browser open.")
+            page.goto(args.url, timeout=args.timeout)
+            input("When Blackboard has loaded, return here and press Enter to save and close: ")
+            ctx.storage_state(path=STATE)
+            os.chmod(STATE, 0o600)
+            ctx.close()
+            print("login session closed; profile saved")
+            return
+
+        restore_session_cookies(ctx)
+
+        if args.cmd not in ("open", "goto"):
+            url = load_last_url()
+            if not url:
+                sys.exit("error: no current page; run bb open <url> first")
+            page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            try:
+                page.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                pass
+
+        if args.cmd == "open":
+            page.goto(args.url, wait_until="domcontentloaded", timeout=args.timeout)
+            try:
+                page.wait_for_load_state("networkidle", timeout=args.wait)
+                net = "idle"
+            except Exception:
+                net = "never-idle (page may still be usable)"
+            save_last_url(page.url)
+            print(json.dumps({
+                "url": page.url,
+                "title": page.title(),
+                "network": net,
+                "text_chars": len(page.inner_text("body")),
+            }))
+        elif args.cmd == "goto":
+            page.goto(args.url, timeout=45000)
+            save_last_url(page.url)
+        elif args.cmd == "text":
+            print(page.inner_text("body"))
+        elif args.cmd == "html":
+            print(page.content())
+        elif args.cmd == "title":
+            print(f"{page.title()}\n{page.url}")
+        elif args.cmd == "shot":
+            page.screenshot(path=args.path, full_page=False)
+            print(args.path)
+        elif args.cmd == "eval":
+            result = page.evaluate(args.js)
+            print(json.dumps(result, indent=2, default=str))
+        elif args.cmd == "click":
+            page.click(args.selector, timeout=15000)
+            save_last_url(page.url)
+            print("clicked")
+        elif args.cmd == "scroll":
+            page.mouse.wheel(0, args.px)
+            time.sleep(0.5)
+            print("scrolled")
+
+        ctx.close()
+
+
+if __name__ == "__main__":
+    main()

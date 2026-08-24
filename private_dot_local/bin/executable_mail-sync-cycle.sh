@@ -11,14 +11,14 @@
 # for long, so the archive script's lean sync does not starve.
 set -e
 
-mbsync -a
+timeout 240 mbsync -a
 notmuch new
 
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/mail-router/reconcile.last"
 if [ -n "$MAIL_SYNC_FORCE_RECONCILE" ] || [ ! -f "$STAMP" ] ||
    [ $(( $(date +%s) - $(stat -c %Y "$STAMP" 2>/dev/null || echo 0) )) -ge 600 ]; then
     set +e
-    REC=$(/home/zlare/.local/bin/mbsync-reconcile.py 2>&1)
+    REC=$(timeout 300 /home/zlare/.local/bin/mbsync-reconcile.py 2>&1)
     rc=$?
     set -e
     printf '%s\n' "$REC"
@@ -28,7 +28,7 @@ if [ -n "$MAIL_SYNC_FORCE_RECONCILE" ] || [ ! -f "$STAMP" ] ||
     fi
     case "$REC" in
       *'REUIDED='[1-9]*)
-        mbsync -a
+        timeout 240 mbsync -a
         notmuch new
         ;;
     esac

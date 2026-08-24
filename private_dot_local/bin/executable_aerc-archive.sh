@@ -56,7 +56,7 @@ def lean_sync():
     return True
 def get_token():
     return subprocess.check_output(
-        ["oama", "access", ACCOUNT], text=True).strip()
+        ["oama", "access", ACCOUNT], text=True, timeout=30).strip()
 
 
 def xoauth2(tok):
@@ -66,7 +66,9 @@ def xoauth2(tok):
 
 
 def connect():
-    m = imaplib.IMAP4_SSL(HOST, PORT)
+    # hard socket timeout: a stalled Exchange connection must never leave
+    # the script hanging in the aerc pipe.
+    m = imaplib.IMAP4_SSL(HOST, PORT, timeout=90)
     tok = get_token()
     m.authenticate("XOAUTH2", lambda _: xoauth2(tok))
     return m

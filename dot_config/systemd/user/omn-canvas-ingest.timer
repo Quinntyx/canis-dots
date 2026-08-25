@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily omn Canvas ingest (4:00 AM)
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+Unit=omn-canvas-ingest.service
+
+[Install]
+WantedBy=timers.target

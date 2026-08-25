@@ -1,0 +1,16 @@
+#!/bin/sh
+# Ingest the Canvas iCal feed into omn.
+# Driven nightly by the omn-canvas-ingest.timer user timer. The feed URL is
+# read from the existing private fish config (single source of truth, 0600) so
+# no copy of the secret is kept anywhere else.
+set -euo pipefail
+
+CANVAS_ICAL_URL="${CANVAS_ICAL_URL:-$(sed -n 's/^[[:space:]]*set -gx CANVAS_ICAL_URL "\([^"]*\)"/\1/p' "$HOME/.config/fish/conf.d/canvas-private.fish")}"
+if [ -z "$CANVAS_ICAL_URL" ]; then
+    echo "omn-canvas-ingest: CANVAS_ICAL_URL not found in canvas-private.fish" >&2
+    exit 1
+fi
+export CANVAS_ICAL_URL
+
+/usr/bin/python3 /home/zlare/docs/src/universal-data-management/main/adapters/canvas_ical.py |
+    /usr/bin/omn import

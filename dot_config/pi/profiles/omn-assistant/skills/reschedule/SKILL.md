@@ -11,9 +11,9 @@ metadata:
 
 ## Input Contract
 - A request to reschedule after the user has fallen behind on their plan.
-- Taskwarrior state with pending `+managed` work blocks or deliverables whose
-  `scheduled` date is on or before the current date, and any unmanaged tasks
-  carrying `est:`.
+- Taskwarrior state with pending `+managed` concrete tasks whose `scheduled`
+  date is on or before the current date, and any unmanaged tasks carrying
+  `est:`.
 - A populated omn store with assignment deadlines (`meta.due`) and class events
   (`meta.rrule`) for capacity math.
 - The current date and time in America/Chicago (UTD is in Dallas, TX).
@@ -95,13 +95,13 @@ metadata:
 
 ## Squashing non-assignment work
 - When a day is over budget, first offer to squash non-assignment work, namely
-  side-project and hobby blocks, on that day and later days.
+  side-project and hobby tasks, on that day and later days.
 - Preserve assignment work above project work whenever room must be made.
 
 ## Rippling and deadlines
 - Reassign carried work to the earliest day with capacity, earliest deadlines
   first.
-- Never schedule a work block after its assignment's real deadline.
+- Never schedule a task after its real deadline.
 - Keep small items unsplit and split large items across days, front-loaded.
 
 ## Completeness

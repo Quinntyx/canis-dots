@@ -1,8 +1,8 @@
 ---
 name: plan-assignments
 description: "Use when the user asks to plan, schedule, or set up next week's
-  assignments, or to move assignments from omn into Taskwarrior as scheduled
-  work blocks with per-assignment time estimates."
+  assignments, or to turn assignments from omn into concrete Taskwarrior tasks
+  with deadlines, scheduled dates, and estimates."
 metadata:
   type: procedure
 ---
@@ -23,9 +23,9 @@ metadata:
 
 ## Output Contract
 - A confirmed day-by-day plan for the target week, each day at roughly 8h total.
-- Taskwarrior tasks created or updated only for `+managed` work: one deliverable
-  task per assignment with `due` and total `est`, plus one or more work-block
-  tasks with `scheduled` and per-day `est`.
+- Taskwarrior tasks created or updated only for `+managed` work, with each entry
+  representing a concrete action carrying its real `due`, planned `scheduled`
+  date, and action-specific `est`.
 - A per-assignment `est` value written back into omn as `meta.est`.
 - Newly mentioned side projects recorded in omn as `type:project` records.
 - The created or moved task IDs reported, and a verification summary.
@@ -72,13 +72,17 @@ metadata:
    from the user's feedback and repeat Stage 4.
 
 ## Stage 5: Register in Taskwarrior
-1. For each assignment, add one deliverable task with `due`, total `est`, and
-   `+managed`, and one work-block task per scheduled day with `scheduled`, that
-   day's `est`, `+managed`, and `+workblock`.
-2. Add side-project work blocks with `scheduled`, `est`, `+managed`, and a
-   project value indicating a hobby.
-3. Modify only `+managed` tasks; never modify or delete an unmanaged task.
-4. Record each created task id; proceed to Stage 6.
+1. Convert each planned assignment into one or more concrete action tasks.
+2. Give every action its assignment's real `due`, its planned `scheduled` date,
+   its own `est`, and `+managed`.
+3. Represent a single-action assignment with exactly one Taskwarrior task.
+4. Represent multiple actions as independent tasks with descriptive names and
+   the same assignment deadline; do not create parent or tracking tasks.
+5. Add concrete side-project tasks with `scheduled`, `est`, and `+managed`; add
+   `due` only when a real deadline exists.
+6. Never add `deliverable` or `workblock` tags or create hierarchy-only entries.
+7. Modify only `+managed` tasks; never modify or delete an unmanaged task.
+8. Record each created task id; proceed to Stage 6.
 
 ## Stage 6: Verify
 1. Run `task ready` and confirm the day's work is visible.
@@ -87,7 +91,7 @@ metadata:
 3. Run `task export status:pending` and confirm per-day totals stay near the
    budget, no assignment scheduled past its deadline, small items unsplit, and
    large items split.
-4. Fix any violation by moving `+managed` work blocks only, then repeat Stage 6.
+4. Fix any violation by moving `+managed` tasks only, then repeat Stage 6.
 
 # Guidelines
 
@@ -99,8 +103,17 @@ metadata:
 - Allow exceeding the budget only when a real deadline cannot otherwise be met,
   and only by the minimum needed; state the exception before applying it.
 
+## Taskwarrior task model
+- Every Taskwarrior entry must describe concrete work the user can perform.
+- Use `due` only for the real deadline and `scheduled` only for the planned day.
+- When work needs multiple actions, create independent tasks with the same real
+  deadline and schedule each action on its intended day.
+- Do not create deadline trackers, parent tasks, work blocks, deliverables,
+  hierarchy, or relationship tags in Taskwarrior.
+- Make descriptions sufficient for the user to know what action to take.
+
 ## Managed and unmanaged tasks
-- Tag every task you create with `+managed`.
+- Tag every task you create with `+managed` only as an ownership safety marker.
 - Treat a task without `+managed` as unmanaged: never modify, move, or delete
   it unless the user explicitly asks, and say you are doing so first.
 - Count an unmanaged task's `est:` toward its day's budget and treat it as fixed

@@ -40,5 +40,6 @@
     "npm:pi-everforest-tui"
   ],
   "enableSkillCommands": true,
-  "lastChangelogVersion": "0.84.1"
+  "lastChangelogVersion": "0.84.1",
+  "hideThinkingBlock": true
 }

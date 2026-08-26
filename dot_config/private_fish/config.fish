@@ -22,6 +22,7 @@ abbr -a sizeof "du --si --max-depth=0"
 abbr -a wl-dump "wl-paste --type text/plain >"
 abbr -a pyc "python3 -m py_compile"
 abbr -a lock swaylock
+abbr -a sch "task schedule"
 
 # Let /move (and other Pi session switches) hand the final cwd back to this shell.
 # Route through the `main` ppi profile; when already under a profile

@@ -10,7 +10,9 @@
 .config/pi/agent/deepseek-router.json
 # Generated unit embeds FEATHERLESS_API_KEY; do not commit it verbatim.
 .config/systemd/user/openclaw-gateway.service
-
+# ---- gcal-sync: OAuth client secret and cached token (restore manually) ----
+.config/pi/profiles/omn-assistant/config/gcal-sync/client_secret*.json
+.config/pi/profiles/omn-assistant/config/gcal-sync/token.json
 # ---- forgejo instance: secrets, repo data, runtime state ----
 docs/host/forgejo/.env
 docs/host/forgejo/.wrangler/

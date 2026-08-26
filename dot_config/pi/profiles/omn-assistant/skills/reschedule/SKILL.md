@@ -11,9 +11,8 @@ metadata:
 
 ## Input Contract
 - A request to reschedule after the user has fallen behind on their plan.
-- Taskwarrior state with pending `+managed` concrete tasks whose `scheduled`
-  date is on or before the current date, and any unmanaged tasks carrying
-  `est:`.
+- Taskwarrior state with pending flexible `+managed` tasks, immovable
+  `+managed +fixed` commitments, and unmanaged tasks carrying `est:`.
 - A populated omn store with assignment deadlines (`meta.due`) and class events
   (`meta.rrule`) for capacity math.
 - The current date and time in America/Chicago (UTD is in Dallas, TX).
@@ -23,7 +22,8 @@ metadata:
   before the current date, none scheduled past its real deadline.
 - A rebuilt plan with each day near the budget, exceeding it only by the minimum
   needed to meet a deadline and only after proposing to squash side projects.
-- Unmanaged tasks left untouched unless the user explicitly asked otherwise.
+- Unmanaged and `+fixed` tasks left untouched unless the user explicitly asks
+  for a factual correction.
 - A before-and-after summary with the modified task ids and per-day totals.
 
 # Entrypoint
@@ -32,25 +32,28 @@ metadata:
 1. Run `date` and record the current date and weekday.
 2. Read the store with `omn list` and `omn export` for assignment deadlines and
    the class schedule.
-3. Read existing tasks with `task export status:pending` and separate `+managed`
-   from unmanaged tasks, noting unmanaged `est:` values as fixed budget.
+3. Read pending tasks and separate flexible `+managed`, immovable
+   `+managed +fixed`, and unmanaged tasks.
+4. Count scheduled fixed and unmanaged `est` values as unavailable capacity.
 
 ## Stage 2: Identify carried work
-1. Select `+managed` pending tasks that are overdue or have a `scheduled` date on
-   or before the current date.
-2. Determine remaining work per selected task: the full `est` when a portion was
+1. Select flexible `+managed` pending tasks that are overdue or have a
+   `scheduled` date on or before the current date.
+2. Exclude `+fixed` tasks from movement; report a past pending class as missed or
+   unresolved rather than rescheduling it.
+3. Determine remaining work per selected task: the full `est` when a portion was
    not done, or the user's stated remaining amount when they partially worked
    it.
-3. If any unmanaged task holds budget on a candidate day, account for it without
-   modifying it.
-4. Sum carried hours by deadline so the minimum work per day is known; proceed to
-   Stage 3.
+4. Account for fixed and unmanaged tasks on candidate days without modifying
+   them.
+5. Sum carried hours by deadline so the minimum work per day is known; proceed
+   to Stage 3.
 
 ## Stage 3: Ripple forward and rebalance
 1. Sort carried work by deadline, earliest first.
 2. Reassign each item to the earliest future day with remaining capacity, where
-   capacity is the budget minus that day's class hours minus unmanaged `est`
-   minus already-planned `+managed` work.
+   capacity is the budget minus fixed scheduled `est`, unmanaged scheduled
+   `est`, and already-planned flexible `+managed` work.
 3. Keep small items unsplit and split large items across enough days to finish
    comfortably before the deadline, applying the Guidelines.
 4. If a day would exceed the budget, first propose squashing non-assignment
@@ -67,7 +70,8 @@ metadata:
 2. On confirmation, move each carried `+managed` task with one modify per task,
    using its id from the export, adjusting `est` only when the remaining portion
    changed.
-3. Never modify, move, or delete an unmanaged task or an already-completed task.
+3. Never modify, move, or delete an unmanaged, `+fixed`, or already-completed
+   task.
 4. Record every modified task id; proceed to Stage 5.
 
 ## Stage 5: Verify
@@ -80,16 +84,20 @@ metadata:
 
 # Guidelines
 
-## Managed and unmanaged tasks
-- Move or modify only `+managed` tasks.
+## Flexible, fixed, and unmanaged tasks
+- Move or modify only flexible `+managed` tasks.
+- Treat `+managed +fixed` class, meeting, appointment, and event tasks as
+  immovable commitments.
 - Treat unmanaged tasks as fixed: never move or delete them unless the user
   explicitly asks, and say you are doing so first.
-- Count an unmanaged task's `est:` toward its day's budget and treat it as
-  un-reschedulable.
+- Count fixed and unmanaged scheduled `est` values toward the day's budget.
 
 ## Daily budget
-- Treat each weekday's total of class hours plus scheduled `est` hours as the
-  budget, nominally 8 hours.
+- Treat each weekday's total scheduled `est`, including every fixed event task,
+  as the budget, nominally 8 hours.
+- Parse compact decimal-hour and day estimates; expand day units against the
+  current daily budget.
+- Never replace compact estimates with ISO 8601 duration forms.
 - Stay at or under the budget; exceed it only by the minimum needed to meet a
   real deadline.
 
@@ -101,6 +109,9 @@ metadata:
 ## Rippling and deadlines
 - Reassign carried work to the earliest day with capacity, earliest deadlines
   first.
+- Preserve imperative verb-first descriptions when moving tasks.
+- Begin every newly split task description with an imperative verb describing
+  its concrete action.
 - Never schedule a task after its real deadline.
 - Keep small items unsplit and split large items across days, front-loaded.
 

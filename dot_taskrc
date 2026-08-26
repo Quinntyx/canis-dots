@@ -26,11 +26,42 @@ include light-256.theme
 #include no-color.theme
 
 
-# est: estimated hours-to-complete (UDA, duration)
-uda.est.type=duration
-uda.est.label=Est
+# est: compact human-readable effort (string: 0.5h, 2.5h, 1d)
+uda.est.type=string
+uda.est.label=EST
 
-# task ready: show scheduled day, est, and project for planning
-report.ready.columns=id,scheduled,est,project,tags,due,description
-report.ready.labels=ID,SCHED,EST,PROJECT,TAGS,DUE,DESCRIPTION
-report.ready.sort=scheduled+,due+
+# Fixed local-time window for immovable tasks such as classes.
+# Values use 24-hour HH:MM in America/Chicago.
+uda.starttime.type=string
+uda.starttime.label=START
+uda.endtime.type=string
+uda.endtime.label=END
+uda.location.type=string
+uda.location.label=LOC
+uda.transport.type=string
+uda.transport.label=MODE
+uda.transport.values=car,no-car
+
+# Show the complete actionable day, including fixed-time commitments.
+report.ready.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description,urgency
+report.ready.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
+report.ready.sort=urgency-
+
+# Keep the future list consistent with the ready report.
+report.list.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description
+report.list.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION
+report.list.sort=scheduled+,starttime+,due+
+
+# Show actionable work for today, including carried tasks.
+report.daily.description=Daily actionable task overview
+report.daily.filter=+READY
+report.daily.columns=id,start.age,entry.age,depends,priority,project,tags,recur,scheduled.countdown,due.relative,until.remaining,description,urgency
+report.daily.labels=ID,Active,Age,Deps,P,Project,Tag,Recur,S,Due,Until,Description,Urg
+report.daily.sort=urgency-
+
+# Show the same actionable task set as daily, ordered by staged time.
+report.schedule.description=Chronological staged schedule
+report.schedule.filter=+READY
+report.schedule.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description,urgency
+report.schedule.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
+report.schedule.sort=starttime+,urgency-

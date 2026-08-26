@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+"""Mirror the current Taskwarrior Mon-Sun week to the 'managed' Google Calendar.
+
+Taskwarrior is authoritative. Every run deletes all events inside the current
+week window in the 'managed' calendar and recreates them from
+`task export status:pending`. Events outside the window (previous weeks,
+future items) are never touched.
+
+Usage:
+  gcal-sync           # reconcile the current week
+  gcal-sync --auth    # one-time interactive OAuth consent (opens a browser)
+
+Credentials:
+  OAuth desktop client secret at
+    $GCAL_SYNC_SECRET or ~/.config/pi/profiles/omn-assistant/config/gcal-sync/client_secret.json
+  Cached token at
+    ~/.config/pi/profiles/omn-assistant/config/gcal-sync/token.json
+"""
+
+import json
+import os
+import secrets
+import socket
+import subprocess
+import sys
+import threading
+import urllib.error
+import urllib.parse
+import urllib.request
+import webbrowser
+from datetime import datetime, timedelta, timezone
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from zoneinfo import ZoneInfo
+
+TZ = ZoneInfo("America/Chicago")
+TIMEZONE_NAME = "America/Chicago"
+CALENDAR_SUMMARY = "managed"
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+PROFILE_DIR = os.path.expanduser("~/.config/pi/profiles/omn-assistant")
+CONFIG_DIR = os.path.join(PROFILE_DIR, "config", "gcal-sync")
+TOKEN_PATH = os.path.join(CONFIG_DIR, "token.json")
+
+
+def die(msg, code=1):
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+# ---------------------------------------------------------------- OAuth ----
+
+def _secret_path():
+    env = os.environ.get("GCAL_SYNC_SECRET")
+    return env or os.path.join(CONFIG_DIR, "client_secret.json")
+
+
+def load_client():
+    path = _secret_path()
+    if not os.path.exists(path):
+        die(
+            f"No OAuth client secret at {path}.\n"
+            "Create an OAuth Client ID (Application type: Desktop app) in\n"
+            "https://console.cloud.google.com/apis/credentials with the\n"
+            "Google Calendar API enabled, download its JSON, and save it there."
+        )
+    with open(path) as f:
+        data = json.load(f)
+    for key in ("installed", "web"):
+        if key in data:
+            c = data[key]
+            return c["client_id"], c["client_secret"], c.get("redirect_uris", [])
+    die("Unrecognized client-secret JSON (no 'installed'/'web' block).")
+
+
+def load_token():
+    if os.path.exists(TOKEN_PATH):
+        with open(TOKEN_PATH) as f:
+            return json.load(f)
+    return None
+
+
+def save_token(tok):
+    os.makedirs(os.path.dirname(TOKEN_PATH), exist_ok=True)
+    fd = os.open(TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(tok, f)
+
+
+def token_request(form):
+    req = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=urllib.parse.urlencode(form).encode(),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
+
+
+def authorize_interactive():
+    client_id, client_secret, _ = load_client()
+    # Loopback redirect: pick a free port, serve one request.
+    srv = HTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
+    port = srv.server_address[1]
+    redirect_uri = f"http://127.0.0.1:{port}/oauth2callback"
+    state = secrets.token_urlsafe(16)
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "access_type": "offline",
+        "prompt": "consent",
+        "state": state,
+    }
+    url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
+
+    result = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            q = urllib.parse.urlparse(self.path)
+            got = dict(urllib.parse.parse_qsl(q.query))
+            if q.path != "/oauth2callback" or got.get("state") != state:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"bad request")
+                return
+            result["code"] = got.get("code")
+            result["error"] = got.get("error")
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"<p>Authorized. You may close this tab.</p>")
+
+        def log_message(self, *a):
+            pass
+
+    t = threading.Thread(target=srv.handle_request, daemon=True)
+    t.start()
+    print("Opening browser for Google authorization...")
+    print(url)
+    webbrowser.open(url)
+    t.join(timeout=300)
+    srv.server_close()
+    if "code" not in result:
+        die(f"Authorization failed: {result.get('error') or 'timed out'}")
+
+    tok = token_request(
+        {
+            "code": result["code"],
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }
+    )
+    tok["obtained_at"] = datetime.now(timezone.utc).isoformat()
+    save_token(tok)
+    print("Token cached at", TOKEN_PATH)
+
+
+def fresh_access_token(tok):
+    """Return an access token, refreshing once if the cache has a refresh token."""
+    expires_at = tok.get("expires_at_utc")
+    if expires_at and datetime.fromisoformat(expires_at) > datetime.now(timezone.utc):
+        return tok["access_token"], tok
+    if "refresh_token" not in tok:
+        die(
+            "Cached token cannot be refreshed (missing refresh_token).\n"
+            "Re-run the consent flow with: gcal-sync --auth"
+        )
+    client_id, client_secret, _ = load_client()
+    new = token_request(
+        {
+            "refresh_token": tok["refresh_token"],
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "refresh_token",
+        }
+    )
+    tok["access_token"] = new["access_token"]
+    tok["expires_in"] = new.get("expires_in", 3600)
+    tok["expires_at_utc"] = (
+        datetime.now(timezone.utc) + timedelta(seconds=new.get("expires_in", 3600))
+    ).isoformat()
+    save_token(tok)
+    return tok["access_token"], tok
+
+
+class Api:
+    def __init__(self):
+        self.token_cache = load_token()
+        if not self.token_cache:
+            die(
+                "Not authorized yet. Run once interactively:\n"
+                "  gcal-sync --auth",
+                code=2,
+            )
+
+    def access_token(self):
+        _, self.token_cache = fresh_access_token(self.token_cache)
+        return self.token_cache["access_token"]
+
+    def call(self, method, path, body=None, params=None, retry_auth=True):
+        qs = ("?" + urllib.parse.urlencode(params)) if params else ""
+        url = f"https://www.googleapis.com/calendar/v3/{path.lstrip('/')}{qs}"
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(
+            url,
+            data=data,
+            method=method,
+            headers={
+                "Authorization": f"Bearer {self.access_token()}",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req) as resp:
+                raw = resp.read()
+                return json.loads(raw) if raw else {}
+        except urllib.error.HTTPError as e:
+            if e.code == 401 and retry_auth and "refresh_token" in self.token_cache:
+                # Force refresh by dropping the cached access token.
+                self.token_cache.pop("access_token", None)
+                return self.call(method, path, body, params, retry_auth=False)
+            raise
+
+
+# --------------------------------------------------------------- window ----
+
+def week_window(now=None):
+    """(start, end) datetimes covering Mon 00:00 .. next-Mon 00:00 local."""
+    now = now or datetime.now(TZ)
+    monday = (now - timedelta(days=now.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return monday, monday + timedelta(days=7)
+
+
+def rfc3339(dt):
+    return dt.isoformat(timespec="seconds")
+
+
+def window_rfc(window):
+    s, e = window
+    return rfc3339(s.astimezone(timezone.utc)), rfc3339(e.astimezone(timezone.utc))
+
+
+# ----------------------------------------------------------------- task ----
+
+def read_tasks():
+    out = subprocess.run(
+        ["task", "rc.verbose=nothing", "status:pending", "export"],
+        capture_output=True, text=True,
+    )
+    if out.returncode != 0:
+        die(f"task export failed: {out.stderr.strip()}")
+    return json.loads(out.stdout)
+
+
+def _sched_date(sched):
+    """Taskwarrior 'scheduled' export forms -> local calendar date."""
+    for fmt in ("%Y-%m-%d", "%Y%m%dT%H%M%SZ"):
+        try:
+            return datetime.strptime(sched, fmt).date()
+        except ValueError:
+            continue
+    try:  # RFC 3339 with offset or Z suffix
+        return datetime.fromisoformat(sched.replace("Z", "+00:00")).astimezone(TZ).date()
+    except ValueError:
+        return None
+
+
+def timed_in_window(tasks, window):
+    s, e = window
+    selected, skipped = [], []
+    for t in tasks:
+        sched = t.get("scheduled")
+        st, en = t.get("starttime"), t.get("endtime")
+        if not (sched and st and en):
+            continue  # untimed: not part of the schedule view
+        day = _sched_date(sched)
+        if day is None:
+            skipped.append((t.get("id"), f"unparseable scheduled '{sched}'"))
+            continue
+        try:
+            start = datetime.combine(day, datetime.strptime(st, "%H:%M").time(), TZ)
+            end = datetime.combine(day, datetime.strptime(en, "%H:%M").time(), TZ)
+            if end < start:  # overnight wrap should not happen in staged work
+                raise ValueError(f"endtime {en} precedes starttime {st}")
+        except ValueError as ex:
+            skipped.append((t.get("id"), str(ex)))
+            continue
+        if s.date() <= day < e.date():
+            selected.append((t, start, end))
+    return selected, skipped
+
+
+# ---------------------------------------------------------------- sync -----
+
+def ensure_calendar(api):
+    cal_list = api.call("GET", "/users/me/calendarList", params={"minAccessRole": "owner"})
+    for c in cal_list.get("items", []):
+        if c.get("summary") == CALENDAR_SUMMARY:
+            return c["id"]
+    created = api.call("POST", "/users/me/calendars", body={
+        "summary": CALENDAR_SUMMARY,
+        "timeZone": TIMEZONE_NAME,
+    })
+    return created["id"]
+
+
+def week_event_ids(api, cal_id, window):
+    tmin, tmax = window_rfc(window)
+    ids, page = [], None
+    while True:
+        params = {
+            "timeMin": tmin,
+            "timeMax": tmax,
+            "singleEvents": "true",
+            "showDeleted": "false",
+            "maxResults": 2500,
+        }
+        if page:
+            params["pageToken"] = page
+        res = api.call("GET", f"/users/me/calendars/{cal_id}/events", params=params)
+        ids.extend(e["id"] for e in res.get("items", []))
+        page = res.get("nextPageToken")
+        if not page:
+            return ids
+
+
+def event_body(task, start, end):
+    t = task
+    desc_lines = [f"ID: {t['id']}", f"uuid: {t['uuid']}"]
+    if t.get("est"):
+        desc_lines.append(f"est: {t['est']}")
+    if t.get("transport"):
+        desc_lines.append(f"transport: {t['transport']}")
+    if t.get("due"):
+        desc_lines.append(f"due: {t['due']}")
+    tags = ",".join(t.get("tags", []))
+    if tags:
+        desc_lines.append(f"tags: {tags}")
+    tzified = lambda dt: {"dateTime": rfc3339(dt), "timeZone": TIMEZONE_NAME}
+    return {
+        "summary": t["description"],
+        "description": "\n".join(desc_lines),
+        "location": t.get("location"),
+        "colorId": "11" if "fixed" in t.get("tags", []) else None,  # red for fixed
+        "start": tzified(start),
+        "end": tzified(end),
+    }
+
+
+def main():
+    if "--auth" in sys.argv[1:]:
+        authorize_interactive()
+        return
+
+    window = week_window()
+    s, e = window
+    print(f"Week window: {s:%Y-%m-%d %a} .. {(e - timedelta(days=1)):%Y-%m-%d %a}")
+
+    tasks = read_tasks()
+    selected, skipped = timed_in_window(tasks, window)
+
+    api = Api()
+    cal_id = ensure_calendar(api)
+
+    old_ids = week_event_ids(api, cal_id, window)
+    deleted, failed_del = 0, []
+    for eid in old_ids:
+        try:
+            api.call("DELETE", f"/users/me/calendars/{cal_id}/events/{eid}")
+            deleted += 1
+        except Exception as ex:
+            failed_del.append((eid, str(ex)))
+
+    created, failed_create = [], []
+    for task, start, end in selected:
+        body = event_body(task, start, end)
+        try:
+            ev = api.call("POST", f"/users/me/calendars/{cal_id}/events", body=body)
+            created.append((task["id"], task["description"], start, end, ev["htmlLink"]))
+        except Exception as ex:
+            failed_create.append((task["id"], task["description"], str(ex)))
+
+    print(f"Deleted {deleted} existing week event(s); "
+          f"{len(old_ids)} found.")
+    print(f"Created {len(created)} event(s) from {len(selected)} timed task(s).")
+    for tid, desc, start, end, link in sorted(created, key=lambda x: x[2]):
+        print(f"  + [{tid:>3}] {start:%m-%d %H:%M}-{end:%H:%M}  {desc[:60]}")
+    if skipped:
+        print("Skipped (untimed/unparseable, in-window):")
+        for tid, why in skipped:
+            print(f"  ! [{tid}] {why}")
+    for tid, eid, err in failed_del:
+        print(f"DELETE FAILED: task? event={eid}: {err}", file=sys.stderr)
+    for tid, desc, err in failed_create:
+        print(f"CREATE FAILED: [{tid}] {desc}: {err}", file=sys.stderr)
+
+    if failed_del or failed_create:
+        sys.exit(3)
+
+
+if __name__ == "__main__":
+    main()

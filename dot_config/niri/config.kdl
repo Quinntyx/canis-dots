@@ -62,6 +62,8 @@ layout {
     }
 
     struts { }
+    // Let the backdrop wallpaper show through instead of the default gray
+    background-color "transparent"
 }
 
 overview {

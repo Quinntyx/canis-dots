@@ -62,7 +62,7 @@ layout {
     }
 
     overview {
-        zoom 0.2
+        zoom 0.02
     }
 
     struts { }

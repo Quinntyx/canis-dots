@@ -8,7 +8,7 @@ and events whose task disappeared are deleted.
 
 Two task forms are synced:
 - Timed tasks (`starttime`+`endtime`) become timed events at their slot.
-- Date-only tasks (a `scheduled` day but no times yet) become dark olive,
+- Date-only tasks (a `scheduled` day but no times yet) become sage-green,
   half-circle-prefixed all-day preview events; when the morning scheduling
   pass stages times onto the task, the same uuid key migrates the event into
   a timed slot automatically.
@@ -394,13 +394,14 @@ def event_body(task, start, end):
         desc_lines.append(f"completed: {t.get('end', 'yes')}")
 
     if is_preview:
-        bounds = {"date": start.isoformat()}
+        start_bounds = {"date": start.isoformat()}
+        end_bounds = {"date": start.isoformat()}
     else:
-        bounds = {"dateTime": rfc3339(start), "timeZone": TIMEZONE_NAME}
+        start_bounds = {"dateTime": rfc3339(start), "timeZone": TIMEZONE_NAME}
+        end_bounds = {"dateTime": rfc3339(end), "timeZone": TIMEZONE_NAME}
 
-    # gray for completed, red for fixed, sage green for unscheduled
-    # previews (sage has a dark fill, readable on light calendars), default
-    # otherwise
+    # gray for completed, red for fixed, sage green for unscheduled previews,
+    # default otherwise
     if done:
         color = "8"
     elif is_preview:
@@ -421,14 +422,14 @@ def event_body(task, start, end):
         "description": "\n".join(desc_lines),
         "location": t.get("location"),
         "colorId": color,
-        "start": bounds,
-        "end": dict(bounds),
+        "start": start_bounds,
+        "end": end_bounds,
         "extendedProperties": {"private": {UUID_KEY: t["uuid"]}},
     }
 
 
 def _event_bounds(ev, which):
-    """Normalized ('date', 'YYYY-MM-DD') | ('dateTime', aware dt) | None."""
+    """Normalized ('dateTime', aware dt) | ('date', 'YYYY-MM-DD') | (None, None)."""
     raw = ev.get(which) or {}
     if "dateTime" in raw:
         dt = datetime.fromisoformat(raw["dateTime"].replace("Z", "+00:00"))
@@ -462,7 +463,7 @@ def reconcile(api, cal_id, selected, window):
         try:
             api.call(method, path, body=body)
             return True
-        except Exception as ex:
+        except (Exception, SystemExit) as ex:
             failed.append((label, str(ex)))
             return False
 

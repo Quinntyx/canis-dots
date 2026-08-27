@@ -98,21 +98,7 @@ def token_request(form):
 
 def authorize_interactive():
     client_id, client_secret, _ = load_client()
-    # Loopback redirect: pick a free port, serve one request.
-    srv = HTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
-    port = srv.server_address[1]
-    redirect_uri = f"http://127.0.0.1:{port}/oauth2callback"
     state = secrets.token_urlsafe(16)
-    params = {
-        "client_id": client_id,
-        "redirect_uri": redirect_uri,
-        "response_type": "code",
-        "scope": " ".join(SCOPES),
-        "access_type": "offline",
-        "prompt": "consent",
-        "state": state,
-    }
-    url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
 
     result = {}
 
@@ -133,6 +119,22 @@ def authorize_interactive():
 
         def log_message(self, *a):
             pass
+
+    # Loopback redirect: pick a free port and serve the OAuth callback with the
+    # handler class above; the server must be constructed after Handler exists.
+    srv = HTTPServer(("127.0.0.1", 0), Handler)
+    port = srv.server_address[1]
+    redirect_uri = f"http://127.0.0.1:{port}/oauth2callback"
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "access_type": "offline",
+        "prompt": "consent",
+        "state": state,
+    }
+    url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
 
     t = threading.Thread(target=srv.handle_request, daemon=True)
     t.start()

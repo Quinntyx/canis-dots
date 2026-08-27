@@ -251,8 +251,10 @@ def window_rfc(window):
 # ----------------------------------------------------------------- task ----
 
 def read_tasks():
+    # Export pending and completed (not deleted): completed tasks stay in the
+    # push so items finished earlier in the week survive later wipe-and-rebuilds.
     out = subprocess.run(
-        ["task", "rc.verbose=nothing", "status:pending", "export"],
+        ["task", "rc.verbose=nothing", "status.not:deleted", "export"],
         capture_output=True, text=True,
     )
     if out.returncode != 0:
@@ -334,22 +336,20 @@ def week_event_ids(api, cal_id, window):
 
 def event_body(task, start, end):
     t = task
-    desc_lines = [f"ID: {t['id']}", f"uuid: {t['uuid']}"]
-    if t.get("est"):
-        desc_lines.append(f"est: {t['est']}")
-    if t.get("transport"):
-        desc_lines.append(f"transport: {t['transport']}")
-    if t.get("due"):
-        desc_lines.append(f"due: {t['due']}")
-    tags = ",".join(t.get("tags", []))
-    if tags:
-        desc_lines.append(f"tags: {tags}")
+    done = t.get("status") == "completed"
+    # completed tasks export id=0; identify them by uuid instead
+    desc_lines = ([] if done else [f"ID: {t['id']}"])
+    desc_lines.append(f"uuid: {t['uuid']}")
+    if done:
+        desc_lines.append(f"completed: {t.get('end', 'yes')}")
     tzified = lambda dt: {"dateTime": rfc3339(dt), "timeZone": TIMEZONE_NAME}
     return {
-        "summary": t["description"],
+        "summary": ("\u2713 " + t["description"]) if done else t["description"],
         "description": "\n".join(desc_lines),
         "location": t.get("location"),
-        "colorId": "11" if "fixed" in t.get("tags", []) else None,  # red for fixed
+        # gray for completed, red for fixed commitments, default otherwise
+        "colorId": ("8" if done else
+                    ("11" if "fixed" in t.get("tags", []) else None)),
         "start": tzified(start),
         "end": tzified(end),
     }
@@ -390,9 +390,9 @@ def main():
 
     print(f"Deleted {deleted} existing week event(s); "
           f"{len(old_ids)} found.")
-    print(f"Created {len(created)} event(s) from {len(selected)} timed task(s).")
-    for tid, desc, start, end, link in sorted(created, key=lambda x: x[2]):
-        print(f"  + [{tid:>3}] {start:%m-%d %H:%M}-{end:%H:%M}  {desc[:60]}")
+    done_count = sum(1 for t, _, _ in selected if t.get("status") == "completed")
+    print(f"Created {len(created)} event(s) from {len(selected)} timed task(s) "
+          f"({done_count} completed).")
     if skipped:
         print("Skipped (untimed/unparseable, in-window):")
         for tid, why in skipped:

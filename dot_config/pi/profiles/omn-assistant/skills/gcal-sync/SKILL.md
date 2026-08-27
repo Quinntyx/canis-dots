@@ -17,9 +17,11 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
 
 - Taskwarrior is authoritative; the calendar is a view.
 - Each run deletes **every** event inside the current week window from the
-  `managed` calendar and recreates all of them from `task export status:pending`.
-  Edits made on the Google side during the week are intentionally discarded on
-  the next run; never "preserve" them by trying to merge.
+  `managed` calendar and recreates all of them from the non-deleted Taskwarrior
+  export, including completed tasks, so items finished earlier in the week
+  survive later pushes. Completed events carry a check-mark prefix and gray
+  color. Edits made on the Google side during the week are intentionally
+  discarded on the next run; never "preserve" them by trying to merge.
 - Events outside the window are never read, modified, or deleted, so previous
   weeks' schedules remain available as history.
 - Never touch any calendar other than `managed`, and never write calendar state

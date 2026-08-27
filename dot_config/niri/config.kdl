@@ -61,12 +61,14 @@ layout {
         draw-behind-window false
     }
 
-    overview {
-        zoom 0.02
-    }
-
     struts { }
 }
+
+overview {
+    // Zoom-out amount when the overview is open (range 0..0.75, default 0.4)
+    zoom 0.02
+}
+
 
 blur {
     passes 5

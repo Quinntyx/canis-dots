@@ -220,11 +220,12 @@ class Api:
                 raw = resp.read()
                 return json.loads(raw) if raw else {}
         except urllib.error.HTTPError as e:
+            body = e.read().decode(errors="replace")
             if e.code == 401 and retry_auth and "refresh_token" in self.token_cache:
                 # Force refresh by dropping the cached access token.
                 self.token_cache.pop("access_token", None)
                 return self.call(method, path, body, params, retry_auth=False)
-            raise
+            die(f"Calendar API {method} {path} -> HTTP {e.code}: {body[:800]}")
 
 
 # --------------------------------------------------------------- window ----
@@ -304,7 +305,7 @@ def ensure_calendar(api):
     for c in cal_list.get("items", []):
         if c.get("summary") == CALENDAR_SUMMARY:
             return c["id"]
-    created = api.call("POST", "/users/me/calendars", body={
+    created = api.call("POST", "/calendars", body={
         "summary": CALENDAR_SUMMARY,
         "timeZone": TIMEZONE_NAME,
     })
@@ -324,7 +325,7 @@ def week_event_ids(api, cal_id, window):
         }
         if page:
             params["pageToken"] = page
-        res = api.call("GET", f"/users/me/calendars/{cal_id}/events", params=params)
+        res = api.call("GET", f"/calendars/{cal_id}/events", params=params)
         ids.extend(e["id"] for e in res.get("items", []))
         page = res.get("nextPageToken")
         if not page:
@@ -373,7 +374,7 @@ def main():
     deleted, failed_del = 0, []
     for eid in old_ids:
         try:
-            api.call("DELETE", f"/users/me/calendars/{cal_id}/events/{eid}")
+            api.call("DELETE", f"/calendars/{cal_id}/events/{eid}")
             deleted += 1
         except Exception as ex:
             failed_del.append((eid, str(ex)))
@@ -382,7 +383,7 @@ def main():
     for task, start, end in selected:
         body = event_body(task, start, end)
         try:
-            ev = api.call("POST", f"/users/me/calendars/{cal_id}/events", body=body)
+            ev = api.call("POST", f"/calendars/{cal_id}/events", body=body)
             created.append((task["id"], task["description"], start, end, ev["htmlLink"]))
         except Exception as ex:
             failed_create.append((task["id"], task["description"], str(ex)))

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Mirror the current Taskwarrior Mon-Sun week to the 'managed' Google Calendar.
+"""Reconcile the current Taskwarrior Mon-Sun week into the 'managed' Google Calendar.
 
-Taskwarrior is authoritative. Every run deletes all events inside the current
-week window in the 'managed' calendar and recreates them from
-`task export status:pending`. Events outside the window (previous weeks,
-future items) are never touched.
+Taskwarrior is authoritative. Events are matched to tasks one-to-one through
+the `taskUuid` extended property, so repeated runs converge without deleting
+and recreating: new tasks are inserted, changed tasks are patched in place,
+and events whose task disappeared are deleted. Work completed earlier in the
+week stays gray and check-marked until the window rolls over. Events outside
+the window are never touched, and only the 'managed' calendar is modified.
 
 Usage:
   gcal-sync           # reconcile the current week
@@ -15,12 +17,15 @@ Credentials:
     $GCAL_SYNC_SECRET or ~/.config/pi/profiles/omn-assistant/config/gcal-sync/client_secret.json
   Cached token at
     ~/.config/pi/profiles/omn-assistant/config/gcal-sync/token.json
+
+Exit codes:
+  0 success, 2 not authorized, 3 some per-event operations failed,
+  1 fatal error.
 """
 
 import json
 import os
 import secrets
-import socket
 import subprocess
 import sys
 import threading
@@ -36,6 +41,7 @@ TZ = ZoneInfo("America/Chicago")
 TIMEZONE_NAME = "America/Chicago"
 CALENDAR_SUMMARY = "managed"
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+UUID_KEY = "taskUuid"
 
 PROFILE_DIR = os.path.expanduser("~/.config/pi/profiles/omn-assistant")
 CONFIG_DIR = os.path.join(PROFILE_DIR, "config", "gcal-sync")
@@ -220,12 +226,12 @@ class Api:
                 raw = resp.read()
                 return json.loads(raw) if raw else {}
         except urllib.error.HTTPError as e:
-            body = e.read().decode(errors="replace")
+            err_body = e.read().decode(errors="replace")
             if e.code == 401 and retry_auth and "refresh_token" in self.token_cache:
                 # Force refresh by dropping the cached access token.
                 self.token_cache.pop("access_token", None)
                 return self.call(method, path, body, params, retry_auth=False)
-            die(f"Calendar API {method} {path} -> HTTP {e.code}: {body[:800]}")
+            die(f"Calendar API {method} {path} -> HTTP {e.code}: {err_body[:800]}")
 
 
 # --------------------------------------------------------------- window ----
@@ -251,8 +257,8 @@ def window_rfc(window):
 # ----------------------------------------------------------------- task ----
 
 def read_tasks():
-    # Export pending and completed (not deleted): completed tasks stay in the
-    # push so items finished earlier in the week survive later wipe-and-rebuilds.
+    # Export everything except deleted: pending plus completed, so work
+    # finished earlier in the week keeps its calendar event until rollover.
     out = subprocess.run(
         ["task", "rc.verbose=nothing", "status.not:deleted", "export"],
         capture_output=True, text=True,
@@ -314,9 +320,10 @@ def ensure_calendar(api):
     return created["id"]
 
 
-def week_event_ids(api, cal_id, window):
+def fetch_week_events(api, cal_id, window):
+    """Return ({uuid: event}, [events_without_uuid]) inside the week window."""
     tmin, tmax = window_rfc(window)
-    ids, page = [], None
+    by_uuid, orphans, page = {}, [], None
     while True:
         params = {
             "timeMin": tmin,
@@ -328,10 +335,15 @@ def week_event_ids(api, cal_id, window):
         if page:
             params["pageToken"] = page
         res = api.call("GET", f"/calendars/{cal_id}/events", params=params)
-        ids.extend(e["id"] for e in res.get("items", []))
+        for ev in res.get("items", []):
+            u = ev.get("extendedProperties", {}).get("private", {}).get(UUID_KEY)
+            if u:
+                by_uuid[u] = ev
+            else:
+                orphans.append(ev)
         page = res.get("nextPageToken")
         if not page:
-            return ids
+            return by_uuid, orphans
 
 
 def event_body(task, start, end):
@@ -352,7 +364,92 @@ def event_body(task, start, end):
                     ("11" if "fixed" in t.get("tags", []) else None)),
         "start": tzified(start),
         "end": tzified(end),
+        "extendedProperties": {"private": {UUID_KEY: t["uuid"]}},
     }
+
+
+def _event_dt(ev, which):
+    raw = ev.get(which, {}).get("dateTime")
+    if not raw:
+        return None
+    return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+
+
+def event_differs(local_body, remote_event):
+    """True when any field Taskwarrior controls changed on the remote event."""
+    checks = [
+        local_body.get("summary") != remote_event.get("summary"),
+        (local_body.get("description") or "").strip() !=
+        (remote_event.get("description") or "").strip(),
+        (local_body.get("location") or None) != (remote_event.get("location") or None),
+        local_body.get("colorId") != (remote_event.get("colorId") or None),
+        _event_dt(local_body, "start") != _event_dt(remote_event, "start"),
+        _event_dt(local_body, "end") != _event_dt(remote_event, "end"),
+    ]
+    return any(checks)
+
+
+def reconcile(api, cal_id, selected, window):
+    remote_by_uuid, orphans = fetch_week_events(api, cal_id, window)
+    local_by_uuid = {t["uuid"]: (t, s, e) for t, s, e in selected}
+
+    inserted, updated, unchanged, deleted, failed = [], [], [], [], []
+
+    def run(method, path, body=None, label=""):
+        try:
+            api.call(method, path, body=body)
+            return True
+        except Exception as ex:
+            failed.append((label, str(ex)))
+            return False
+
+    # Calendar-only leftovers in the window: no matching task anymore.
+    for ev in orphans:
+        if run("DELETE", f"/calendars/{cal_id}/events/{ev['id']}", label="orphan"):
+            deleted.append((None, ev.get("summary", "")[:60]))
+
+    for uuid, ev in sorted(remote_by_uuid.items(), key=lambda kv: kv[1]["id"]):
+        if uuid not in local_by_uuid:
+            if run("DELETE", f"/calendars/{cal_id}/events/{ev['id']}", label=uuid[:8]):
+                deleted.append((None, ev.get("summary", "").lstrip("\u2713 ")[:60]))
+
+    for uuid, (t, s, e) in local_by_uuid.items():
+        body = event_body(t, s, e)
+        remote = remote_by_uuid.get(uuid)
+        if remote is None:
+            if run("POST", f"/calendars/{cal_id}/events", body=body,
+                   label=t["description"][:40]):
+                inserted.append((t, s, e))
+        elif event_differs(body, remote):
+            patch = {k: v for k, v in body.items() if k != "extendedProperties"}
+            if run("PATCH", f"/calendars/{cal_id}/events/{remote['id']}", body=patch,
+                   label=t["description"][:40]):
+                updated.append((t, s, e))
+        else:
+            unchanged.append((t, s, e))
+
+    report = {
+        "inserted": inserted, "updated": updated, "unchanged": unchanged,
+        "deleted": deleted, "failed": failed,
+    }
+
+    print(f"Week window: {window[0]:%Y-%m-%d %a} .. {(window[1] - timedelta(days=1)):%Y-%m-%d %a}")
+    done_count = sum(1 for t, _, _ in selected if t.get("status") == "completed")
+    print(f"{len(selected)} timed task(s) in window ({done_count} completed); "
+          f"+{len(inserted)} new, ~{len(updated)} updated, "
+          f"={len(unchanged)} unchanged, -{len(deleted)} removed.")
+    for kind, rows in (("inserted", inserted), ("updated", updated),
+                       ("unchanged", unchanged)):
+        for t, s, e in sorted(rows, key=lambda x: x[1]):
+            mark = {"inserted": "+", "updated": "~", "unchanged": "="}[kind]
+            desc = t["description"]
+            if t.get("status") == "completed":
+                desc = "\u2713 " + desc
+            print(f"  {mark} [{s:%m-%d %H:%M}-{e:%H:%M}] {desc[:60]}")
+    for _, desc in deleted:
+        print(f"  - [{desc}]")
+
+    return report
 
 
 def main():
@@ -361,48 +458,22 @@ def main():
         return
 
     window = week_window()
-    s, e = window
-    print(f"Week window: {s:%Y-%m-%d %a} .. {(e - timedelta(days=1)):%Y-%m-%d %a}")
-
     tasks = read_tasks()
     selected, skipped = timed_in_window(tasks, window)
 
     api = Api()
     cal_id = ensure_calendar(api)
 
-    old_ids = week_event_ids(api, cal_id, window)
-    deleted, failed_del = 0, []
-    for eid in old_ids:
-        try:
-            api.call("DELETE", f"/calendars/{cal_id}/events/{eid}")
-            deleted += 1
-        except Exception as ex:
-            failed_del.append((eid, str(ex)))
+    report = reconcile(api, cal_id, selected, window)
 
-    created, failed_create = [], []
-    for task, start, end in selected:
-        body = event_body(task, start, end)
-        try:
-            ev = api.call("POST", f"/calendars/{cal_id}/events", body=body)
-            created.append((task["id"], task["description"], start, end, ev["htmlLink"]))
-        except Exception as ex:
-            failed_create.append((task["id"], task["description"], str(ex)))
-
-    print(f"Deleted {deleted} existing week event(s); "
-          f"{len(old_ids)} found.")
-    done_count = sum(1 for t, _, _ in selected if t.get("status") == "completed")
-    print(f"Created {len(created)} event(s) from {len(selected)} timed task(s) "
-          f"({done_count} completed).")
     if skipped:
-        print("Skipped (untimed/unparseable, in-window):")
+        print("Skipped (untimed/unparseable):")
         for tid, why in skipped:
             print(f"  ! [{tid}] {why}")
-    for tid, eid, err in failed_del:
-        print(f"DELETE FAILED: task? event={eid}: {err}", file=sys.stderr)
-    for tid, desc, err in failed_create:
-        print(f"CREATE FAILED: [{tid}] {desc}: {err}", file=sys.stderr)
+    for label, err in report["failed"]:
+        print(f"SYNC FAILED: [{label}]: {err}", file=sys.stderr)
 
-    if failed_del or failed_create:
+    if report["failed"]:
         sys.exit(3)
 
 

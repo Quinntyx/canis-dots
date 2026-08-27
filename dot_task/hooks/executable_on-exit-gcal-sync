@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Taskwarrior on-exit hook: after a +managed task is marked done, re-sync
+the 'managed' Google Calendar so its event turns gray in place.
+
+Taskwarrior 3.x feeds each modified task as one JSON object per stdin line in
+its post-modification state. A sync is triggered whenever any of those tasks
+carries the +managed tag and is now status:completed. The sync runs detached
+so `task` never blocks on the network.
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+SYNC = os.path.expanduser(
+    "~/.config/pi/profiles/omn-assistant/skills/gcal-sync/bin/gcal-sync"
+)
+LOG = os.path.expanduser("~/.local/state/gcal-sync-hook.log")
+
+
+def log(msg):
+    try:
+        os.makedirs(os.path.dirname(LOG), exist_ok=True)
+        with open(LOG, "a") as f:
+            f.write(msg.rstrip("\n") + "\n")
+    except OSError:
+        pass
+
+
+def main():
+    triggered = []
+    for line in sys.stdin.read().splitlines():
+        if not line.strip():
+            continue
+        try:
+            t = json.loads(line)
+        except ValueError:
+            continue
+        if (
+            isinstance(t, dict)
+            and t.get("status") == "completed"
+            and "managed" in (t.get("tags") or [])
+        ):
+            triggered.append(t.get("uuid", "?"))
+
+    if not triggered:
+        return
+
+    if not os.access(SYNC, os.X_OK):
+        return  # this machine has no omn-assistant profile; stay silent
+
+    with open(os.devnull, "wb") as devnull:
+        subprocess.Popen(
+            [SYNC], stdout=devnull, stderr=devnull,
+            start_new_session=True,
+        )
+    log(f"triggered gcal-sync ({len(triggered)} completed managed task(s): "
+        f"{', '.join(u[:8] for u in triggered)})")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as ex:  # never break task itself
+        log(f"error: {ex}")
+    sys.exit(0)

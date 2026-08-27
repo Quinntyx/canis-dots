@@ -16,16 +16,20 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
 ## Ownership boundaries
 
 - Taskwarrior is authoritative; the calendar is a view.
-- Each run deletes **every** event inside the current week window from the
-  `managed` calendar and recreates all of them from the non-deleted Taskwarrior
-  export, including completed tasks, so items finished earlier in the week
-  survive later pushes. Completed events carry a check-mark prefix and gray
-  color. Edits made on the Google side during the week are intentionally
-  discarded on the next run; never "preserve" them by trying to merge.
+- Events are matched one-to-one to tasks through the `taskUuid` extended
+  property. Each run reconciles the window: tasks without an event are
+  inserted, changed tasks are patched in place (Taskwarrior wins every field,
+  including any manual Google-side edit), events whose task is gone or that
+  carry no `taskUuid` are deleted. A clean rerun performs zero writes.
+- The export includes completed tasks, so items finished earlier in the week
+  survive later runs as gray, check-marked events until the window rolls over.
 - Events outside the window are never read, modified, or deleted, so previous
   weeks' schedules remain available as history.
 - Never touch any calendar other than `managed`, and never write calendar state
   back into Taskwarrior or omn.
+- An on-exit hook at `~/.task/hooks/on-exit-gcal-sync` re-syncs automatically
+  whenever the user completes a `+managed` task; do not add a second manual
+  sync after such completions.
 
 ## Procedure
 
@@ -40,8 +44,8 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
 3. On exit code 2 (not authorized), tell the user to run `gcal-sync --auth`
    themselves in an interactive terminal so they can complete the browser
    consent; do not attempt to authenticate on their behalf.
-4. Report deleted and created event counts per day. Treat any
-   `CREATE FAILED`/`DELETE FAILED` line as a required fix-and-rerun, not as
+4. Report new/updated/unchanged/removed counts from the script output. Treat any
+   `SYNC FAILED` line as a required fix-and-rerun, not as success.
    success.
 5. Tasks that carry `scheduled` within the week but lack `starttime`/`endtime`
    are skipped and reported. If such tasks should be timed, return them to

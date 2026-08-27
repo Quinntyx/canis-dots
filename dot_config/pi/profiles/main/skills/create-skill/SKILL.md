@@ -178,7 +178,12 @@ metadata:
 
 # Supporting Files
 
-- Put executable automation in `scripts/` when repeated mechanical work warrants a script.
+- Put executable automation in the skill's own `bin/` directory when repeated mechanical work
+  warrants a script; each skill owns its executables inside its own folder and never relies on a
+  shared profile-level bin.
+- Name executable entries after the command they expose (one entry per tool), mark them
+  executable, treat `bin/<tool>` as the skill's stable interface path, and refer to it in the body
+  as that skill-root-relative path.
 - Put detailed material in `references/` only when keeping it in `SKILL.md` would impair focused
   loading.
 - Put static templates or other non-instructional resources in `assets/`.

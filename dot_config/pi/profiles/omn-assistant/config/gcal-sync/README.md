@@ -1,7 +1,9 @@
 # gcal-sync credentials
 
-Holds Google Calendar OAuth material for the profile's `bin/gcal-sync`
-script. This directory is tracked so its structure survives on new machines,
+Holds Google Calendar OAuth material for the gcal-sync skill's bundled
+`bin/gcal-sync` script. This directory is tracked so its structure survives
+on new machines, but every file inside it is machine-local secret or runtime
+state, excluded via `.chezmoiignore`:
 but every file inside it is machine-local secret or runtime state, excluded
 via `.chezmoiignore`:
 
@@ -11,4 +13,4 @@ via `.chezmoiignore`:
 
 On a new machine, run:
 
-    bin/gcal-sync --auth
+    ~/.config/pi/profiles/omn-assistant/skills/gcal-sync/bin/gcal-sync --auth

@@ -9,8 +9,9 @@ metadata:
 
 # gcal-sync: publish the managed week to Google Calendar
 
-`bin/gcal-sync` in this profile mirrors the current Monday-through-Sunday week
-from Taskwarrior into the dedicated `managed` Google Calendar.
+The bundled script `bin/gcal-sync` (relative to this skill's root) mirrors the
+current Monday-through-Sunday week from Taskwarrior into the dedicated
+`managed` Google Calendar.
 
 ## Ownership boundaries
 
@@ -30,7 +31,10 @@ from Taskwarrior into the dedicated `managed` Google Calendar.
    final `task schedule` check, Stage 5 of `schedule-day`, or Stage 6 of
    `plan-assignments`). Do not sync an unverified or stale schedule; rebuild it
    first with the owning skill.
-2. Run `~/.config/pi/profiles/omn-assistant/bin/gcal-sync`.
+2. Run this skill's bundled script at its skill-root-relative path,
+   `bin/gcal-sync`;
+   on this machine that resolves to
+   `~/.config/pi/profiles/omn-assistant/skills/gcal-sync/bin/gcal-sync`.
 3. On exit code 2 (not authorized), tell the user to run `gcal-sync --auth`
    themselves in an interactive terminal so they can complete the browser
    consent; do not attempt to authenticate on their behalf.

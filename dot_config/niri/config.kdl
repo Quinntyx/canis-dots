@@ -69,6 +69,11 @@ overview {
     zoom 0.16
 }
 
+layer-rule {
+    match namespace="^awww-daemon$"
+    place-within-backdrop true
+}
+
 
 blur {
     passes 5

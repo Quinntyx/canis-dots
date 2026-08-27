@@ -4,9 +4,18 @@
 Taskwarrior is authoritative. Events are matched to tasks one-to-one through
 the `taskUuid` extended property, so repeated runs converge without deleting
 and recreating: new tasks are inserted, changed tasks are patched in place,
-and events whose task disappeared are deleted. Work completed earlier in the
-week stays gray and check-marked until the window rolls over. Events outside
-the window are never touched, and only the 'managed' calendar is modified.
+and events whose task disappeared are deleted.
+
+Two task forms are synced:
+- Timed tasks (`starttime`+`endtime`) become timed events at their slot.
+- Date-only tasks (a `scheduled` day but no times yet) become banana-yellow,
+  half-circle-prefixed all-day preview events; when the morning scheduling
+  pass stages times onto the task, the same uuid key migrates the event into
+  a timed slot automatically.
+
+Work completed earlier in the week stays gray and check-marked until the
+window rolls over. Events outside the window are never touched, and only the
+'managed' calendar is modified.
 
 Usage:
   gcal-sync           # reconcile the current week
@@ -33,7 +42,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from zoneinfo import ZoneInfo
 
@@ -254,6 +263,14 @@ def window_rfc(window):
     return rfc3339(s.astimezone(timezone.utc)), rfc3339(e.astimezone(timezone.utc))
 
 
+def _sort_start(row):
+    """Uniform sortable start key across timed (datetime) and allday (date)."""
+    start = row[1]
+    if isinstance(start, datetime):
+        return (start.date(), start.timetz())
+    return (start, dtime(0))
+
+
 # ----------------------------------------------------------------- task ----
 
 def read_tasks():
@@ -281,28 +298,47 @@ def _sched_date(sched):
         return None
 
 
-def timed_in_window(tasks, window):
+def plan_task_event(t, window):
+    """Map one task to ('timed', start, end) / ('allday', date) / ('skip', ...).
+
+    Timed tasks carry a full slot; tasks with only a scheduled day become
+    all-day preview events. Returns None for tasks outside the window.
+    """
     s, e = window
+    sched = t.get("scheduled")
+    if not sched:
+        return None
+    day = _sched_date(sched)
+    if day is None:
+        return ("skip", t.get("id"), f"unparseable scheduled '{sched}'")
+    if not (s.date() <= day < e.date()):
+        return None
+    st, en = t.get("starttime"), t.get("endtime")
+    if not (st and en):
+        return ("allday", t, day)
+    try:
+        start = datetime.combine(day, datetime.strptime(st, "%H:%M").time(), TZ)
+        end = datetime.combine(day, datetime.strptime(en, "%H:%M").time(), TZ)
+        if end < start:  # overnight wrap should not happen in staged work
+            raise ValueError(f"endtime {en} precedes starttime {st}")
+    except ValueError as ex:
+        return ("skip", t.get("id"), str(ex))
+    return ("timed", t, start, end)
+
+
+def timed_in_window(tasks, window):
+    """Selected rows are (task, start, end); end is None for all-day previews."""
     selected, skipped = [], []
     for t in tasks:
-        sched = t.get("scheduled")
-        st, en = t.get("starttime"), t.get("endtime")
-        if not (sched and st and en):
-            continue  # untimed: not part of the schedule view
-        day = _sched_date(sched)
-        if day is None:
-            skipped.append((t.get("id"), f"unparseable scheduled '{sched}'"))
+        plan = plan_task_event(t, window)
+        if plan is None:
             continue
-        try:
-            start = datetime.combine(day, datetime.strptime(st, "%H:%M").time(), TZ)
-            end = datetime.combine(day, datetime.strptime(en, "%H:%M").time(), TZ)
-            if end < start:  # overnight wrap should not happen in staged work
-                raise ValueError(f"endtime {en} precedes starttime {st}")
-        except ValueError as ex:
-            skipped.append((t.get("id"), str(ex)))
-            continue
-        if s.date() <= day < e.date():
-            selected.append((t, start, end))
+        if plan[0] == "skip":
+            skipped.append((plan[1], plan[2]))
+        elif plan[0] == "timed":
+            selected.append((t, plan[2], plan[3]))
+        else:
+            selected.append((t, plan[2], None))
     return selected, skipped
 
 
@@ -347,32 +383,58 @@ def fetch_week_events(api, cal_id, window):
 
 
 def event_body(task, start, end):
+    """Event payload; `end is None` renders an all-day preview for `start`."""
     t = task
     done = t.get("status") == "completed"
+    is_preview = end is None
     # completed tasks export id=0; identify them by uuid instead
     desc_lines = ([] if done else [f"ID: {t['id']}"])
     desc_lines.append(f"uuid: {t['uuid']}")
     if done:
         desc_lines.append(f"completed: {t.get('end', 'yes')}")
-    tzified = lambda dt: {"dateTime": rfc3339(dt), "timeZone": TIMEZONE_NAME}
+
+    if is_preview:
+        bounds = {"date": start.isoformat()}
+    else:
+        bounds = {"dateTime": rfc3339(start), "timeZone": TIMEZONE_NAME}
+
+    # gray for completed, red for fixed, banana yellow for unscheduled
+    # previews, default otherwise
+    if done:
+        color = "8"
+    elif is_preview:
+        color = "5"
+    elif "fixed" in t.get("tags", []):
+        color = "11"
+    else:
+        color = None
+
+    summary = t["description"]
+    if done:
+        summary = "\u2713 " + summary
+    if is_preview:
+        summary = "\u25d1 " + summary  # half circle: planned but not time-boxed
+
     return {
-        "summary": ("\u2713 " + t["description"]) if done else t["description"],
+        "summary": summary,
         "description": "\n".join(desc_lines),
         "location": t.get("location"),
-        # gray for completed, red for fixed commitments, default otherwise
-        "colorId": ("8" if done else
-                    ("11" if "fixed" in t.get("tags", []) else None)),
-        "start": tzified(start),
-        "end": tzified(end),
+        "colorId": color,
+        "start": bounds,
+        "end": dict(bounds),
         "extendedProperties": {"private": {UUID_KEY: t["uuid"]}},
     }
 
 
-def _event_dt(ev, which):
-    raw = ev.get(which, {}).get("dateTime")
-    if not raw:
-        return None
-    return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+def _event_bounds(ev, which):
+    """Normalized ('date', 'YYYY-MM-DD') | ('dateTime', aware dt) | None."""
+    raw = ev.get(which) or {}
+    if "dateTime" in raw:
+        dt = datetime.fromisoformat(raw["dateTime"].replace("Z", "+00:00"))
+        return ("dateTime", dt)
+    if "date" in raw:
+        return ("date", raw["date"])
+    return (None, None)
 
 
 def event_differs(local_body, remote_event):
@@ -383,8 +445,8 @@ def event_differs(local_body, remote_event):
         (remote_event.get("description") or "").strip(),
         (local_body.get("location") or None) != (remote_event.get("location") or None),
         local_body.get("colorId") != (remote_event.get("colorId") or None),
-        _event_dt(local_body, "start") != _event_dt(remote_event, "start"),
-        _event_dt(local_body, "end") != _event_dt(remote_event, "end"),
+        _event_bounds(local_body, "start") != _event_bounds(remote_event, "start"),
+        _event_bounds(local_body, "end") != _event_bounds(remote_event, "end"),
     ]
     return any(checks)
 
@@ -410,8 +472,9 @@ def reconcile(api, cal_id, selected, window):
 
     for uuid, ev in sorted(remote_by_uuid.items(), key=lambda kv: kv[1]["id"]):
         if uuid not in local_by_uuid:
+            summary = ev.get("summary", "").lstrip("\u2713\u25d1 ")
             if run("DELETE", f"/calendars/{cal_id}/events/{ev['id']}", label=uuid[:8]):
-                deleted.append((None, ev.get("summary", "").lstrip("\u2713 ")[:60]))
+                deleted.append((None, summary[:60]))
 
     for uuid, (t, s, e) in local_by_uuid.items():
         body = event_body(t, s, e)
@@ -422,6 +485,19 @@ def reconcile(api, cal_id, selected, window):
                 inserted.append((t, s, e))
         elif event_differs(body, remote):
             patch = {k: v for k, v in body.items() if k != "extendedProperties"}
+            # Google merges PATCH dicts: switching an event between all-day and
+            # timed requires explicitly clearing the superseded bound keys.
+            was_date = "date" in (remote.get("start") or {})
+            now_date = "date" in (body.get("start") or {})
+            if was_date != now_date:
+                for key in ("start", "end"):
+                    b = dict(patch[key])
+                    if now_date:
+                        b["dateTime"] = None
+                        b["timeZone"] = None
+                    else:
+                        b["date"] = None
+                    patch[key] = b
             if run("PATCH", f"/calendars/{cal_id}/events/{remote['id']}", body=patch,
                    label=t["description"][:40]):
                 updated.append((t, s, e))
@@ -435,17 +511,22 @@ def reconcile(api, cal_id, selected, window):
 
     print(f"Week window: {window[0]:%Y-%m-%d %a} .. {(window[1] - timedelta(days=1)):%Y-%m-%d %a}")
     done_count = sum(1 for t, _, _ in selected if t.get("status") == "completed")
-    print(f"{len(selected)} timed task(s) in window ({done_count} completed); "
+    preview_count = sum(1 for _, _, e in selected if e is None)
+    print(f"{len(selected)} scheduled task(s) in window "
+          f"({done_count} completed, {preview_count} untimed previews); "
           f"+{len(inserted)} new, ~{len(updated)} updated, "
           f"={len(unchanged)} unchanged, -{len(deleted)} removed.")
-    for kind, rows in (("inserted", inserted), ("updated", updated),
-                       ("unchanged", unchanged)):
-        for t, s, e in sorted(rows, key=lambda x: x[1]):
-            mark = {"inserted": "+", "updated": "~", "unchanged": "="}[kind]
+    for kind, mark in (("inserted", "+"), ("updated", "~"), ("unchanged", "=")):
+        for t, s, e in sorted(report[kind], key=_sort_start):
             desc = t["description"]
             if t.get("status") == "completed":
                 desc = "\u2713 " + desc
-            print(f"  {mark} [{s:%m-%d %H:%M}-{e:%H:%M}] {desc[:60]}")
+            if e is None:
+                desc = "\u25d1 " + desc
+                span = f"{s:%m-%d} (all-day)"
+            else:
+                span = f"{s:%m-%d %H:%M}-{e:%H:%M}"
+            print(f"  {mark} [{span}] {desc[:64]}")
     for _, desc in deleted:
         print(f"  - [{desc}]")
 
@@ -467,7 +548,7 @@ def main():
     report = reconcile(api, cal_id, selected, window)
 
     if skipped:
-        print("Skipped (untimed/unparseable):")
+        print("Skipped (unparseable):")
         for tid, why in skipped:
             print(f"  ! [{tid}] {why}")
     for label, err in report["failed"]:

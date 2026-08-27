@@ -23,6 +23,11 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
   carry no `taskUuid` are deleted. A clean rerun performs zero writes.
 - The export includes completed tasks, so items finished earlier in the week
   survive later runs as gray, check-marked events until the window rolls over.
+- Two task forms are synced: timed tasks (`starttime`+`endtime`) become timed
+  events; date-only tasks (a `scheduled` day, no times yet) become
+  banana-yellow all-day previews prefixed with \u25d1, so upcoming work stays
+  visible before the morning scheduling pass. When times are staged later,
+  the same uuid migrates the preview into a timed slot on the next run.
 - Events outside the window are never read, modified, or deleted, so previous
   weeks' schedules remain available as history.
 - Never touch any calendar other than `managed`, and never write calendar state

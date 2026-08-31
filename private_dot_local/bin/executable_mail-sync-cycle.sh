@@ -9,9 +9,19 @@
 # while blind spots are rare. The frequent triggers (goimapnotify on new
 # mail, aerc's 1m poll, the 5m timer) stay fast and never hold the sync lock
 # for long, so the archive script's lean sync does not starve.
-set -e
+# Sync each account separately: one failing/locked-out account (e.g. Gmail
+# before its first OAuth authorization) must not abort the cycle for the others.
+# Gmail only joins once the initial backlog sync has finished (stamp file), so a
+# backlog pull in a manual pane never races the cycle's own mbsync.
+mbsync_all() {
+    accts="utdallas"
+    [ -f "${XDG_STATE_HOME:-$HOME/.local/state}/mail-router/gmail_backlog_done" ] && accts="$accts gmail"
+    for acct in $accts; do
+        timeout 240 mbsync "$acct" || echo "mail-sync: mbsync $acct failed (continuing)" >&2
+    done
+}
 
-timeout 240 mbsync -a
+mbsync_all
 notmuch new
 
 STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/mail-router/reconcile.last"
@@ -28,7 +38,7 @@ if [ -n "$MAIL_SYNC_FORCE_RECONCILE" ] || [ ! -f "$STAMP" ] ||
     fi
     case "$REC" in
       *'REUIDED='[1-9]*)
-        timeout 240 mbsync -a
+        mbsync_all
         notmuch new
         ;;
     esac

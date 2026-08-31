@@ -1,0 +1,59 @@
+#!/bin/bash
+# notmuch post-new hook: route each new INBOX message through the pi mail profile.
+# Fires after every `notmuch new` (goimapnotify onNewMailPost, fallback timer, aerc check-mail).
+set -u
+
+PROFILE_DIR="$HOME/.config/pi/profiles/mail"
+LOG="$HOME/.local/state/mail-router/route.log"
+PPI="/home/zlare/.npm-global/bin/ppi"
+
+export PATH="/home/zlare/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# ppi needs PPI_PI_ROOT to find the mail profile when launched from systemd/services
+export PPI_PI_ROOT="${PPI_PI_ROOT:-/home/zlare/.config/pi}"
+# Ensure notify-send (used by the mail profile's mail_notify tool) can reach the user bus
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+
+mkdir -p "$(dirname "$LOG")"
+cd "$PROFILE_DIR" || exit 1
+# Assign folder tags to newly seen messages (aerc query-map uses these)
+# Synced folders: utdallas INBOX/Sent Items/Archive and gmail INBOX/[Gmail]/Sent Mail/[Gmail]/All Mail.
+notmuch tag +inbox -- "tag:new and path:utdallas/INBOX/**"
+notmuch tag +sent -new -- "tag:new and path:\"utdallas/Sent Items/**\""
+notmuch tag +inbox -- "tag:new and path:gmail/INBOX/**"
+notmuch tag +sent -new -- "tag:new and path:\"gmail/[Gmail]/Sent Mail/**\""
+# Folder-location reconciliation: keep tags consistent with where messages live.
+# Anything in the utdallas Archive is archived; anything whose files are no
+# longer in either INBOX loses the "inbox" tag (so web/phone archives and
+# gmail archiving - removal from INBOX, message stays in All Mail - hide it
+# from the aerc inbox).
+notmuch tag +archive -new -- "path:utdallas/Archive/**"
+notmuch tag -inbox -- "tag:inbox and not (path:utdallas/INBOX/** or path:gmail/INBOX/**)"
+
+# Routing of gmail backlog is deferred until the initial sync finished: while
+# the gmail_backlog_done stamp is missing, only utdallas mail is routed. Gmail
+# messages keep tag:new meanwhile and get routed on the first pass after the
+# stamp appears... EXCEPT the backlog itself, which is settled (-new, no
+# routing) by the same finish-up that creates the stamp.
+GMAIL_ROUTE=""
+[ -f "$HOME/.local/state/mail-router/gmail_backlog_done" ] && GMAIL_ROUTE=' or path:gmail/INBOX/**'
+
+echo "[$(date '+%F %T')] routing pass" >> "$LOG"
+
+notmuch search --format=text --output=messages "tag:new and (path:utdallas/INBOX/**$GMAIL_ROUTE)" | while read -r msgid; do
+    # Claim the message first (idempotency): if another pass already took it, skip.
+    if ! notmuch tag -new +pending -- "$msgid" 2>/dev/null; then
+        continue
+    fi
+    echo "[$(date '+%F %T')] $msgid -> pi" >> "$LOG"
+    notmuch show --format=raw "$msgid" \
+        | timeout 180 "$PPI" use mail -- @mail_rules.md -p "Route this email" \
+        >> "$LOG" 2>&1
+    rc=$?
+    if [ $rc -eq 0 ]; then
+        notmuch tag -pending +routed -- "$msgid"
+        echo "[$(date '+%F %T')] $msgid -> routed" >> "$LOG"
+    else
+        notmuch tag -pending +failed -- "$msgid"
+        echo "[$(date '+%F %T')] $msgid -> FAILED rc=$rc (tagged +failed)" >> "$LOG"
+    fi
+done

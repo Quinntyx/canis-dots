@@ -1,0 +1,17 @@
+[database]
+path=/home/zlare/docs/mail
+
+[user]
+name=zlare
+primary_email=dal558183@utdallas.edu
+other_email=harrisonhenry916@gmail.com
+
+[new]
+tags=new;unread
+ignore=
+
+[search]
+exclude_tags=deleted;spam
+
+[maildir]
+synchronize_flags=true

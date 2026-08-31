@@ -14,3 +14,18 @@ configurations:
             -
                 mailbox: INBOX
                 onNewMail: '/home/zlare/.local/bin/mail-sync.sh'
+    -
+        host: imap.gmail.com
+        port: 993
+        tls: true
+        tlsOptions:
+            rejectUnauthorized: true
+            starttls: false
+        idleLogoutTimeout: 20
+        username: harrisonhenry916@gmail.com
+        xoAuth2: true
+        passwordCMD: /home/zlare/.config/goimapnotify/gmail-xoauth2.sh
+        boxes:
+            -
+                mailbox: INBOX
+                onNewMail: '/home/zlare/.local/bin/mail-sync.sh'

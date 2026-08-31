@@ -1,0 +1,51 @@
+# mbsync config: UTD Microsoft 365 + Gmail (both XOAUTH2 via oama)
+
+IMAPAccount utdallas
+Host outlook.office365.com
+Port 993
+User dal558183@utdallas.edu
+PassCmd "oama access dal558183@utdallas.edu"
+AuthMechs XOAUTH2
+TLSType IMAPS
+
+IMAPStore utdallas-remote
+Account utdallas
+
+MaildirStore utdallas-local
+Path ~/docs/mail/utdallas/
+Inbox ~/docs/mail/utdallas/INBOX
+SubFolders Verbatim
+
+Channel utdallas
+Far :utdallas-remote:
+Near :utdallas-local:
+Patterns "INBOX" "Sent Items" "Archive"
+Create Both
+SyncState *
+Expunge Near
+
+# --- Gmail (XOAUTH2 via oama) ---
+
+IMAPAccount gmail
+Host imap.gmail.com
+Port 993
+User harrisonhenry916@gmail.com
+PassCmd "oama access harrisonhenry916@gmail.com"
+AuthMechs XOAUTH2
+TLSType IMAPS
+
+IMAPStore gmail-remote
+Account gmail
+
+MaildirStore gmail-local
+Path ~/docs/mail/gmail/
+Inbox ~/docs/mail/gmail/INBOX
+SubFolders Verbatim
+
+Channel gmail
+Far :gmail-remote:
+Near :gmail-local:
+Patterns "INBOX" "[Gmail]/Sent Mail" "[Gmail]/All Mail"
+Create Both
+SyncState *
+Expunge Near

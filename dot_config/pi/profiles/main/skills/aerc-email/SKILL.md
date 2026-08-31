@@ -1,13 +1,15 @@
 ---
 name: aerc-email
 description: >-
-  Use when asked to refresh, access, inspect, read, list, or search the user's UTDallas
-  email through aerc, notmuch, mbsync, the local Maildir, or the mail sync services.
+  Use when asked to refresh, access, inspect, read, list, or search the user's
+  UTDallas or Gmail email through aerc, notmuch, mbsync, the local Maildir, or
+  the mail sync services.
 metadata:
   type: procedure
 compatibility: >-
   Requires the configured local aerc, notmuch, mbsync, OAMA, systemd user services,
-  and mail scripts under /home/zlare.
+  and mail scripts under /home/zlare. Two accounts are mirrored: utdallas
+  (Microsoft 365) and gmail, both via XOAUTH2.
 ---
 
 # Contract
@@ -82,7 +84,7 @@ MAIL_SYNC_FORCE_RECONCILE=1 /home/zlare/.local/bin/mail-sync.sh
    - `attachment:` and `mimetype:` for attachment metadata.
    - `and`, `or`, `not`, parentheses, quoted phrases, and trailing wildcards for composition.
 3. Apply the local tag model correctly:
-   - `tag:inbox and not tag:deleted` is the aerc `inbox` virtual folder.
+   - `tag:inbox and not tag:deleted` is the aerc `inbox` virtual folder (both accounts).
    - `tag:unread and tag:inbox` is the aerc `unread` virtual folder.
    - `tag:routed` is the aerc `routed` virtual folder.
    - `tag:sent` is the aerc `sent` virtual folder.
@@ -187,11 +189,14 @@ journalctl --user -u mail-sync.service -n 50 --no-pager
 
 # Implementation Facts
 
-- aerc account configuration: `/home/zlare/.config/aerc/accounts.conf`.
+- aerc account configuration: `/home/zlare/.config/aerc/accounts.conf` (two accounts,
+  utdallas and gmail, sharing one query-map over the shared notmuch database).
 - aerc query map: `/home/zlare/.config/aerc/query-map`.
 - notmuch configuration: `/home/zlare/.notmuch-config`.
 - mbsync configuration: `/home/zlare/.mbsyncrc`.
-- local Maildir and notmuch database: `/home/zlare/docs/mail`.
+- local Maildir and notmuch database: `/home/zlare/docs/mail` (utdallas under
+  `utdallas/`; gmail under `gmail/`, with Sent Mail at `gmail/[Gmail]/Sent Mail`
+  and the archive copy at `gmail/[Gmail]/All Mail`).
 - sync entrypoint: `/home/zlare/.local/bin/mail-sync.sh`.
 - sync cycle: `/home/zlare/.local/bin/mail-sync-cycle.sh`.
 - notmuch routing hook: `/home/zlare/docs/mail/.notmuch/hooks/post-new`.

@@ -115,6 +115,14 @@ metadata:
 - Never schedule a task after its real deadline.
 - Keep small items unsplit and split large items across days, front-loaded.
 
+- Treat 0.5 hours as the minimum estimate for any task reallocation; merge
+  smaller carried actions into 0.5h or larger tasks rather than moving many
+  sub-0.5h fragments.
+- Before reallocating a record's tasks, read its `artifacts.rrule` artifact
+  when one exists (named by replacing the record id's colons with underscores
+  and appending `_rrule.md`) and honor its recurrence and placement constraints
+  when choosing new days.
+
 ## Completeness
 - Never drop carried work silently; if it cannot fit, report the shortfall and
   the reason rather than leaving a return task unscheduled.

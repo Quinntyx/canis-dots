@@ -14,8 +14,8 @@ metadata:
 - A populated store with assignment `task` records carrying `meta.due`, class
   `event` records carrying `meta.start`/`meta.end` and `meta.rrule`, and any
   `type:project` records for side projects and hobbies.
-- Taskwarrior with string UDAs `est`, `starttime`, `endtime`, and `location`
-  configured; create them before planning when they are unavailable.
+- Taskwarrior with string UDAs `est`, `starttime`, `endtime`, `location`, and
+  `travel` configured; create them before planning when they are unavailable.
 - Conversation with the user supplying availability, project preferences, and a
   per-assignment estimate.
 - The current date and time in America/Chicago (UTD is in Dallas, TX).
@@ -86,8 +86,10 @@ metadata:
 5. Do not create duplicate event tasks when the same description, date, and time
    window already exist.
 6. Convert each planned assignment into one or more concrete action tasks.
-7. Give every action its assignment's real `due`, its planned `scheduled` date,
-   its own `est`, and `+managed`.
+7. Give every action the assignment's actual Canvas `meta.due` as its real
+   `due`, its planned `scheduled` date set to the day the action is meant to
+   happen, its own `est`, `+managed`, and `travel` when the action requires
+   travel.
 8. Represent a single-action assignment with exactly one Taskwarrior task.
 9. Represent multiple actions as independent tasks with descriptive names and
    the same assignment deadline; do not create parent or tracking tasks.
@@ -124,6 +126,11 @@ metadata:
 - Keep durable existence, recurrence, and source state in omn; convert only each
   actionable occurrence or work unit into Taskwarrior.
 - Use `due` only for the real deadline and `scheduled` only for the planned day.
+- Set `due` on Canvas-backed assignments exactly from the omn `meta.due` value;
+  never replace it with a planning target, a safety margin, or the scheduled
+  date.
+- Set `scheduled` to the day the action is actually meant to happen, matching
+  the accepted plan; do not default it to the due date or another placeholder.
 - Treat attending a class as a concrete task due and scheduled on its occurrence
   date.
 - Put fixed local times in `starttime` and `endtime` using 24-hour `HH:MM`.
@@ -136,6 +143,8 @@ metadata:
   hierarchy, or relationship tags in Taskwarrior.
 - Make descriptions sufficient for the user to know what action to take.
 - Store `est` as a compact human-readable string using decimal hours or days.
+- Treat 0.5 hours as the minimum estimate for any allocated task; never create
+  0h tasks, and merge or consolidate smaller actions into 0.5h or larger tasks.
 - Never write ISO 8601 duration forms into Taskwarrior `est`.
 - Expand day-scale estimates against the current daily budget during capacity
   calculations.
@@ -166,7 +175,27 @@ metadata:
 - Fit projects onto the lightest days to round each day up to the budget.
 - Never move or delay an assignment to make room for a project.
 
+## Recurrence artifacts
+
+- Before arranging any record's tasks across the week, read its `artifacts.rrule`
+  artifact when one exists; the file is named by replacing the record id's
+  colons with underscores and appending `_rrule.md`.
+- Honor the recurrence, duration, sequencing, and placement constraints written
+  in that artifact when allocating days and blocks; they override default
+  placement heuristics for that record's tasks.
+- Do not schedule a record against its rrule artifact; when the artifact cannot
+  be satisfied, report the specific conflict instead of silently ignoring it.
+
+## People schedules
+
+- When arranging shared work that names another person, look up that person in
+  omn (`type:person` records) and place the block outside their `meta.busy`
+  intervals; treat approximate intervals with a 15-minute margin.
+- If no record exists for that person, ask for their schedule before placing
+  shared work rather than assuming availability.
+
 ## Estimates
+
 - Write every agreed `est` back into omn as `meta.est` so future runs can offer
   it as a historical estimate.
 - Normalize estimates to compact decimal-hour or day strings with explicit units.

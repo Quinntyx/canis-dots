@@ -48,8 +48,9 @@ today, and semantically equivalent formulations.
 2. A schedule exists only when every managed action ready for the resolved date
    has `starttime`, `endtime`, and `transport` populated.
 3. Require all fixed events to retain their authoritative time and location.
-4. Require lunch, the afternoon break, non-overlap, car-trip grouping, and
-   unallocated transition gaps to satisfy the `schedule-day` contract.
+4. Require lunch, the afternoon break, non-overlap, car-trip and same-type
+   grouping, travel buffers, and unallocated transition gaps to satisfy the
+   `schedule-day` contract.
 5. Treat the schedule as stale when any ready action is missing a time window,
    any carried task retains an earlier scheduled date, fixed event data changed,
    a task was added or removed, or refreshed source data changed current-week
@@ -64,15 +65,18 @@ today, and semantically equivalent formulations.
 
 ### Daily brief output
 
-1. After reconciliation and scheduling are complete, always run `task schedule`,
-   whether the schedule was already current or was rebuilt during the request.
-2. End every successfully completed daily brief with the `task schedule` terminal
-   table verbatim in a fenced text block.
-3. Preserve Taskwarrior's column order, headings, row order, wrapping, and
-   summary line; do not convert it into a Markdown table or paraphrased list.
-4. The verbatim schedule table is mandatory as the final synopsis; planning,
-   refresh, or scheduling turns do not replace it.
+1. After reconciliation and scheduling are complete, always run `task schedule`
+   as the final command immediately before writing the report, whether the
+   schedule was already current or was rebuilt during the request.
+2. Use that exact `task schedule` output as the primary source of the report;
+   never describe schedule state from memory or from earlier command results.
+3. Do not paste the `task schedule` table into the report; the user prefers
+   running it themselves through the `sch` fish abbreviation. Present a brief
+   derived summary of the day instead.
+4. Include in the report the remaining assignments and fixed events for the
+   rest of the current week with their due dates, so the user can veto their
+   scheduled placement or pull work earlier.
 5. When reconciliation or scheduling required changes, give only the minimal
-   status needed before the final verbatim schedule.
-6. When user input blocks completion, ask the smallest required question instead
-   of presenting an incomplete schedule as current.
+   status needed before the schedule summary.
+6. When user input blocks completion, ask the smallest required question
+   instead of presenting an incomplete schedule as current.

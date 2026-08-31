@@ -195,6 +195,20 @@ metadata:
 - `meta.source` records provenance.
 - The full note body belongs in an artifact when it exceeds a short summary.
 
+## Recurrence Artifacts
+
+- An item may carry a recurrence artifact under the `artifacts.rrule` key.
+- Name the managed file by replacing the record id's colons with underscores
+  and appending `_rrule.md`, for example `manual_project_piano_rrule.md`.
+- Write the artifact as Markdown containing only durable recurrence and
+  placement constraints: frequency per week, allowed duration range,
+  time-of-day window, sequencing relative to other blocks, and standing
+  exceptions.
+- Keep lifecycle state such as paused weeks in record metadata, not in the
+  artifact.
+- Planning and scheduling skills must read this artifact before arranging the
+  record's tasks and honor its constraints.
+
 # Item Type Conventions
 
 - `task` represents work completed before an authoritative deadline.

@@ -43,7 +43,7 @@ require("minuet").setup({
             -- changed per-request, so this value is only informational.
             model = "qwen2.5-coder-1.5b",
             optional = {
-                max_tokens = 64, -- bound multi-line completions so generation stays snappy
+                max_tokens = 16, -- ~one line of code: keeps latency low
                 top_p = 0.9,
             },
             -- llama.cpp has no suffix option in FIM, so embed the Qwen2.5-Coder

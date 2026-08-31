@@ -76,5 +76,10 @@ assert(knobs ~= nil)
 require("lazy").setup({
     { import = "load.core" },
     knobs.completion.enabled and { import = "load.completion" } or {},
+    knobs.ai.enabled and { import = "load.ai" } or {},
     knobs.git.enabled and { import = "load.git" } or {},
 })
+
+-- fff file manager keymap: defined at startup so the <leader>e key works
+-- even though the fff.vim plugin itself lazy-loads on the :F command.
+require("plugins.fff-cfg")

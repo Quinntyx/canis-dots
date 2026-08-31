@@ -13,8 +13,7 @@ return {
     },
     {
         "dylanaraps/fff.vim",
-        cmd = { "F" }, -- lazy-load on the :F command used by the <leader>e mapping
-        config = function() require("plugins.fff-cfg") end,
+        cmd = { "F" }, -- lazy-load on the :F command; the mapping lives in plugins.fff-cfg (loaded at startup)
     },
     {
         "folke/which-key.nvim",

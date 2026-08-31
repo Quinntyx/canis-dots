@@ -58,3 +58,11 @@ docs/host/forgejo/forgejo/gitea/conf/
 .local/bin/gh
 .local/bin/python3.14
 .local/bin/spacetime
+
+# ---- nvim config: embedded git repo + machine junk (never manage) ----
+.config/nvim/.git
+.config/nvim/install.log
+.config/nvim/texput.log
+.config/nvim/startuptime.log
+.config/nvim/todo.txt
+.config/nvim/lua/knobs.lua

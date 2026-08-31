@@ -65,4 +65,5 @@ docs/host/forgejo/forgejo/gitea/conf/
 .config/nvim/texput.log
 .config/nvim/startuptime.log
 .config/nvim/todo.txt
+.config/nvim/lazy-lock.json
 .config/nvim/lua/knobs.lua

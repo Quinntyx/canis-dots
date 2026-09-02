@@ -15,7 +15,7 @@ set -e PTC_USE_DOCKER
 # Abbreviations
 # ==========================================
 abbr -a hx helix
-abbr -a nvim helix
+# abbr -a nvim helix
 abbr -a icat "kitty +kitten icat"
 abbr -a l "ls -ltrau --color"
 abbr -a sizeof "du --si --max-depth=0"
@@ -25,6 +25,7 @@ abbr -a lock swaylock
 abbr -a off "ddcutil --noverify setvcp D6 02"
 abbr -a on "ddcutil --noverify setvcp D6 01"
 abbr -a sch "task schedule"
+abbr -a t task
 
 # Let /move (and other Pi session switches) hand the final cwd back to this shell.
 # Route through the `main` ppi profile; when already under a profile

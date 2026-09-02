@@ -22,8 +22,6 @@ abbr -a sizeof "du --si --max-depth=0"
 abbr -a wl-dump "wl-paste --type text/plain >"
 abbr -a pyc "python3 -m py_compile"
 abbr -a lock swaylock
-abbr -a off "ddcutil --noverify setvcp D6 02"
-abbr -a on "ddcutil --noverify setvcp D6 01"
 abbr -a sch "task schedule"
 abbr -a t task
 

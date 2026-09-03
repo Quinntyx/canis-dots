@@ -4,10 +4,10 @@
   "defaultModel": "glm-5.3-flash",
   "defaultThinkingLevel": "high",
   "enabledModels": [
-    "deepseek-router/deepseek-v4-flash",
+    "deepseek-router/deepseek-v4-flash-vision-exp",
     "deepseek-router/deepseek-v4-pro",
     "openai-codex/gpt-5.6-sol",
-    "deepseek-router/deepseek-v4-flash-1m",
+    "deepseek-router/deepseek-v4-flash-1m-vision-exp",
     "opencode-go/glm-5.3-flash"
   ],
   "providers": {

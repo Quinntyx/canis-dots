@@ -9,8 +9,8 @@
     "deepseek-router/deepseek-v4-pro",
     "openai-codex/gpt-5.6-sol",
     "deepseek-router/deepseek-v4-flash-1m",
-    "opencode-go/ox-alpha-free",
-    "opencode-go/glm-5.3-flash"
+    "opencode-go/glm-5.3-flash",
+    "antigravity/gemini-3.8-flash-tiered"
   ],
   "providers": {
     "openrouter": {
@@ -52,7 +52,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command"
   ],
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "compaction": {
     "reserveTokens": 0
   },

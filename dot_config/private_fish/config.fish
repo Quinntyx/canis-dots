@@ -14,7 +14,8 @@ set -e PTC_USE_DOCKER
 # ==========================================
 # Abbreviations
 # ==========================================
-abbr -a hx helix
+abbr -a hx nvim
+abbr -a nv nvim
 # abbr -a nvim helix
 abbr -a icat "kitty +kitten icat"
 abbr -a l "ls -ltrau --color"

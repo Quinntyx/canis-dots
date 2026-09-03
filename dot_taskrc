@@ -65,3 +65,5 @@ report.schedule.filter=+READY
 report.schedule.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description,urgency
 report.schedule.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
 report.schedule.sort=starttime+,urgency-
+uda.travel.type=string
+uda.travel.label=Travel

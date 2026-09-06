@@ -49,6 +49,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
     "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
     "git:git.quinntyx.dev/quinntyx/pi-setup-command",
+    "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command"
   ],

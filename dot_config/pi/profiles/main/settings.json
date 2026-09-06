@@ -35,7 +35,6 @@
     "npm:pi-everforest-tui",
     "git:github.com/Quinntyx/pi-session-move@5a80119c12494f6612154f9696cf6db4011327e1",
     "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
-    "npm:pi-hashline-edit@0.8.3",
     "npm:pi-permissions",
     "git:git.quinntyx.dev/quinntyx/pi-auto-continue-after-compact",
     "git:git.quinntyx.dev/quinntyx/pi-autopilot",

@@ -172,7 +172,14 @@ metadata:
 14. Confirm there are no overlaps and unallocated gaps exist where feasible,
     using 15 minutes between ordinary items and 30 minutes around class blocks
     and car trips.
-15. Fix violations and repeat Stage 5.
+15. Run the schedule linter for the day's week:
+    `python3 ~/.config/pi/profiles/omn-assistant/bin/taskwarrior_lint.py --week <monday>`.
+16. Triage every linter warning before touching anything: classify it as an
+    expected exception the user asked for (explicit times, shifted meal
+    blocks, deadline-forced weekend work, a waived break) or a genuine
+    violation; fix the genuine ones and state the accepted exceptions in the
+    reply.
+17. Fix violations and repeat Stage 5.
 
 # Scheduling Guidelines
 
@@ -211,6 +218,27 @@ metadata:
   create travel tasks and never book other work into a class block's buffers.
 - Replace the flat 30-minute estimate with measured travel times, such as a
   Google Maps API lookup, only when the user explicitly asks for that upgrade.
+- Default campus commutes to walking even though the user owns a parking
+  permit; the user walks for the exercise. Reserve driving to campus for
+  imminent-late situations, and treat it as the exception rather than the
+  default.
+
+## Weekends
+- Do not place assignment work on Saturdays or Sundays unless the deadline is
+  that weekend and no weekday capacity remains; weekends are for rest,
+  personal projects, going out, and events.
+
+## Meals
+- Schedule breakfast and dinner daily in the same time block every day.
+- Breakfast defaults to 07:00-07:45 and must stay within 06:00-08:00; dinner
+  defaults to 18:00-18:45 and must stay within 17:00-20:00.
+- Shift the whole meal block as one unit when a fixed commitment requires;
+  tag generated meal actions with `+schedule` like lunch.
+
+## Venue hours
+- Before scheduling an action that depends on a place being open, verify that
+  place's hours for the target date by web search; never book a closed venue
+  (example: bank branches on weekends).
 
 ## Assignment start boundary
 

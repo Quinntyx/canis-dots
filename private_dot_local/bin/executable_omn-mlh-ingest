@@ -1,0 +1,12 @@
+#!/bin/sh
+# Ingest Major League Hacking season events into omn.
+# Driven weekly by the omn-mlh-ingest.timer user timer. Seasons that are not
+# published yet are skipped by the adapter, so listing the next season up
+# front lets the ingest roll over automatically each fall.
+set -eu
+
+: "${MLH_SEASONS:=2027 2028}"
+export MLH_SEASONS
+
+/usr/bin/python3 /home/zlare/docs/src/universal-data-management/main/adapters/mlh.py |
+    /usr/bin/omn import

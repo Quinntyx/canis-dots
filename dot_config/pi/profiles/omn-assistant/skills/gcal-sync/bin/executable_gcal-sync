@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Reconcile the current Taskwarrior Mon-Sun week into the 'managed' Google Calendar.
+"""Reconcile the current Taskwarrior week into the 'managed' Google Calendar.
+
+The planning week is Monday-through-Sunday, but the sync window starts on the
+previous Sunday 00:00 so late-Sunday completions and moves still reconcile
+after rollover.
 
 Taskwarrior is authoritative. Events are matched to tasks one-to-one through
 the `taskUuid` extended property, so repeated runs converge without deleting
 and recreating: new tasks are inserted, changed tasks are patched in place,
-and events whose task disappeared are deleted.
+and events whose task disappeared are deleted. Same-uuid duplicate events
+(e.g. from a racing insert) are deleted as leftovers.
 
 Two task forms are synced:
 - Timed tasks (`starttime`+`endtime`) become timed events at their slot.
@@ -246,12 +251,17 @@ class Api:
 # --------------------------------------------------------------- window ----
 
 def week_window(now=None):
-    """(start, end) datetimes covering Mon 00:00 .. next-Mon 00:00 local."""
+    """(start, end) datetimes covering Sun 00:00 .. next-Mon 00:00 local.
+
+    The week is planned Monday-through-Sunday, but the window starts one day
+    earlier (the previous Sunday) so late-Sunday-night completions and task
+    moves still reconcile after the calendar rolls over at Monday 00:00.
+    """
     now = now or datetime.now(TZ)
     monday = (now - timedelta(days=now.weekday())).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
-    return monday, monday + timedelta(days=7)
+    return monday - timedelta(days=1), monday + timedelta(days=7)
 
 
 def rfc3339(dt):
@@ -357,9 +367,14 @@ def ensure_calendar(api):
 
 
 def fetch_week_events(api, cal_id, window):
-    """Return ({uuid: event}, [events_without_uuid]) inside the week window."""
+    """Return ({uuid: event}, [events_without_uuid], [duplicate_events]).
+
+    Two events sharing one taskUuid (e.g. after a racing insert) are tracked
+    as duplicates: only the first is reconciled; the rest must be deleted,
+    otherwise they would be invisible to every later pass.
+    """
     tmin, tmax = window_rfc(window)
-    by_uuid, orphans, page = {}, [], None
+    by_uuid, orphans, dupes, page = {}, [], [], None
     while True:
         params = {
             "timeMin": tmin,
@@ -374,12 +389,15 @@ def fetch_week_events(api, cal_id, window):
         for ev in res.get("items", []):
             u = ev.get("extendedProperties", {}).get("private", {}).get(UUID_KEY)
             if u:
-                by_uuid[u] = ev
+                if u in by_uuid:
+                    dupes.append(ev)
+                else:
+                    by_uuid[u] = ev
             else:
                 orphans.append(ev)
         page = res.get("nextPageToken")
         if not page:
-            return by_uuid, orphans
+            return by_uuid, orphans, dupes
 
 
 def event_body(task, start, end):
@@ -454,7 +472,7 @@ def event_differs(local_body, remote_event):
 
 
 def reconcile(api, cal_id, selected, window):
-    remote_by_uuid, orphans = fetch_week_events(api, cal_id, window)
+    remote_by_uuid, orphans, dupes = fetch_week_events(api, cal_id, window)
     local_by_uuid = {t["uuid"]: (t, s, e) for t, s, e in selected}
 
     inserted, updated, unchanged, deleted, failed = [], [], [], [], []
@@ -471,6 +489,12 @@ def reconcile(api, cal_id, selected, window):
     for ev in orphans:
         if run("DELETE", f"/calendars/{cal_id}/events/{ev['id']}", label="orphan"):
             deleted.append((None, ev.get("summary", "")[:60]))
+
+    # Same-uuid duplicates: reconciliation tracks only the first event, so
+    # delete the extras or they would linger forever.
+    for ev in dupes:
+        if run("DELETE", f"/calendars/{cal_id}/events/{ev['id']}", label="duplicate"):
+            deleted.append((None, "[duplicate] " + ev.get("summary", "")[:50]))
 
     for uuid, ev in sorted(remote_by_uuid.items(), key=lambda kv: kv[1]["id"]):
         if uuid not in local_by_uuid:

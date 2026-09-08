@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly omn MLH ingest (Mondays 4:10 AM)
+
+[Timer]
+OnCalendar=Mon *-*-* 04:10:00
+Persistent=true
+Unit=omn-mlh-ingest.service
+
+[Install]
+WantedBy=timers.target

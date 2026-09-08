@@ -20,26 +20,34 @@ today, and semantically equivalent formulations.
 
 1. Use the `omn-search` procedure to refresh configured upstream data and read
    the current omn store.
-2. Read Taskwarrior's complete pending state after the refresh.
-3. Compare every omn item dated anywhere within the current
+2. Run the `mail-check` procedure: refresh the UTD mailbox, surface unread mail
+   that may matter or be attendable, and, after the user reviews the summary,
+   mark it read. Push anything into omn only for items the user expressed
+   interest in.
+3. Additionally, whenever the current discussion could involve email content
+   (course logistics, professor or lab communication, registration, deadlines,
+   career events, announcements), rerun the `mail-check` refresh even outside
+   daily briefs; mail changes faster than the user messages.
+4. Read Taskwarrior's complete pending state after the refresh.
+5. Compare every omn item dated anywhere within the current
    Monday-through-Sunday week against concrete Taskwarrior actions.
-4. Never limit reconciliation to the resolved day, `today`, or `tomorrow`; an
+6. Never limit reconciliation to the resolved day, `today`, or `tomorrow`; an
    item later in the current week can require work on an earlier day.
-5. Include fixed event occurrences in the comparison, not only deadline-bearing
+7. Include fixed event occurrences in the comparison, not only deadline-bearing
    assignments.
-6. Treat any newly discovered current-week item as a planning change even when
+8. Treat any newly discovered current-week item as a planning change even when
    its date differs from the requested day.
-7. Reconsider the remaining week's action dates and estimates so work can be
+9. Reconsider the remaining week's action dates and estimates so work can be
    placed before the item's final day rather than deferred to its deadline.
-8. Treat omn as durable source state and Taskwarrior as imperative actions; do
+10. Treat omn as durable source state and Taskwarrior as imperative actions; do
    not mirror facts as hierarchy or deadline-tracker tasks.
-9. Avoid duplicates by matching source identity, description, date, deadline,
+11. Avoid duplicates by matching source identity, description, date, deadline,
    and existing action coverage.
-10. If any current-week item lacks an estimate or action date, load
+12. If any current-week item lacks an estimate or action date, load
    `plan-assignments` and proceed through its planning flow for the whole week.
-11. If pending managed work is carried from an earlier day, load `reschedule`
+13. If pending managed work is carried from an earlier day, load `reschedule`
    and proceed through its carried-work flow.
-12. Do not stop after naming the skill; execute it until user input or approval
+14. Do not stop after naming the skill; execute it until user input or approval
    is genuinely required by its contract.
 
 ### Determine whether a daily schedule is current
@@ -48,7 +56,7 @@ today, and semantically equivalent formulations.
 2. A schedule exists only when every managed action ready for the resolved date
    has `starttime`, `endtime`, and `transport` populated.
 3. Require all fixed events to retain their authoritative time and location.
-4. Require lunch, the afternoon break, non-overlap, car-trip and same-type
+4. Require breakfast, lunch, the afternoon break, dinner, non-overlap, car-trip and same-type
    grouping, travel buffers, and unallocated transition gaps to satisfy the
    `schedule-day` contract.
 5. Treat the schedule as stale when any ready action is missing a time window,
@@ -59,9 +67,12 @@ today, and semantically equivalent formulations.
    load `schedule-day`, and proceed directly through the daily scheduling flow.
 7. After scheduling, rerun `task schedule` and verify it against the current
    Taskwarrior state.
-8. When the verified schedule is current, publish it to Google Calendar by
-   loading `gcal-sync` and following its procedure; a failed sync is reported
-   as one status line and never blocks or replaces the final schedule table.
+8. When the verified schedule is current, run the schedule linter
+   (`python3 ~/.config/pi/profiles/omn-assistant/bin/taskwarrior_lint.py`),
+   triage its warnings as expected exceptions versus genuine violations, fix
+   genuine ones, then publish to Google Calendar by loading `gcal-sync` and
+   following its procedure; a failed sync is reported as one status line and
+   never blocks or replaces the final schedule table.
 
 ### Daily brief output
 
@@ -80,3 +91,62 @@ today, and semantically equivalent formulations.
    status needed before the schedule summary.
 6. When user input blocks completion, ask the smallest required question
    instead of presenting an incomplete schedule as current.
+
+### Standing scheduling rules (set 2026-09-07)
+
+1. Weekends are protected: no assignment work unless a weekend deadline forces
+   it; weekends are rest, personal projects, going out, and events.
+2. Schedule assignments aggressively early — the moment they are known, claim
+   the earliest capacity so emergencies never cost a deadline; errands are
+   pushable, assignments are not.
+3. Before scheduling anything that depends on a venue being open, web-search
+   the venue's hours for the target date (Regions is closed weekends).
+4. Breakfast daily between 06:00 and 08:00 (default 07:00-07:45), dinner daily
+   between 17:00 and 20:00 (default 18:00-18:45), same block each day.
+5. 6 hours of lab time per week at Prof. Jee's lab, centered on Monday and
+   Wednesday 10:00-17:00; the weekly PyLingual meeting (Wednesday 11:00-12:00)
+   counts as one of the six hours; distribute the other 5 contiguously.
+6. Never create Taskwarrior recurrence templates (`recur:`): recurrence lives
+   in omn (`meta.rrule`) and each week's occurrences are scheduled as
+   individual plain tasks, so a week's cancellation or time shift is just a
+   one-task edit.
+
+## Canvas item classification
+
+1. Never label a Canvas assignment a placeholder, sample, or fake because its
+   description is empty or its title looks odd. Empty descriptions and quirky
+   titles (e.g., "Hourly Worker - Overtime Pay") have repeatedly turned out to
+   be real, graded, submitted assignments. Treat every Canvas-posted item as
+   real until the user says otherwise, and ask when genuinely uncertain.
+2. Before claiming anything about an assignment's status (submitted, late,
+   missed), check both stores first: absence of a Taskwarrior task proves
+   nothing about what the user actually did offline.
+3. Canvas unlock/availability windows are NOT in the iCal feed — the site can
+   show "Available after <date>" for items whose feed record has no trace of
+   it. When the user reports an unlock window, record it as `meta.unlock`
+   (RFC 3339 with offset) on the omn record; when scheduling work for an item
+   whose due is tightly coupled to a class block, ask whether it is in-class
+   classwork rather than assuming it is take-home work.
+
+### Session timing discipline
+
+1. Never trust a timestamp from a previous agent turn, not even `date` output
+   run earlier in the same conversation: user messages can be hours apart, and
+   time also passes mid-turn. Run `date` fresh at the start of every
+   user-message turn, and re-run it before any time-sensitive decision
+   (is it before/after a scheduled block, did an event already happen, is a
+   deadline still reachable).
+2. A task the user marked completed is intentional; never "restore" a
+   completed task back to pending on the assumption that it is too early for
+   it to be done. Verify the current time first, and if in doubt, ask.
+
+### Ren relay messages
+
+- User messages starting with `(ren relay) ` were picked up by Ren's wake-word
+  gate and STT and forwarded here over pi-sock. Treat them exactly like typed
+  input from the user: identical behavior, identical actions, and identical
+  output style — full reports, tables, and code included. Do not shorten,
+  simplify, or conversationally soften replies for them; the Ren-side chat
+  model summarizes and keeps its own replies conversational, so there is no
+  need to do it on this side. The only meaning the marker carries is
+  provenance (the text passed through STT and may be disfluent or segmented).

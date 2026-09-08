@@ -623,53 +623,59 @@ class WeekendAssignmentWork(Policy):
         return out
 
 
-class AssignmentStartBoundary(Policy):
-        """No assignment work before the later of 10:00 and the day's first class
-        end + 30m travel buffer; mornings are for sleep, personal projects, or
-        downtime. Work in the same building as that class may start at the same-
-        building transit offset. Explicit user times override this."""
-    
-        id = "assignment-start-boundary"
-    
-        def check(self, ctx):
-            out = []
-            for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
-                classes = [
-                    t for t in tasks
-                    if "class" in t.get("tags", []) and t.get("endtime")
-                ]
-                boundary = time(10, 0)
-                first_class = min(
-                    (t for t in classes if t.get("starttime")),
-                    key=lambda t: t["starttime"], default=None)
-                if classes:
-                    first_end = min(t["endtime"] for t in classes)
-                    hh, mm = map(int, first_end.split(":"))
-                    b = (datetime.combine(day, time(hh, mm)) + timedelta(minutes=30)).time()
-                    boundary = max(boundary, b)
-                for t in tasks:
-                    if not t.get("due") or not t.get("starttime"):
-                        continue
-                    start = ctx.clock(t["starttime"])
-                    same_building = (
-                        first_class is not None
-                        and building_code(t.get("location"))
-                        and building_code(t.get("location"))
-                        == building_code(first_class.get("location"))
-                    )
-                    if same_building and start >= ctx.clock(first_class["endtime"]):
-                        continue  # staying in the same building after class
-                    if start < boundary:
-                        out.append(Warning(
-                            self.id, "WARN",
-                            f"assignment '{t['description'][:40]}' starts "
-                            f"{start:%H:%M} before the {boundary:%H:%M} boundary "
-                            f"on {day} (fine if user-approved)",
-                            [t.get("id")],
-                        ))
-            return out
-    
-    
+class MorningBoundary(Policy):
+    """Nothing is scheduled before the later of 10:00 and the day's first
+    class end + transit: mornings are flex time (meals exempt, classes are
+    the anchors). Provisional while the user's sleep schedule settles."""
+
+    id = "morning-boundary"
+
+    def check(self, ctx):
+        out = []
+        for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
+            classes = [
+                t for t in tasks
+                if "class" in t.get("tags", []) and t.get("endtime")
+            ]
+            boundary = time(10, 0)
+            if classes:
+                first_end = min(t["endtime"] for t in classes)
+                hh, mm = map(int, first_end.split(":"))
+                b = (datetime.combine(day, time(hh, mm)) + timedelta(minutes=30)).time()
+                boundary = max(boundary, b)
+            first_class = min(
+                (t for t in classes if t.get("starttime")),
+                key=lambda t: t["starttime"], default=None)
+            for t in tasks:
+                if not t.get("starttime"):
+                    continue
+                if "class" in t.get("tags", []):
+                    continue  # classes anchor the boundary
+                desc = t["description"].lower()
+                if desc.startswith(("eat breakfast", "eat lunch", "eat dinner")):
+                    continue  # meals are allowed in the morning
+                start = ctx.clock(t["starttime"])
+                same_building = (
+                    first_class is not None
+                    and building_code(t.get("location"))
+                    and building_code(t.get("location"))
+                    == building_code(first_class.get("location"))
+                )
+                if same_building and start >= ctx.clock(first_class["endtime"]):
+                    continue  # staying in the same building after class
+                if start < boundary:
+                    out.append(Warning(
+                        self.id, "WARN",
+                        f"'{t['description'][:40]}' starts {start:%H:%M} before "
+                        f"the {boundary:%H:%M} morning boundary on {day} "
+                        "(mornings are flex time; fine if venue-forced or "
+                        "user-approved)",
+                        [t.get("id")],
+                    ))
+        return out
+
+
+
 class DayBudget(Policy):
     """Nominal 8h weekday budget of class hours plus scheduled est; exceeding
     it needs a real deadline reason."""
@@ -1074,7 +1080,7 @@ POLICIES: list[Policy] = [
     RecurringEventsPresent(),
     LabHours(),
     WeekendAssignmentWork(),
-    AssignmentStartBoundary(),
+    MorningBoundary(),
     OverduePending(),
     StaleScheduling(),
     EstWindowMatch(),

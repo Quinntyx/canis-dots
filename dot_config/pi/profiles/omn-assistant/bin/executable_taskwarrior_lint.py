@@ -78,22 +78,61 @@ def parse_tw_date(value) -> datetime | None:
 
 
 def parse_est(value) -> timedelta | None:
-    """Compact human estimates like 1h, 2.5h, 0.75h, 3d; ISO forms -> None."""
+    """Compact human estimates like 1h, 2.5h, 0.75h, 3d, 55m; ISO -> None."""
     if not value:
         return None
-    match = re.fullmatch(r"([0-9]*\.?[0-9]+)([hd])", str(value).strip())
+    match = re.fullmatch(r"([0-9]*\.?[0-9]+)([hdm])", str(value).strip())
     if not match:
         return None
     number, unit = float(match.group(1)), match.group(2)
-    return timedelta(hours=number) if unit == "h" else timedelta(days=number)
+    if unit == "h":
+        return timedelta(hours=number)
+    if unit == "m":
+        return timedelta(minutes=number)
+    return timedelta(days=number)
 
 
 CAMPUS_LOCATION = re.compile(
-    r"(ECSS|ECSN|FO|FN|EC)\s*\d|Jee's lab|on campus|SU\b|library", re.IGNORECASE
+    r"on campus|\bSU\b|library|Jee's lab", re.IGNORECASE
 )
 VENUE_LOCATION = re.compile(
     r"post office|bank|branch|office|store|mall|clinic|dentist|orthodont", re.IGNORECASE
 )
+
+
+def building_code(location) -> str | None:
+    """UTD-style building code from a location like 'ECSS 3.226' or 'FN 2.214'."""
+    match = re.search(r"\b([A-Z]{2,4})\s*\d", (location or "").upper())
+    return match.group(1) if match else None
+
+
+def zone_of(location) -> str | None:
+    """Classify a location: building code, generic 'campus', or 'off'."""
+    if not location:
+        return None
+    code = building_code(location)
+    if code:
+        return code
+    if CAMPUS_LOCATION.search(location) or "campus" in location.lower():
+        return "campus"
+    return "off"
+
+
+def transit_minutes(origin: str | None, destination: str | None) -> int:
+    """Standing transit rule: 0m same place, 10m same building, 20m different
+    buildings both on campus, 30m whenever the trip goes off campus."""
+    if origin is None or destination is None:
+        return 30
+    if origin.strip().lower() == destination.strip().lower():
+        return 0
+    a, b = zone_of(origin), zone_of(destination)
+    if a is None or b is None:
+        return 30
+    if a == b:  # identical building or both generic campus
+        return 10 if a != "campus" else 20
+    if a == "off" or b == "off":
+        return 30
+    return 20
 IMPERATIVE = {
     "attend", "eat", "complete", "start", "finish", "practice", "cancel",
     "attempt", "check", "renew", "work", "research", "write", "talk",
@@ -540,7 +579,7 @@ class LabHours(Policy):
             parse_tw_date(t.get("scheduled")).weekday()
             for t in lab + meeting
         })
-        if total < timedelta(hours=6):
+        if total < timedelta(hours=5, minutes=45):  # ~6h target, 15m tolerance
             out.append(Warning(
                 self.id, "WARN",
                 f"only {total.total_seconds()/3600:.2f}h lab time this week "
@@ -585,40 +624,52 @@ class WeekendAssignmentWork(Policy):
 
 
 class AssignmentStartBoundary(Policy):
-    """No assignment work before the later of 10:00 and the day's first class
-    end + 30m travel buffer; mornings are for sleep, personal projects, or
-    downtime. Explicit user times override this."""
-
-    id = "assignment-start-boundary"
-
-    def check(self, ctx):
-        out = []
-        for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
-            classes = [
-                t for t in tasks
-                if "class" in t.get("tags", []) and t.get("endtime")
-            ]
-            boundary = time(10, 0)
-            if classes:
-                first_end = min(t["endtime"] for t in classes)
-                hh, mm = map(int, first_end.split(":"))
-                b = (datetime.combine(day, time(hh, mm)) + timedelta(minutes=30)).time()
-                boundary = max(boundary, b)
-            for t in tasks:
-                if not t.get("due") or not t.get("starttime"):
-                    continue
-                start = ctx.clock(t["starttime"])
-                if start < boundary:
-                    out.append(Warning(
-                        self.id, "WARN",
-                        f"assignment '{t['description'][:40]}' starts "
-                        f"{start:%H:%M} before the {boundary:%H:%M} boundary "
-                        f"on {day} (fine if user-approved)",
-                        [t.get("id")],
-                    ))
-        return out
-
-
+        """No assignment work before the later of 10:00 and the day's first class
+        end + 30m travel buffer; mornings are for sleep, personal projects, or
+        downtime. Work in the same building as that class may start at the same-
+        building transit offset. Explicit user times override this."""
+    
+        id = "assignment-start-boundary"
+    
+        def check(self, ctx):
+            out = []
+            for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
+                classes = [
+                    t for t in tasks
+                    if "class" in t.get("tags", []) and t.get("endtime")
+                ]
+                boundary = time(10, 0)
+                first_class = min(
+                    (t for t in classes if t.get("starttime")),
+                    key=lambda t: t["starttime"], default=None)
+                if classes:
+                    first_end = min(t["endtime"] for t in classes)
+                    hh, mm = map(int, first_end.split(":"))
+                    b = (datetime.combine(day, time(hh, mm)) + timedelta(minutes=30)).time()
+                    boundary = max(boundary, b)
+                for t in tasks:
+                    if not t.get("due") or not t.get("starttime"):
+                        continue
+                    start = ctx.clock(t["starttime"])
+                    same_building = (
+                        first_class is not None
+                        and building_code(t.get("location"))
+                        and building_code(t.get("location"))
+                        == building_code(first_class.get("location"))
+                    )
+                    if same_building and start >= ctx.clock(first_class["endtime"]):
+                        continue  # staying in the same building after class
+                    if start < boundary:
+                        out.append(Warning(
+                            self.id, "WARN",
+                            f"assignment '{t['description'][:40]}' starts "
+                            f"{start:%H:%M} before the {boundary:%H:%M} boundary "
+                            f"on {day} (fine if user-approved)",
+                            [t.get("id")],
+                        ))
+            return out
+    
+    
 class DayBudget(Policy):
     """Nominal 8h weekday budget of class hours plus scheduled est; exceeding
     it needs a real deadline reason."""
@@ -741,9 +792,9 @@ class ClassTravelUda(Policy):
 
 
 class TransitBuffers(Policy):
-    """Timed tasks need unallocated gaps around transit: a task's `travel`
-    minutes must exist between it and a neighbor at a different place.
-    Consecutive campus blocks (class -> class, lab blocks) need no gap."""
+    """Timed tasks need unallocated gaps matching the location-based transit
+    rule between neighbors at different places: 0m same place, 10m same
+    building, 20m different buildings on campus, 30m off-campus moves."""
 
     id = "transit-buffers"
 
@@ -758,22 +809,35 @@ class TransitBuffers(Policy):
                        - datetime.combine(day, prev_end)).total_seconds() / 60
                 if gap < 0:
                     continue
-                prev_campus = CAMPUS_LOCATION.search(prev.get("location") or "")
-                nxt_campus = CAMPUS_LOCATION.search(nxt.get("location") or "")
-                travel = nxt.get("travel") or prev.get("travel") or ""
-                need = 0
-                if travel.endswith("m"):
-                    need = int(travel[:-1])
-                if prev_campus and nxt_campus:
-                    continue  # same-campus walk, no buffer needed
-                if nxt_campus != prev_campus and gap < need:
+                need = transit_minutes(prev.get("location"), nxt.get("location"))
+                if gap < need:
                     out.append(Warning(
                         self.id, "WARN",
                         f"only {gap:.0f}m between '{prev['description'][:28]}' "
-                        f"and '{nxt['description'][:28]}' on {day}; transit "
-                        f"needs ~{need}m (or user-approved tight transition)",
+                        f"({prev.get('location') or 'no location'}) and "
+                        f"'{nxt['description'][:28]}' ({nxt.get('location') or 'no location'}) "
+                        f"on {day}; transit needs ~{need}m (or user-approved tight transition)",
                         [prev.get("id"), nxt.get("id")],
                     ))
+        return out
+
+
+class MissingLocation(Policy):
+    """Every scheduled (timed) task must carry a location so transit can be
+    computed; untimed tasks are exempt until they get a time block."""
+
+    id = "missing-location"
+
+    def check(self, ctx):
+        out = []
+        for t in ctx.timed(ctx.week_pending()):
+            if not (t.get("location") or "").strip():
+                out.append(Warning(
+                    self.id, "WARN",
+                    f"timed task '{t['description'][:40]}' has no location; "
+                    "set one (e.g. 'SU Starbucks', 'ECSS 3.226', 'At home')",
+                    [t.get("id")],
+                ))
         return out
 
 
@@ -1019,6 +1083,7 @@ POLICIES: list[Policy] = [
     TransportSet(),
     ClassTravelUda(),
     TransitBuffers(),
+    MissingLocation(),
     CarTripGrouping(),
     Meals(),
     AfternoonBreak(),

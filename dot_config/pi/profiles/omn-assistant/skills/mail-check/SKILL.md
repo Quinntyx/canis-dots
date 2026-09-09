@@ -105,6 +105,9 @@ metadata:
   Scholars Program, the Bursar's Office, professors, and similar offices — to be
   polite. Schedule a short reply task (`+managed`, 0.25-0.5h) for such items
   regardless of the outcome.
+- Before scheduling a reply task, check the sent-mail folder for an existing
+  reply to that thread (query the sent folder for the sender's address or the
+  thread subject); if one is already sent, do not create the task.
 
 - Treat the mailbox as read-only except for the single authorized mutation: removing
   the `unread` tag from surfaced UTD messages after user review.

@@ -100,6 +100,11 @@ metadata:
   or "I have to ask someone", create a revisit task (`+managed`, 0.5h default) a few
   days out from the current date, naming the open question and any deadline it must
   precede, rather than leaving the thread dangling in mail or conversation.
+- Even when an item carries no actionable content (e.g. a request is denied), a
+  reply is still owed when it comes from somebody important — the National Merit
+  Scholars Program, the Bursar's Office, professors, and similar offices — to be
+  polite. Schedule a short reply task (`+managed`, 0.25-0.5h) for such items
+  regardless of the outcome.
 
 - Treat the mailbox as read-only except for the single authorized mutation: removing
   the `unread` tag from surfaced UTD messages after user review.

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Apple TV
+Comment=Watch Apple TV in Chromium
+Exec=chromium --app=https://tv.apple.com/
+Icon=chromium
+Terminal=false
+Categories=AudioVideo;Video;
+StartupNotify=true

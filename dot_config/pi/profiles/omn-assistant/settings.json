@@ -1,14 +1,14 @@
 {
   "theme": "everforest-tui-light",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "glm-5.3-flash",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "medium",
   "enabledModels": [
-    "deepseek-router/deepseek-v4-flash-vision-exp",
     "deepseek-router/deepseek-v4-pro",
     "openai-codex/gpt-5.6-sol",
-    "deepseek-router/deepseek-v4-flash-1m-vision-exp",
-    "opencode-go/glm-5.3-flash"
+    "opencode-go/glm-5.3-flash",
+    "deepseek-router/deepseek-v4.1-flash",
+    "deepseek-router/deepseek-v4.1-flash-1m"
   ],
   "providers": {
     "openrouter": {
@@ -33,14 +33,15 @@
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",
-    "git:git.quinntyx.dev/quinntyx/pi-gemini-compaction",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
     "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
-    "npm:pi-everforest-tui"
+    "npm:pi-everforest-tui",
+    "git:git.quinntyx.dev/quinntyx/pi-sock",
+    "git:git.quinntyx.dev/quinntyx/pi-tool-tree"
   ],
   "enableSkillCommands": true,
-  "lastChangelogVersion": "0.84.1",
+  "lastChangelogVersion": "0.84.4",
   "hideThinkingBlock": true
 }

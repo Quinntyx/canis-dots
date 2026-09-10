@@ -5,13 +5,13 @@
   "defaultModel": "deepseek-v4-flash-vision-exp",
   "defaultThinkingLevel": "high",
   "enabledModels": [
-    "deepseek-router/deepseek-v4-flash-vision-exp",
     "deepseek-router/deepseek-v4-pro",
     "openai-codex/gpt-5.6-sol",
-    "deepseek-router/deepseek-v4-flash-1m-vision-exp",
     "opencode-go/glm-5.3-flash",
     "antigravity/gemini-3.8-flash-tiered",
-    "openai-codex/gpt-6-astra"
+    "openai-codex/gpt-6-astra",
+    "deepseek-router/deepseek-v4.1-flash",
+    "deepseek-router/deepseek-v4.1-flash-1m"
   ],
   "providers": {
     "openrouter": {
@@ -30,7 +30,7 @@
     }
   },
   "packages": [
-    "git:github.com/Quinntyx/pi-ptc-next@152f309272e5548f01d61235dc2d0c37140f0c66",
+    "git:github.com/Quinntyx/pi-ptc-next",
     "npm:@narumitw/pi-btw",
     "git:github.com/Quinntyx/pi-antigravity-auth",
     "npm:pi-everforest-tui",

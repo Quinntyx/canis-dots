@@ -2,7 +2,7 @@
   "lastChangelogVersion": "0.85.1",
   "theme": "everforest-tui-light",
   "defaultProvider": "deepseek-router",
-  "defaultModel": "deepseek-v4-flash-vision-exp",
+  "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "deepseek-router/deepseek-v4-pro",
@@ -45,7 +45,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-cwd-handoff",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",
-    "git:git.quinntyx.dev/quinntyx/pi-gemini-compaction",
     "git:git.quinntyx.dev/quinntyx/pi-image-fallback",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
     "git:git.quinntyx.dev/quinntyx/pi-questionnaire",

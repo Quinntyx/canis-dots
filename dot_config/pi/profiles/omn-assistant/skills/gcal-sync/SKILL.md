@@ -36,6 +36,20 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
   whenever the user completes a `+managed` task; do not add a second manual
   sync after such completions.
 
+## Authorization
+
+- Credentials live in `config/gcal-sync/client_secret.json` and
+  `config/gcal-sync/token.json`; the script refreshes the access token by
+  itself and writes it atomically.
+- Google expires refresh tokens after **7 days** while the OAuth client sits in
+  the *Testing* publishing status. A weekly `invalid_grant` therefore means
+  "re-authorize", not "the sync is broken": have the user run
+  `gcal-sync --auth` in an interactive terminal. Publishing the OAuth consent
+  screen removes the 7-day limit permanently.
+- Every failure is appended to `~/.local/state/gcal-sync.log` (the on-exit
+  completion hook runs detached and would otherwise fail silently); read the
+  tail of that file when the user reports that the calendar stopped updating.
+
 ## Procedure
 
 1. Confirm the weekly or daily schedule has just been verified (the daily brief's

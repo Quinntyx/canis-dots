@@ -103,13 +103,26 @@ today, and semantically equivalent formulations.
    the venue's hours for the target date (Regions is closed weekends).
 4. Breakfast daily between 06:00 and 08:00 (default 07:00-07:45), dinner daily
    between 17:00 and 20:00 (default 18:00-18:45), same block each day.
-5. 6 hours of lab time per week at Prof. Jee's lab, centered on Monday and
+5. 6 hours of lab time per week at Prof. Jee's lab (room **ECSS 3.226**),
+   centered on Monday and
    Wednesday 10:00-17:00; the weekly PyLingual meeting (Wednesday 11:00-12:00)
    counts as one of the six hours; distribute the other 5 contiguously.
 6. Never create Taskwarrior recurrence templates (`recur:`): recurrence lives
    in omn (`meta.rrule`) and each week's occurrences are scheduled as
    individual plain tasks, so a week's cancellation or time shift is just a
    one-task edit.
+7. Keep multi-part tasks whole. Prefer one contiguous block on a later day over
+   splitting a task across days, never create a piece shorter than one hour,
+   and prefer merging pieces over adding more. Pushing an unrelated
+   deadline-free task out of the week is the accepted cost.
+8. The default location for a between-class block is **SU Starbucks**; never
+   schedule work at a vague location such as "near room X" or "(near
+   classroom)". A class-to-class gap is work time only when the usable window,
+   after subtracting transit, can hold a whole piece.
+9. Moving or cancelling one piece of a multi-part task re-plans the whole task:
+   scan the week for its siblings, keep the task's total hours the same,
+   re-divide, and rename the pieces (`Start` / `Continue` / `Finish`) so a
+   `Start` piece never lands at or after its `Finish` piece.
 
 ## Canvas item classification
 

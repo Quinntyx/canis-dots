@@ -231,12 +231,37 @@ warnings.
 - Never place such an action on a day or at a time the venue is closed
   (example: Regions branches close on weekends).
 
+## Locations and transit
+- Every task that gets a time block also gets a `location`; untimed tasks stay
+  location-free until they are staged. Use real places so transit can be
+  computed: `ECSS 3.226` (Prof. Jee's lab), `SU Starbucks` (the usual hangout
+  between classes), lecture rooms, or `At home` (the dorm — off campus).
+- Transit between neighboring blocks: **0 min** same place, **10 min** same
+  building, **20 min** different buildings both on campus, **30 min** whenever
+  a leg goes off campus. The dorm counts as off campus for everything.
+- Work blocks can sit in campus spots (SU Starbucks, the library, an empty
+  lecture room) to stay on campus between classes.
+- Default a between-class block to **SU Starbucks**, and only count the gap as
+  work time when the usable window fits a whole piece after transit; see the
+  schedule-day skill. Never use a vague location such as "near room X" or
+  "(near classroom)".
+
+## Splitting tasks
+- Prefer one contiguous block on a later day over splitting a task across days.
+- Never create a piece shorter than one hour when a task is split; name the
+  pieces `Start <task>` / `Continue <task>` / `Finish <task>` and keep the
+  pieces of one task in order.
+- When re-planning pushes a deadline-free item past the week, say which item
+  moved rather than fragmenting the task under it.
+
 ## Prof. Jee lab time
 - Schedule 6 hours of lab time per week at Prof. Jee's lab.
 - Center the lab hours on Monday and Wednesday between 10:00 and 17:00, when
   others are in the lab; any distribution across those days works.
 - The weekly PyLingual meeting (11:00-12:00) counts as one lab hour; schedule
   5 additional hours, as contiguous as the week allows.
+- The lab room is **ECSS 3.226** — use it as the `location` on every lab block
+  and on the PyLingual meeting task.
 
 ## Daily meals
 - Schedule breakfast and dinner every day in consistent time blocks:

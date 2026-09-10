@@ -100,14 +100,24 @@ VENUE_LOCATION = re.compile(
 )
 
 
+PAREN = re.compile(r"\s*\([^)]*\)")
+
+
+def normalize_location(location) -> str:
+    """Location with trailing parentheticals dropped, so 'At home (Zoom)'
+    equals 'At home' and 'ECSS 3.226 (Prof. Jee's lab)' equals 'ECSS 3.226'."""
+    return PAREN.sub("", location or "").strip()
+
+
 def building_code(location) -> str | None:
     """UTD-style building code from a location like 'ECSS 3.226' or 'FN 2.214'."""
-    match = re.search(r"\b([A-Z]{2,4})\s*\d", (location or "").upper())
+    match = re.search(r"\b([A-Z]{2,4})\s*\d", normalize_location(location).upper())
     return match.group(1) if match else None
 
 
 def zone_of(location) -> str | None:
     """Classify a location: building code, generic 'campus', or 'off'."""
+    location = normalize_location(location)
     if not location:
         return None
     code = building_code(location)
@@ -123,7 +133,7 @@ def transit_minutes(origin: str | None, destination: str | None) -> int:
     buildings both on campus, 30m whenever the trip goes off campus."""
     if origin is None or destination is None:
         return 30
-    if origin.strip().lower() == destination.strip().lower():
+    if normalize_location(origin).lower() == normalize_location(destination).lower():
         return 0
     a, b = zone_of(origin), zone_of(destination)
     if a is None or b is None:
@@ -138,6 +148,7 @@ IMPERATIVE = {
     "attempt", "check", "renew", "work", "research", "write", "talk",
     "calculate", "set", "download", "sign", "lab", "discuss", "revisit",
     "register", "email", "contact", "buy", "go", "call", "schedule",
+    "verify", "attend", "renew", "apply",
 }
 
 
@@ -226,7 +237,10 @@ class Context:
         for r in self.omn:
             if r.get("type") != "task":
                 continue
-            due = parse_omn_date(r.get("meta", {}).get("due"))
+            meta = r.get("meta", {})
+            if meta.get("kind") == "in-class":
+                continue  # completed in class; no take-home Taskwarrior work
+            due = parse_omn_date(meta.get("due"))
             if due:
                 out.append((r, due))
         return out
@@ -430,6 +444,13 @@ class OmnAssignmentsCovered(Policy):
 
     id = "omn-assignments-covered"
 
+    # In-class work is done during the lecture and needs no take-home task.
+    # The omn annotation (meta.kind = "in-class") is the source of truth, but
+    # provider re-ingest replaces meta wholesale, so ids are pinned here too.
+    IN_CLASS_IDS = {
+        "canvasical:elearning.utdallas.edu:event-assignment-357594",  # Methods and Strings
+    }
+
     def check(self, ctx):
         tw_by_due = defaultdict(list)
         for t in ctx.tasks:
@@ -438,6 +459,8 @@ class OmnAssignmentsCovered(Policy):
                 tw_by_due[due.date()].append(t)
         out = []
         for record, due in ctx.omn_assignments():
+            if record.get("id") in self.IN_CLASS_IDS:
+                continue
             matches = tw_by_due.get(due, [])
             title = record.get("title", "")[:40]
             if not matches:
@@ -476,51 +499,53 @@ class OmnAssignmentDueAccuracy(Policy):
 
 
 class ClassesScheduled(Policy):
-    """Every omn lecture occurrence in the week must exist as a pending
-    +fixed +class task with matching date, start time, and location."""
-
-    id = "classes-scheduled"
-
-    def check(self, ctx):
-        out = []
-        classes = [
-            t for t in ctx.pending
-            if "class" in t.get("tags", []) and ctx.in_week(t)
-        ]
-        for record in ctx.lectures():
-            times = event_times(record)
-            if not times:
-                continue
-            start = times[0]
-            occ_days = expand_rrule(
-                record["meta"]["rrule"], ctx.week_monday)
-            for day in occ_days:
-                same_day = [
-                    t for t in classes
-                    if parse_tw_date(t.get("scheduled")).date() == day
-                ]
-                hit = next(
-                    (t for t in same_day
-                     if t.get("starttime") == start.strftime("%H:%M")),
-                    None)
-                if hit is None:
-                    out.append(Warning(
-                        self.id, "ERROR",
-                        f"lecture '{record['title']}' on {day} "
-                        f"{start:%H:%M} missing from Taskwarrior",
-                        [record.get("id")],
-                    ))
-                elif (hit.get("location") or "") != (record["meta"].get("location") or ""):
-                    out.append(Warning(
-                        self.id, "WARN",
-                        f"lecture '{record['title']}' on {day} location "
-                        f"'{hit.get('location')}' != omn "
-                        f"'{record['meta'].get('location')}'",
-                        [hit.get("id"), record.get("id")],
-                    ))
-        return out
-
-
+        """Every omn lecture occurrence in the week must exist as a +fixed +class
+        task with matching date, start time, and location; past occurrences may be
+        satisfied by completed tasks."""
+    
+        id = "classes-scheduled"
+    
+        def check(self, ctx):
+            out = []
+            classes = [
+                t for t in ctx.tasks
+                if t.get("status") in ("pending", "completed")
+                and "class" in t.get("tags", []) and ctx.in_week(t)
+            ]
+            for record in ctx.lectures():
+                times = event_times(record)
+                if not times:
+                    continue
+                start = times[0]
+                occ_days = expand_rrule(
+                    record["meta"]["rrule"], ctx.week_monday)
+                for day in occ_days:
+                    same_day = [
+                        t for t in classes
+                        if parse_tw_date(t.get("scheduled")).date() == day
+                    ]
+                    hit = next(
+                        (t for t in same_day
+                         if t.get("starttime") == start.strftime("%H:%M")),
+                        None)
+                    if hit is None:
+                        out.append(Warning(
+                            self.id, "ERROR",
+                            f"lecture '{record['title']}' on {day} "
+                            f"{start:%H:%M} missing from Taskwarrior",
+                            [record.get("id")],
+                        ))
+                    elif (hit.get("location") or "") != (record["meta"].get("location") or ""):
+                        out.append(Warning(
+                            self.id, "WARN",
+                            f"lecture '{record['title']}' on {day} location "
+                            f"'{hit.get('location')}' != omn "
+                            f"'{record['meta'].get('location')}'",
+                            [hit.get("id"), record.get("id")],
+                        ))
+            return out
+    
+    
 class RecurringEventsPresent(Policy):
     """Active recurring omn events (non-class, e.g. the PyLingual meeting) must
     have this week's occurrence scheduled as an individual plain task."""
@@ -538,8 +563,9 @@ class RecurringEventsPresent(Policy):
             start_time = times[0].strftime("%H:%M")
             for day in expand_rrule(record["meta"]["rrule"], ctx.week_monday):
                 hit = next(
-                    (t for t in ctx.pending
-                     if ctx.in_week(t)
+                    (t for t in ctx.tasks
+                     if t.get("status") in ("pending", "completed")
+                     and ctx.in_week(t)
                      and parse_tw_date(t.get("scheduled")).date() == day
                      and t.get("starttime") == start_time
                      and "fixed" in t.get("tags", [])),
@@ -563,13 +589,17 @@ class LabHours(Policy):
     def check(self, ctx):
         out = []
         lab = [
-            t for t in ctx.pending if ctx.in_week(t)
+            t for t in ctx.tasks
+            if t.get("status") in ("pending", "completed")
+            and ctx.in_week(t)
             and "PyLingual" not in t["description"]
             and ("Jee's lab" in (t.get("location") or "")
                  or t["description"].lower().startswith("lab work"))
         ]
         meeting = [
-            t for t in ctx.pending if ctx.in_week(t)
+            t for t in ctx.tasks
+            if t.get("status") in ("pending", "completed")
+            and ctx.in_week(t)
             and "PyLingual lab meeting" in t["description"]
         ]
         total = sum(
@@ -632,9 +662,10 @@ class MorningBoundary(Policy):
 
     def check(self, ctx):
         out = []
+        by_day_all = ctx.by_day(ctx.week_tasks(["pending", "completed"]))
         for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
             classes = [
-                t for t in tasks
+                t for t in by_day_all.get(day, tasks)
                 if "class" in t.get("tags", []) and t.get("endtime")
             ]
             boundary = time(10, 0)
@@ -883,8 +914,8 @@ class Meals(Policy):
 
     def check(self, ctx):
         out = []
-        week = ctx.by_day(ctx.week_pending())
-        active_days = [d for d in sorted(week) if week[d]]
+        week = ctx.by_day(ctx.week_tasks(["pending", "completed"]))
+        active_days = [d for d in sorted(week) if week[d] and d >= ctx.now.date()]
         breakfasts, dinners, lunches = [], [], []
         for day in active_days:
             kinds = defaultdict(list)
@@ -1067,36 +1098,185 @@ class StaleScheduling(Policy):
         return out
 
 
+# ---------------------------------------------------- split-task helpers
+    
+# Descriptions that mark a task as one piece of a deliberately split task.
+SPLIT_PREFIX = re.compile(
+    r"^(start|finish|continue|complete|work on|part \d+ of|step \d+ of)\s+",
+    re.IGNORECASE)
+    
+    
+def split_family_key(description: str) -> str | None:
+    """Return the family key for a split piece, or None if the description
+    does not look like a piece of a larger task."""
+    text = (description or "").strip()
+    if not SPLIT_PREFIX.match(text):
+        return None
+    key = SPLIT_PREFIX.sub("", text)
+    key = re.sub(r"\s*\((?:(?:part|chunk|piece)\s*\d+)\)\s*$", "", key,
+                 flags=re.IGNORECASE)
+    return key.strip().lower() or None
+    
+    
+def split_families(ctx) -> dict[str, list[dict]]:
+    """Group this week's pending tasks into split-task families (>=2 pieces)."""
+    families: dict[str, list[dict]] = defaultdict(list)
+    for t in ctx.week_pending():
+        key = split_family_key(t.get("description"))
+        if key:
+            families[key].append(t)
+    return {k: v for k, v in families.items() if len(v) >= 2}
+    
+    
+def piece_span(ctx, t: dict) -> timedelta | None:
+    return ctx.duration(t) or ctx.est_of(t)
+    
+    
+# ------------------------------------------------------------ split policies
+    
+    
+class VagueLocation(Policy):
+    """Timed tasks must name a real place, not an area 'near' one."""
+    
+    id = "vague-location"
+    
+    PATTERN = re.compile(
+        r"\b(near|nearby|around|somewhere|tbd|unspecified|anywhere|"
+        r"outside|classroom|wherever)\b|\bn/?a\b",
+        re.IGNORECASE)
+    
+    def check(self, ctx):
+        out = []
+        for t in ctx.week_pending():
+            loc = t.get("location") or ""
+            if loc and self.PATTERN.search(loc):
+                out.append(Warning(
+                    self.id, "WARN",
+                    f"'{t['description'][:40]}' has vague location '{loc}'; "
+                    "name a real place (default to SU Starbucks for "
+                    "between-class blocks)",
+                    [t.get("id")],
+                ))
+        return out
+    
+    
+class MultipartChunkMinimum(Policy):
+    """Pieces of a split task stay whole: no chunk shorter than one hour."""
+    
+    id = "multipart-chunk-minimum"
+    
+    MINIMUM = timedelta(hours=1)
+    
+    def check(self, ctx):
+        out = []
+        for key, pieces in sorted(split_families(ctx).items()):
+            for t in pieces:
+                span = piece_span(ctx, t)
+                if span is not None and span < self.MINIMUM:
+                    sched = parse_tw_date(t.get("scheduled"))
+                    out.append(Warning(
+                        self.id, "WARN",
+                        f"split task '{key[:32]}' has a {span} piece "
+                        f"('{t['description'][:32]}', {sched.date() if sched else '?'}); "
+                        "pieces are at least 1h or the task is done in one block",
+                        [t.get("id")],
+                    ))
+        return out
+    
+    
+class MultipartOrder(Policy):
+    """A 'start' piece is never scheduled after its 'finish' piece."""
+    
+    id = "multipart-order"
+    
+    def check(self, ctx):
+        out = []
+        for key, pieces in sorted(split_families(ctx).items()):
+            starts, finishes = [], []
+            for t in pieces:
+                desc = (t.get("description") or "").strip().lower()
+                span = ctx.datetimes(t)
+                if span is None:
+                    continue
+                if desc.startswith("start"):
+                    starts.append((span[0], t))
+                elif desc.startswith("finish"):
+                    finishes.append((span[0], t))
+            for s_begin, s_task in starts:
+                for f_begin, f_task in finishes:
+                    if s_begin >= f_begin:
+                        out.append(Warning(
+                            self.id, "ERROR",
+                            f"'{s_task['description'][:36]}' is scheduled at "
+                            f"{s_begin:%a %H:%M} but "
+                            f"'{f_task['description'][:36]}' at "
+                            f"{f_begin:%a %H:%M}; reorder the pieces",
+                            [s_task.get("id"), f_task.get("id")],
+                        ))
+        return out
+    
+    
+class MultipartMerge(Policy):
+    """Prefer one contiguous block over splitting a task across days."""
+    
+    id = "multipart-merge"
+    
+    def check(self, ctx):
+        out = []
+        for key, pieces in sorted(split_families(ctx).items()):
+            days = sorted({
+                parse_tw_date(t.get("scheduled")).date()
+                for t in pieces if parse_tw_date(t.get("scheduled"))
+            })
+            if len(days) < 2:
+                continue
+            total = sum(
+                (piece_span(ctx, t) or timedelta(0) for t in pieces),
+                timedelta(0))
+            out.append(Warning(
+                self.id, "WARN",
+                f"split task '{key[:36]}' is spread over {len(days)} days "
+                f"({total} total); merge it into one block on a later day "
+                "unless a deadline forbids it",
+                [t.get("id") for t in pieces],
+            ))
+        return out
+    
+    
 POLICIES: list[Policy] = [
-    NoRecurrenceTemplates(),
-    NoDuplicateTasks(),
-    NoOverlaps(),
-    DueNotMidnight(),
-    PlannedAfterDue(),
-    ForbiddenTags(),
-    OmnAssignmentsCovered(),
-    OmnAssignmentDueAccuracy(),
-    ClassesScheduled(),
-    RecurringEventsPresent(),
-    LabHours(),
-    WeekendAssignmentWork(),
-    MorningBoundary(),
-    OverduePending(),
-    StaleScheduling(),
-    EstWindowMatch(),
-    MinimumEstimate(),
-    EstFormat(),
-    TransportSet(),
-    ClassTravelUda(),
-    TransitBuffers(),
-    MissingLocation(),
-    CarTripGrouping(),
-    Meals(),
-    AfternoonBreak(),
-    VenueHours(),
-    ImperativeVerb(),
-    PianoSplitting(),
-    DayBudget(),
+NoRecurrenceTemplates(),
+NoDuplicateTasks(),
+NoOverlaps(),
+DueNotMidnight(),
+PlannedAfterDue(),
+ForbiddenTags(),
+OmnAssignmentsCovered(),
+OmnAssignmentDueAccuracy(),
+ClassesScheduled(),
+RecurringEventsPresent(),
+LabHours(),
+WeekendAssignmentWork(),
+MorningBoundary(),
+OverduePending(),
+StaleScheduling(),
+EstWindowMatch(),
+MinimumEstimate(),
+EstFormat(),
+TransportSet(),
+ClassTravelUda(),
+TransitBuffers(),
+MissingLocation(),
+CarTripGrouping(),
+Meals(),
+AfternoonBreak(),
+VenueHours(),
+ImperativeVerb(),
+PianoSplitting(),
+VagueLocation(),
+MultipartChunkMinimum(),
+MultipartOrder(),
+MultipartMerge(),
+DayBudget(),
 ]
 
 

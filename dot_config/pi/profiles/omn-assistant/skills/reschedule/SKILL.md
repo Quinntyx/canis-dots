@@ -54,22 +54,28 @@ metadata:
 2. Reassign each item to the earliest future day with remaining capacity, where
    capacity is the budget minus fixed scheduled `est`, unmanaged scheduled
    `est`, and already-planned flexible `+managed` work.
-3. Keep small items unsplit and split large items across enough days to finish
-   comfortably before the deadline, applying the Guidelines.
-4. If a day would exceed the budget, first propose squashing non-assignment
+3. Keep small items unsplit; prefer one contiguous block on a later day over
+   splitting a task, and never create a piece shorter than one hour.
+4. For any item that is part of a split task (a `Start`/`Finish` pair, or any
+   task with sibling pieces), re-plan the whole family in one pass instead of
+   sliding the single block: keep the task's total hours the same, re-divide it
+   across the week, and rename the pieces to match the new division.
+5. If a day would exceed the budget, first propose squashing non-assignment
    tasks on that day and later days to free the room.
-5. If a deadline still cannot be met at the budget, exceed it by the minimum
-   needed and only for the days and items that require it.
-6. If the rebuild satisfies the checks, proceed to Stage 4; otherwise recompute
+6. If a deadline still cannot be met at the budget, exceed it by the minimum
+   needed and only for the days and items that require it. If no deadline
+   requires it, push the item past this week rather than fragmenting it.
+7. If the rebuild satisfies the checks, proceed to Stage 4; otherwise recompute
    with the user's priorities and repeat Stage 3.
 
 ## Stage 4: Propose, confirm, apply
 1. Present a before-and-after table of each carried item's old and new scheduled
    date, estimate, and deadline, with per-day totals, and note any proposed
-   squashing.
+   squashing. For split tasks, show the whole family's before-and-after and the
+   renames, not just the moved piece.
 2. On confirmation, move each carried `+managed` task with one modify per task,
    using its id from the export, adjusting `est` only when the remaining portion
-   changed.
+   changed. Rename pieces as planned.
 3. Never modify, move, or delete an unmanaged, `+fixed`, or already-completed
    task.
 4. Record every modified task id; proceed to Stage 5.
@@ -106,6 +112,23 @@ metadata:
   side-project and hobby tasks, on that day and later days.
 - Preserve assignment work above project work whenever room must be made.
 
+## Multi-part (split) tasks
+- Treat every piece of a split task as one unit: `Start X` / `Continue X` /
+  `Finish X` are the same task divided in time, not independent items.
+- When the user asks to move or cancel one piece, scan the whole week for the
+  task's other pieces, decide the new division, and keep the total estimated
+  hours the same across the pieces.
+- Re-divide before moving: prefer merging pieces into one contiguous block (on
+  a later day when needed) over keeping the same number of pieces, and never
+  produce a piece shorter than one hour.
+- Rename the pieces to match the new division (`Start`, `Continue`, `Finish`),
+  preserving the imperative verb-first style, and re-derive start/end times so
+  a `Start` piece is never scheduled at or after its `Finish` piece.
+- Never slide a piece naively: moving one block without re-planning its
+  siblings produces nonsense such as a `Finish` piece before its `Start`.
+- When the whole task cannot fit before its deadline, prefer dropping unrelated
+  deadline-free work out of the week over fragmenting the task further.
+
 ## Rippling and deadlines
 - Reassign carried work to the earliest day with capacity, earliest deadlines
   first.
@@ -114,6 +137,8 @@ metadata:
   its concrete action.
 - Never schedule a task after its real deadline.
 - Keep small items unsplit and split large items across days, front-loaded.
+- Pieces of a split task are never shorter than one hour; prefer one
+  contiguous block on a later day over a fresh split.
 
 - Treat 0.5 hours as the minimum estimate for any task reallocation; merge
   smaller carried actions into 0.5h or larger tasks rather than moving many

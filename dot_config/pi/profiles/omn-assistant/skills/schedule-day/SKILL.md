@@ -28,9 +28,8 @@ metadata:
 - Fixed tasks retain their authoritative date, time, estimate, and location.
 - Every travel-bearing task carries a compact `travel` duration estimate, and
   travel buffers surround class blocks and car trips as unallocated gaps.
-- No assignment work starts before the later of 10:00 and the end of the day's
-  first fixed class plus its travel buffer; the pre-class morning holds only
-  personal-project work or unallocated downtime.
+- Nothing (except meals) starts before the later of 10:00 and the end of the
+  day's first fixed class plus its travel buffer; mornings are flex time.
 - Flexible work ends by 18:00.
 - Higher-urgency flexible tasks occupy earlier available work periods.
 - Every selected task has `transport` set to `car` or `no-car`.
@@ -63,7 +62,9 @@ metadata:
    or the current time rounded up to the next 15-minute boundary; the user
    sleeps in until roughly 10:00 or their first class, so nothing is scheduled
    before this cursor.
-10. If scheduling a future date without a supplied day start, use 08:00.
+10. If scheduling a future date without a supplied day start, use the morning
+    boundary (the later of 10:00 and that day's first class end plus its
+    travel buffer), never 08:00.
 11. Parse compact hour and day estimates; preserve zero-duration actions.
 12. Proceed to Stage 2.
 
@@ -82,6 +83,10 @@ metadata:
 7. Set `travel` on every task whose execution requires travel: `30m` by default
    for class attendance and car errands, extended in conversation when the user
    supplies a better figure.
+7a. Give every staged task a `location` — real places like lecture rooms,
+    `ECSS 3.226` (Prof. Jee's lab), `SU Starbucks` (the usual hangout between
+    classes), or `At home` (the dorm) — so transit can be computed from place
+    to place. An untimed task stays location-free until it gets a time block.
 8. Mark each flexible task as assignment work or personal-project work, using
    the task's origin (course assignment versus side project) when tags do not
    already distinguish them.
@@ -105,9 +110,9 @@ metadata:
 5. Reserve at least 30 minutes of unallocated travel buffer immediately before
    and immediately after every fixed class block; between consecutive class
    blocks, reserve one 30-minute buffer instead of two.
-6. Never book assignment work before the later of 10:00 and the end of the
-   day's first fixed class plus its travel buffer; place only personal-project
-   work or unallocated downtime in that morning window.
+6. Book nothing (except meals) before the later of 10:00 and the end of the
+   day's first fixed class plus its travel buffer; the pre-boundary morning
+   stays unallocated as flex time.
 7. Place the afternoon break immediately after the car trip when one occurs.
 8. Otherwise place the afternoon break after the last afternoon fixed event.
 9. When neither condition applies, place the afternoon break near 16:00.
@@ -121,8 +126,8 @@ metadata:
     cluster by descending Taskwarrior urgency.
 14. Place each cluster in the earliest available interval that can contain it
     and ends no later than 18:00.
-15. Leave 15 minutes unallocated between adjacent non-car, non-class items
-    whenever slack permits.
+15. Leave the location-based transit gap (0/10/20/30 minutes) unallocated
+    between adjacent non-car, non-class items whenever slack permits.
 16. Treat lunch, the afternoon break, or a travel buffer as sufficient
     separation from an immediately adjacent item.
 17. Never move or resize a `+fixed` task to create capacity.
@@ -164,9 +169,10 @@ metadata:
 8. Confirm the afternoon break follows the placement rule and lasts one through
    two hours.
 9. Confirm car tasks are contiguous with 30-minute outer transitions.
-10. Confirm 30-minute travel buffers surround every fixed class block.
-11. Confirm no assignment work starts before the later of 10:00 and the end of
-    the day's first fixed class plus its travel buffer.
+10. Confirm location-based transit buffers surround every fixed class block
+    (0/10/20/30 minutes per the Travel time rules).
+11. Confirm nothing except meals starts before the later of 10:00 and the end
+    of the day's first fixed class plus its travel buffer (morning boundary).
 12. Confirm same-type flexible tasks form contiguous clusters.
 13. Confirm flexible work ends by 18:00.
 14. Confirm there are no overlaps and unallocated gaps exist where feasible,
@@ -209,14 +215,16 @@ metadata:
 
 ## Travel time
 
-- Track travel cost per task in the string UDA `travel` using compact minute
-  values such as `30m`; leave it empty on tasks that require no travel.
-- Default `travel` to `30m` for class attendance, because classes require
-  walking, and for car errands; extend it in conversation when the user
-  supplies a better estimate.
+- Compute transit from `location` to `location`, not from a flat estimate:
+  **0 min** when neighboring blocks share the same place, **10 min** same
+  building, **20 min** different buildings both on campus, **30 min** whenever
+  a leg moves off campus. The dorm (`At home`) is off campus for everything.
+- Track the home↔campus commute cost per task in the string UDA `travel` using
+  compact minute values such as `30m`; leave it empty on tasks that require no
+  travel.
 - Represent travel only as unallocated buffer time around task windows; never
   create travel tasks and never book other work into a class block's buffers.
-- Replace the flat 30-minute estimate with measured travel times, such as a
+- Replace the location-based estimate with measured travel times, such as a
   Google Maps API lookup, only when the user explicitly asks for that upgrade.
 - Default campus commutes to walking even though the user owns a parking
   permit; the user walks for the exercise. Reserve driving to campus for
@@ -240,15 +248,17 @@ metadata:
   place's hours for the target date by web search; never book a closed venue
   (example: bank branches on weekends).
 
-## Assignment start boundary
+## Morning boundary
 
-- Never schedule assignment work before the later of 10:00 and the end of the
-  day's first fixed class plus its travel buffer; the user sleeps in until
-  roughly then.
-- Fill the pre-boundary morning only with personal-project work or leave it
-  unallocated as downtime.
-- Treat this boundary as the current default; revise it in conversation when
-  the user's sleep schedule changes.
+- Do not schedule anything before the later of 10:00 and the end of the day's
+  first fixed class plus its travel buffer; mornings are flex time. This is
+  provisional while the user's sleep schedule settles and may change.
+- Only meals (breakfast) and the class blocks themselves may live in the
+  pre-boundary morning.
+- Work in the same building as the day's first class may start at the
+  same-building transit offset after that class ends.
+- Venue-forced exceptions (a place that closes early) may start earlier; say
+  so explicitly when applying one.
 
 ## Explicit user times
 
@@ -268,6 +278,36 @@ metadata:
   optimal fit that interleaves task types.
 - Treat this as a generalization of car-trip grouping: email tasks form one
   email block, errands form the car trip, and same-project work stays adjacent.
+
+## Between-class blocks
+
+- A class-to-class gap is not automatically work time. Compute transit out of
+  the first class and into the next one, and treat the remainder as the usable
+  window.
+- The default location for a between-class block is **SU Starbucks**. Never
+  schedule work at a vague location such as "near room X", "(near
+  classroom)", or "somewhere in <building>": the user cannot easily settle
+  into work outside a classroom, and walks to the SU instead.
+- A gap is work time only when the usable window can hold a whole piece — a
+  single-part task, or one full hour of a split task. Anything shorter stays
+  unallocated: the user walks to the SU and settles in rather than starting a
+  piece that cannot finish.
+
+## Split tasks
+
+- Prefer one contiguous block on a later day over splitting a task across
+  days. Split only when no single block fits before the deadline.
+- Never break a multi-part task into a piece shorter than one hour.
+- Name the pieces `Start <task>` and `Finish <task>` (with three pieces:
+  `Start`, `Continue`, `Finish`) so the order is visible in the schedule, and
+  keep them in that order across days.
+- When a piece is moved or cancelled, re-plan the whole task instead of
+  sliding that one block: find the task's other pieces, keep the total hours
+  the same, re-divide, and rename the pieces to match the new division (see
+  the reschedule skill).
+- Prefer merging two pieces into one longer block over adding a third piece to
+  fit the week. Pushing an unrelated deadline-free task to a later day, or
+  into the following week, is the accepted cost of keeping a task whole.
 
 ## Recurrence artifacts
 

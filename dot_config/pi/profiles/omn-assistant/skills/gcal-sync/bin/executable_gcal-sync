@@ -64,7 +64,22 @@ TOKEN_PATH = os.path.join(CONFIG_DIR, "token.json")
 
 def die(msg, code=1):
     print(msg, file=sys.stderr)
+    log_failure(msg, code)
     sys.exit(code)
+
+
+def log_failure(msg, code):
+    """Append failures to a state log: hook-triggered syncs run detached and
+    would otherwise fail silently."""
+    try:
+        path = os.path.expanduser("~/.local/state/gcal-sync.log")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a") as f:
+            stamp = datetime.now(TZ).isoformat(timespec="seconds")
+            first = msg.strip().splitlines()[0] if msg.strip() else ""
+            f.write(f"{stamp} exit={code} {first}\n")
+    except OSError:
+        pass
 
 
 # ---------------------------------------------------------------- OAuth ----
@@ -101,9 +116,15 @@ def load_token():
 
 def save_token(tok):
     os.makedirs(os.path.dirname(TOKEN_PATH), exist_ok=True)
-    fd = os.open(TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    # Atomic: concurrent hook-triggered syncs must never see a half-written
+    # token, so write a temp file and rename it over the real one.
+    tmp = f"{TOKEN_PATH}.{os.getpid()}.tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as f:
         json.dump(tok, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, TOKEN_PATH)
 
 
 def token_request(form):
@@ -112,8 +133,28 @@ def token_request(form):
         data=urllib.parse.urlencode(form).encode(),
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        try:
+            parsed = json.loads(body)
+        except ValueError:
+            parsed = {}
+        if e.code in (400, 401) and parsed.get("error") in (
+            "invalid_grant", "invalid_client", "unauthorized_client",
+        ):
+            die(
+                "Cached Google credentials are no longer valid "
+                f"({parsed.get('error')}: "
+                f"{parsed.get('error_description', '')}).\n"
+                "Re-authorize once interactively:\n  gcal-sync --auth\n"
+                "Note: an OAuth client left in 'Testing' publishing status "
+                "expires refresh tokens after 7 days.",
+                code=2,
+            )
+        die(f"Token endpoint HTTP {e.code}: {body[:400]}")
 
 
 def authorize_interactive():
@@ -559,10 +600,30 @@ def reconcile(api, cal_id, selected, window):
     return report
 
 
+def acquire_lock():
+    """Take the process-wide sync lock, or return None if it is held."""
+    import fcntl
+
+    path = os.path.join(CONFIG_DIR, "sync.lock")
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    handle = open(path, "w")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return None
+    return handle
+
+
 def main():
     if "--auth" in sys.argv[1:]:
         authorize_interactive()
         return
+
+    # Only one sync at a time: completing a batch of tasks fires the on-exit
+    # hook once per task, and parallel runs would race on token.json.
+    if acquire_lock() is None:
+        return  # another sync is already running
 
     window = week_window()
     tasks = read_tasks()

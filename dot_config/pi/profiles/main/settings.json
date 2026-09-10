@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.84.4",
+  "lastChangelogVersion": "0.85.1",
   "theme": "everforest-tui-light",
   "defaultProvider": "deepseek-router",
   "defaultModel": "deepseek-v4-flash-vision-exp",
@@ -10,7 +10,8 @@
     "openai-codex/gpt-5.6-sol",
     "deepseek-router/deepseek-v4-flash-1m-vision-exp",
     "opencode-go/glm-5.3-flash",
-    "antigravity/gemini-3.8-flash-tiered"
+    "antigravity/gemini-3.8-flash-tiered",
+    "openai-codex/gpt-6-astra"
   ],
   "providers": {
     "openrouter": {
@@ -36,6 +37,7 @@
     "git:github.com/Quinntyx/pi-session-move@5a80119c12494f6612154f9696cf6db4011327e1",
     "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
     "npm:pi-permissions",
+    "npm:pi-mcp-adapter",
     "git:git.quinntyx.dev/quinntyx/pi-auto-continue-after-compact",
     "git:git.quinntyx.dev/quinntyx/pi-autopilot",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
@@ -52,7 +54,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command"
   ],
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "compaction": {
     "reserveTokens": 0
   },

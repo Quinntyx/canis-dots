@@ -57,5 +57,6 @@
   "compaction": {
     "reserveTokens": 0
   },
-  "enableSkillCommands": true
+  "enableSkillCommands": true,
+  "tuiMode": "fullscreen"
 }

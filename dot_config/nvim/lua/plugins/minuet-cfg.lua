@@ -5,9 +5,9 @@
 -- server constructs the FIM prompt from the model's own tokens, so no
 -- template is configured here.
 --
--- The below-line display overlays one completion line beneath the cursor
--- without moving buffer lines. Long lines are clipped at the window edge,
--- and each successive chunk fades by ten percentage points.
+-- The below-line display overlays same-line completions beneath the cursor.
+-- Newline-leading completions use their actual next-line position and shift
+-- following screen text down. Later chunks fade by ten percentage points.
 --
 -- The cmp menu gets Tab first. When no menu is visible, Tab accepts Harmonize's
 -- next cached chunk; M-A remains a direct backup binding.
@@ -27,7 +27,8 @@ require("harmonize").setup({
         trigger = "<M-]>", -- manually request a completion
         toggle = "<M-c>", -- toggle auto-completion on and off
     },
-    -- Overlay one cursor-aligned line below the current screen line.
+    -- Overlay same-line text below the cursor; newline-leading text uses an
+    -- in-place virtual line at its actual insertion position.
     display = "below",
     -- Keep the LSP/cmp menu visible above the Harmonize preview.
     show_with_completion_menu = true,

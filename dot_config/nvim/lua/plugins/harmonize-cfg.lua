@@ -7,7 +7,7 @@
 --
 -- The below-line display overlays same-line completions beneath the cursor.
 -- Newline-leading completions use their actual next-line position and shift
--- following screen text down. Later chunks fade by ten percentage points.
+-- following screen text down. Later chunks fade by 25 percentage points.
 --
 -- The cmp menu gets Tab first. When no menu is visible, Tab accepts Harmonize's
 -- next cached chunk; M-A remains a direct backup binding.
@@ -35,7 +35,7 @@ require("harmonize").setup({
     -- Fade later chunks linearly while keeping long suggestions readable.
     chunk_fade = {
         enabled = true,
-        opacity_step = 0.1,
+        opacity_step = 0.25,
         minimum_opacity = 0.1,
     },
     -- harmonize starts the server when nothing answers on 127.0.0.1:8012

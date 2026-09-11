@@ -7,8 +7,8 @@
 --
 -- The below-line display overlays same-line completions beneath the cursor.
 -- Newline-leading completions show ↵ at the cursor, use their actual next-line
--- position, and shift following screen text down. Later chunks fade by 25
--- percentage points.
+-- position, and shift following screen text down. The next accepted chunk uses
+-- the theme's Special color while all later text remains fully readable.
 --
 -- The cmp menu gets Tab first. When no menu is visible, Tab accepts Harmonize's
 -- next cached chunk; M-A remains a direct backup binding.
@@ -33,11 +33,12 @@ require("harmonize").setup({
     display = "below",
     -- Keep the LSP/cmp menu visible above the Harmonize preview.
     show_with_completion_menu = true,
-    -- Fade later chunks linearly while keeping long suggestions readable.
-    chunk_fade = {
-        enabled = true,
-        opacity_step = 0.25,
-        minimum_opacity = 0.1,
+    -- Accent only the text that Tab will accept next. A #RRGGBB color can be
+    -- used instead of the theme's Special highlight group.
+    display_options = {
+        below = { next_chunk_highlight = "Special" },
+        line = { next_chunk_highlight = "Special" },
+        chunk = {},
     },
     -- harmonize starts the server when nothing answers on 127.0.0.1:8012
     -- (the running one is detected and left alone) and leaves it running

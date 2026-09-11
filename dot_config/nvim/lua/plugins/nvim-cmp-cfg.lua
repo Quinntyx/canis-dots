@@ -2,15 +2,15 @@
 -- menu pops automatically with the first item preselected, Enter accepts,
 -- Esc aborts. Flat menu (no border) like helix.
 --
--- Tab is copilot-style: a visible harmonize ghost suggestion is accepted one
--- chunk at a time first; otherwise cmp menu cycling; otherwise fallback
--- (literal tab / indent). harmonize's own M- keys still work as a backup.
+-- Tab gives the cmp/LSP menu first priority, then accepts one cached Harmonize
+-- chunk, then falls back to a literal tab or indentation. M-A remains a direct
+-- Harmonize accept binding.
 
 local cmp = require("cmp")
 
-local function harmonize_visible()
-    local ok, vt = pcall(require, "harmonize.virtualtext")
-    return ok and vt.action.is_visible()
+local function harmonize()
+    local ok, module = pcall(require, "harmonize")
+    return ok and module or nil
 end
 
 cmp.setup({
@@ -25,10 +25,14 @@ cmp.setup({
     },
     mapping = cmp.mapping.preset.insert({
         ["<Tab>"] = cmp.mapping(function(fallback)
-            if harmonize_visible() then
-                require("harmonize.virtualtext").action.accept()
-            elseif cmp.visible() then
+            if cmp.visible() then
                 cmp.select_next_item()
+                return
+            end
+
+            local h = harmonize()
+            if h and h.is_visible() then
+                h.accept()
             else
                 fallback()
             end

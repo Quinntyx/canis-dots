@@ -5,12 +5,12 @@
 -- server constructs the FIM prompt from the model's own tokens, so no
 -- template is configured here.
 --
--- The single-line display shows the completion one line at a time and Tab
--- accepts it chunk by chunk. Requests fire as soon as typing pauses; arrow
--- keys and scrolling only dismiss a stale suggestion.
+-- The below-line display overlays one completion line beneath the cursor
+-- without moving buffer lines. Long lines are clipped at the window edge,
+-- and each successive chunk fades by ten percentage points.
 --
--- Tab accepts the next chunk (the hook lives in plugins/nvim-cmp-cfg.lua, so
--- the default Tab binding is disabled here); the other keys stay on M- chords.
+-- The cmp menu gets Tab first. When no menu is visible, Tab accepts Harmonize's
+-- next cached chunk; M-A remains a direct backup binding.
 
 require("harmonize").setup({
     provider = "llama_cpp",
@@ -27,10 +27,16 @@ require("harmonize").setup({
         trigger = "<M-]>", -- manually request a completion
         toggle = "<M-c>", -- toggle auto-completion on and off
     },
-    -- one-line viewport: show only the remainder of the current line
-    -- (or the next line when the completion starts with a newline);
-    -- the rest stays cached for further acceptance
-    display = "line",
+    -- Overlay one cursor-aligned line below the current screen line.
+    display = "below",
+    -- Keep the LSP/cmp menu visible above the Harmonize preview.
+    show_with_completion_menu = true,
+    -- Fade later chunks linearly while keeping long suggestions readable.
+    chunk_fade = {
+        enabled = true,
+        opacity_step = 0.1,
+        minimum_opacity = 0.1,
+    },
     -- harmonize starts the server when nothing answers on 127.0.0.1:8012
     -- (the running one is detected and left alone) and leaves it running
     -- when nvim exits; nil by default, so this table opts in.

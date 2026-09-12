@@ -13,9 +13,9 @@ output "HDMI-A-2" { scale 1.5; }
 input {
     keyboard {
         xkb {
-            // Configures layout 1 as US Workman, and layout 2 as US QWERTY
+            // Configures layout 1 as US Workman (with F13 Caps Lock), and layout 2 as US QWERTY
             layout "us,us"
-            variant "workman,"
+            variant "workman_f13,"
         }
         numlock
     }

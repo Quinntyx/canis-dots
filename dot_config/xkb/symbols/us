@@ -1,0 +1,11 @@
+default partial alphanumeric_keys
+xkb_symbols "workman_f13" {
+    include "us(workman)"
+    name[Group1] = "English (Workman, F13 Caps)";
+
+    replace key <CAPS> {
+        type[Group1] = "ONE_LEVEL",
+        symbols[Group1] = [ F13 ],
+        actions[Group1] = [ NoAction() ]
+    };
+};

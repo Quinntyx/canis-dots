@@ -11,8 +11,7 @@
 -- the theme's Special color, later text remains readable, and the whole preview
 -- uses the completion menu background so it stays separate from code.
 --
--- The cmp menu gets Tab first. When no menu is visible, Tab accepts Harmonize's
--- next cached chunk; M-A remains a direct backup binding.
+-- F13 accepts Harmonize independently from the cmp/LSP Tab mapping.
 
 require("harmonize").setup({
     provider = "llama_cpp",
@@ -21,9 +20,7 @@ require("harmonize").setup({
     debounce = 50, -- fire almost as soon as typing pauses (ms)
     auto_trigger_ft = { "*" }, -- suggest in every filetype; narrow to e.g. { "rust", "lua" } to limit
     keymap = {
-        -- Tab accepts one chunk; nvim-cmp-cfg.lua binds Tab itself,
-        -- and its mapping replaces the default acceptance key below.
-        accept = "<M-A>", -- accept one chunk
+        accept = "<F13>", -- accept one chunk
         accept_line = "<M-a>", -- accept one line
         dismiss = "<M-e>",
         trigger = "<M-]>", -- manually request a completion
@@ -44,6 +41,13 @@ require("harmonize").setup({
         line = { next_chunk_highlight = "Special" },
         chunk = {},
     },
+    -- Stop chunks after whitespace. Newlines accept indentation only; set this
+    -- to "." to include a Rust-style method-chain dot with the newline.
+    chunk_options = {
+        allow_post_newline_chars = "",
+    },
+    -- Reuse matching line suffixes and exact predicted next lines.
+    match_existing_text = true,
     -- harmonize starts the server when nothing answers on 127.0.0.1:8012
     -- (the running one is detected and left alone) and leaves it running
     -- when nvim exits; nil by default, so this table opts in.

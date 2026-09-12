@@ -2,16 +2,10 @@
 -- menu pops automatically with the first item preselected, Enter accepts,
 -- Esc aborts. Flat menu (no border) like helix.
 --
--- Tab gives the cmp/LSP menu first priority, then accepts one cached Harmonize
--- chunk, then falls back to a literal tab or indentation. M-A remains a direct
--- Harmonize accept binding.
+-- Tab moves through the cmp/LSP menu when it is visible and otherwise falls
+-- back to a literal tab or indentation. Harmonize uses F13 separately.
 
 local cmp = require("cmp")
-
-local function harmonize()
-    local ok, module = pcall(require, "harmonize")
-    return ok and module or nil
-end
 
 cmp.setup({
     completion = {
@@ -30,12 +24,7 @@ cmp.setup({
                 return
             end
 
-            local h = harmonize()
-            if h and h.is_visible() then
-                h.accept()
-            else
-                fallback()
-            end
+            fallback()
         end, { "i", "s" }),
         ["<S-Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then

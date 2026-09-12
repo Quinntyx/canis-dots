@@ -8,7 +8,8 @@
 -- The below-line display overlays same-line completions beneath the cursor.
 -- Newline-leading completions show ↵ at the cursor, use their actual next-line
 -- position, and shift following screen text down. The next accepted chunk uses
--- the theme's Special color while all later text remains fully readable.
+-- the theme's Special color, later text remains readable, and the whole preview
+-- uses the completion menu background so it stays separate from code.
 --
 -- The cmp menu gets Tab first. When no menu is visible, Tab accepts Harmonize's
 -- next cached chunk; M-A remains a direct backup binding.
@@ -33,10 +34,13 @@ require("harmonize").setup({
     display = "below",
     -- Keep the LSP/cmp menu visible above the Harmonize preview.
     show_with_completion_menu = true,
-    -- Accent only the text that Tab will accept next. A #RRGGBB color can be
-    -- used instead of the theme's Special highlight group.
+    -- Accent only the text that Tab will accept next, and use the completion
+    -- menu background for the floating preview. Either value can be #RRGGBB.
     display_options = {
-        below = { next_chunk_highlight = "Special" },
+        below = {
+            next_chunk_highlight = "Special",
+            background_highlight = "Pmenu",
+        },
         line = { next_chunk_highlight = "Special" },
         chunk = {},
     },

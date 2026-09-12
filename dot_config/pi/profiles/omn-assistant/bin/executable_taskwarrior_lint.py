@@ -148,7 +148,7 @@ IMPERATIVE = {
     "attempt", "check", "renew", "work", "research", "write", "talk",
     "calculate", "set", "download", "sign", "lab", "discuss", "revisit",
     "register", "email", "contact", "buy", "go", "call", "schedule",
-    "verify", "attend", "renew", "apply",
+    "verify", "attend", "renew", "apply", "take",
 }
 
 
@@ -449,6 +449,7 @@ class OmnAssignmentsCovered(Policy):
     # provider re-ingest replaces meta wholesale, so ids are pinned here too.
     IN_CLASS_IDS = {
         "canvasical:elearning.utdallas.edu:event-assignment-357594",  # Methods and Strings
+        "canvasical:elearning.utdallas.edu:event-assignment-359033",  # 3_StringsLab
     }
 
     def check(self, ctx):

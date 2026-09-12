@@ -5,7 +5,7 @@
     "@narumitw/pi-btw": "^0.58.1",
     "pi-everforest-tui": "^0.2.0",
     "pi-hashline-edit": "^0.8.3",
-    "pi-mcp-adapter": "^2.32.1",
+    "pi-mcp-adapter": "^2.33.0",
     "pi-permissions": "^1.0.4",
     "pi-subagents": "^0.35.1"
   }

@@ -48,6 +48,12 @@ require("harmonize").setup({
     },
     -- Reuse matching line suffixes and exact predicted next lines.
     match_existing_text = true,
+    -- Refill the cache from its predicted endpoint when fewer than two
+    -- newline-terminated lines remain.
+    extension_options = {
+        enabled = true,
+        minimum_remaining_lines = 2,
+    },
     -- harmonize starts the server when nothing answers on 127.0.0.1:8012
     -- (the running one is detected and left alone) and leaves it running
     -- when nvim exits; nil by default, so this table opts in.

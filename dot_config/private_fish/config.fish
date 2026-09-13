@@ -34,13 +34,16 @@ function pi --wraps pi --description 'Pi coding agent with canonical cwd and cwd
     set -l handoff (mktemp --tmpdir pi-cwd-handoff.XXXXXX)
     set -l logical_cwd $PWD
     set -l canonical_cwd (realpath -- .)
+    # pi-buddy's sprite frames are generated art; they live outside both the pi
+    # package checkout and this repo so package updates cannot clean them.
+    set -l buddy_frames $HOME/.local/share/pi-buddy/frames
 
     # Pi keys session buckets by the cwd string. Launch from the physical path
     # so symlink aliases such as ~/docs and ~/Documents share one history.
     if set -q PI_CODING_AGENT_DIR
-        command env --chdir=$canonical_cwd PWD=$canonical_cwd PTC_USE_DOCKER=false PTC_ALLOW_UNSANDBOXED_SUBPROCESS=true PI_CWD_HANDOFF_FILE=$handoff pi $argv
+        command env --chdir=$canonical_cwd PWD=$canonical_cwd PTC_USE_DOCKER=false PTC_ALLOW_UNSANDBOXED_SUBPROCESS=true PI_CWD_HANDOFF_FILE=$handoff PI_BUDDY_FRAMES="$buddy_frames" pi $argv
     else
-        command env --chdir=$canonical_cwd PWD=$canonical_cwd PTC_USE_DOCKER=false PTC_ALLOW_UNSANDBOXED_SUBPROCESS=true PI_CWD_HANDOFF_FILE=$handoff ppi use main -- $argv
+        command env --chdir=$canonical_cwd PWD=$canonical_cwd PTC_USE_DOCKER=false PTC_ALLOW_UNSANDBOXED_SUBPROCESS=true PI_CWD_HANDOFF_FILE=$handoff PI_BUDDY_FRAMES="$buddy_frames" ppi use main -- $argv
     end
     set -l pi_status $status
 

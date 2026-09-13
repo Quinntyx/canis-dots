@@ -42,6 +42,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-autopilot",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
+    "git:git.quinntyx.dev/quinntyx/pi-buddy-extension",
     "git:git.quinntyx.dev/quinntyx/pi-cwd-handoff",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",

@@ -103,6 +103,11 @@ window-rule {
 }
 
 window-rule {
+    match app-id=r#"^steam_app_212680$"#
+    open-fullscreen true
+}
+
+window-rule {
     match app-id="kitty"
     draw-border-with-background false
     background-effect {

@@ -8,6 +8,10 @@
 .config/pi/agent/auth.json
 .config/pi/agent/antigravity-accounts.json
 .config/pi/agent/deepseek-router.json
+# The antigravity-auth extension rewrites this file with writeFile+rename, which replaces a
+# symlink with a regular file. Managing it meant permanent drift, so the profile keeps its
+# own unmanaged copy (it was a symlink to the agent store until 2026-09-13).
+.config/pi/profiles/main/antigravity-accounts.json
 # Generated unit embeds FEATHERLESS_API_KEY; do not commit it verbatim.
 .config/systemd/user/openclaw-gateway.service
 # ---- gcal-sync: OAuth client secret and cached token (restore manually) ----

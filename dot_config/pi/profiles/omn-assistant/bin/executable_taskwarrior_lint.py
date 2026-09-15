@@ -359,22 +359,64 @@ class NoDuplicateTasks(Policy):
 
 
 class NoOverlaps(Policy):
-    """Pending timed tasks must not overlap."""
+    """Timed tasks must not overlap. A completed +fixed block still anchors
+    its authoritative window (classes happen even when logged complete), so a
+    pending task may not sit on one. A completed non-fixed task that still
+    spans its original window should have been shortened to the actual time
+    used before its remainder was reallocated."""
 
     id = "no-overlaps"
 
     def check(self, ctx):
         out = []
-        for day, tasks in sorted(ctx.by_day(ctx.timed(ctx.week_pending())).items()):
+        week = ctx.week_tasks(["pending", "completed"])
+        for day, tasks in sorted(ctx.by_day(ctx.timed(week)).items()):
             spans = sorted(
-                (ctx.datetimes(t) for t in tasks), key=lambda s: s[0]
+                ((ctx.datetimes(t), t) for t in tasks),
+                key=lambda s: s[0][0],
             )
-            for (a_begin, a_end), (b_begin, b_end) in zip(spans, spans[1:]):
-                if b_begin < a_end:
+            for i in range(len(spans) - 1):
+                (a_begin, a_end), a = spans[i]
+                (b_begin, b_end), b = spans[i + 1]
+                if b_begin >= a_end:
+                    continue
+                a_pending = a.get("status") == "pending"
+                b_pending = b.get("status") == "pending"
+                if not (a_pending or b_pending):
+                    continue  # completed-vs-completed is historical noise
+                if a_pending and b_pending:
+                    pending, other = a, b
+                else:
+                    pending = a if a_pending else b
+                    other = b if a_pending else a
+                other = b if pending is a else a
+                if "fixed" in other.get("tags", []):
                     out.append(Warning(
                         self.id, "ERROR",
-                        f"overlapping tasks on {day}: {a_begin:%H:%M}-{a_end:%H:%M} "
+                        f"pending '{pending['description'][:36]}' overlaps "
+                        f"completed +fixed '{other['description'][:36]}' on "
+                        f"{day} ({a_begin:%H:%M}-{max(a_end, b_end):%H:%M}); "
+                        "fixed blocks anchor the schedule even when complete, "
+                        "so move the pending task",
+                        [pending.get("id"), other.get("id")],
+                    ))
+                elif other.get("status") == "completed":
+                    out.append(Warning(
+                        self.id, "WARN",
+                        f"pending '{pending['description'][:36]}' overlaps "
+                        f"completed '{other['description'][:36]}' on {day} "
+                        f"({a_begin:%H:%M}-{a_end:%H:%M}); shorten the "
+                        "completed task's window and est to the actual time "
+                        "used, then reallocate the remainder",
+                        [pending.get("id"), other.get("id")],
+                    ))
+                else:
+                    out.append(Warning(
+                        self.id, "ERROR",
+                        f"overlapping tasks on {day}: "
+                        f"{a_begin:%H:%M}-{a_end:%H:%M} "
                         f"and {b_begin:%H:%M}-{b_end:%H:%M}",
+                        [a.get("id"), b.get("id")],
                     ))
         return out
 

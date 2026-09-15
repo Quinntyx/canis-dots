@@ -279,6 +279,18 @@ metadata:
 - Treat this as a generalization of car-trip grouping: email tasks form one
   email block, errands form the car trip, and same-project work stays adjacent.
 
+## Early completion and reallocation
+
+- When the user completes a task in less time than its scheduled block, first
+  edit the completed task to the actual usage — shorten `starttime`, `endtime`,
+  and `est` to what the work really took — then allocate the freed remainder to
+  other work. The shortened `est` becomes the historical estimate for future
+  planning (write it back to `meta.est` when the task came from an omn record).
+- A completed `+fixed` block keeps its authoritative window and still anchors
+  the schedule: never place pending work on top of it and never move it, even
+  though it is complete. The freed time after an early-completed fixed block is
+  only the slack that was scheduled around it.
+
 ## Between-class blocks
 
 - A class-to-class gap is not automatically work time. Compute transit out of

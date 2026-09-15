@@ -123,6 +123,10 @@ today, and semantically equivalent formulations.
    scan the week for its siblings, keep the task's total hours the same,
    re-divide, and rename the pieces (`Start` / `Continue` / `Finish`) so a
    `Start` piece never lands at or after its `Finish` piece.
+10. Completing a task early frees the rest of its block: edit the completed
+   task's `est` and time window to the actual time used, then reallocate the
+   remainder. A completed `+fixed` block still anchors its authoritative
+   window — never schedule pending work over it.
 
 ## Canvas item classification
 

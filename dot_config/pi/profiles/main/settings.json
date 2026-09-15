@@ -52,7 +52,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-setup-command",
     "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
-    "git:git.quinntyx.dev/quinntyx/pi-update-command"
+    "git:git.quinntyx.dev/quinntyx/pi-update-command",
+    "git:git.quinntyx.dev/quinntyx/pi-idle-time@d25b190082e0fe1b31f42846478eacdd06819927"
   ],
   "hideThinkingBlock": true,
   "compaction": {

@@ -39,7 +39,8 @@
     "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
     "npm:pi-everforest-tui",
     "git:git.quinntyx.dev/quinntyx/pi-sock",
-    "git:git.quinntyx.dev/quinntyx/pi-tool-tree"
+    "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
+    "git:git.quinntyx.dev/quinntyx/pi-idle-time@d25b190082e0fe1b31f42846478eacdd06819927"
   ],
   "enableSkillCommands": true,
   "lastChangelogVersion": "0.84.4",

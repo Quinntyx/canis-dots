@@ -57,6 +57,7 @@ docs/host/forgejo/forgejo/gitea/conf/
 .config/pi/profiles/*/models-store.json
 # These profiles contain real repository checkouts; other profile git paths are managed symlinks.
 .config/pi/profiles/daily_assistant/git
+.config/pi/profiles/subagents/git
 .config/pi/profiles/mail/git
 .local/bin/forge-git
 .local/bin/gh

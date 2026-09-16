@@ -1,0 +1,22 @@
+{
+  "theme": "everforest-tui-light",
+  "defaultProvider": "deepseek-router",
+  "defaultModel": "deepseek-v4.1-flash",
+  "defaultThinkingLevel": "high",
+  "enabledModels": [
+    "deepseek-router/deepseek-v4.1-flash",
+    "deepseek-router/deepseek-v4.1-flash-1m",
+    "deepseek-router/deepseek-v4-pro"
+  ],
+  "packages": [
+    "git:github.com/Quinntyx/pi-ptc-next",
+    "git:git.quinntyx.dev/quinntyx/pi-sock",
+    "/home/zlare/.config/pi/profiles/main/git/git.quinntyx.dev/quinntyx/pi-tool-tree",
+    "npm:pi-everforest-tui",
+    "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
+    "git:git.quinntyx.dev/quinntyx/pi-block-rm",
+    "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
+    "git:git.quinntyx.dev/quinntyx/pi-exit-command"
+  ],
+  "lastChangelogVersion": "0.85.1"
+}

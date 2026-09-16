@@ -35,6 +35,13 @@ uv venv --clear --python "${PY_VERSION}" "${VENV_DIR}"
 echo "==> Installing matplotlib, pandas, pillow (numpy comes as a dependency)..."
 uv pip install --python "${VENV_DIR}/bin/python" matplotlib pandas pillow
 
+echo "==> Installing pi-subagents (editable) for the PTC subagent runtime..."
+if [ -d "${HOME}/docs/src/pi-subagents/main" ]; then
+	uv pip install --python "${VENV_DIR}/bin/python" --editable "${HOME}/docs/src/pi-subagents/main"
+else
+	echo "    (skipped: ~/docs/src/pi-subagents/main not found)" >&2
+fi
+
 echo "==> Verifying..."
 "${VENV_DIR}/bin/python" - <<'PY'
 import matplotlib, numpy, pandas, PIL

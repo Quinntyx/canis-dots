@@ -25,6 +25,7 @@ import json
 import re
 import subprocess
 import sys
+import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
@@ -492,6 +493,7 @@ class OmnAssignmentsCovered(Policy):
     IN_CLASS_IDS = {
         "canvasical:elearning.utdallas.edu:event-assignment-357594",  # Methods and Strings
         "canvasical:elearning.utdallas.edu:event-assignment-359033",  # 3_StringsLab
+        "canvasical:elearning.utdallas.edu:event-assignment-361430",  # Class Activity 4 - Arrays
     }
 
     def check(self, ctx):
@@ -1286,40 +1288,105 @@ class MultipartMerge(Policy):
         return out
     
     
+class RecurrenceArtifactsCovered(Policy):
+    """Records carrying an `artifacts.rrule` artifact state durable recurrence
+    quotas (for example "at least 4 sessions per calendar week" for piano).
+    Those quotas were invisible to the linter, so a whole week could pass with
+    no sessions scheduled. Read each artifact, parse its minimum, and count the
+    week's matching tasks.
+
+    Matching is deliberately simple: the record title's first word appears in
+    the task description. An artifact declaring something "is separate from"
+    the sessions (the Friday piano lesson) contributes an exclusion term.
+    """
+
+    id = "recurrence-artifacts-covered"
+
+    MINIMUM_RE = re.compile(r"at least (\d+) sessions? per", re.IGNORECASE)
+    EXCLUSION_RE = re.compile(
+        r"([A-Za-z][A-Za-z ]{2,30}?)\s+(?:is|are) separate from", re.IGNORECASE)
+
+    def check(self, ctx):
+        out = []
+        for record in ctx.omn:
+            meta = record.get("meta", {})
+            if meta.get("active") is False:
+                continue
+            uri = (record.get("artifacts") or {}).get("rrule")
+            if not uri or not uri.startswith("file://"):
+                continue
+            try:
+                with open(urllib.parse.unquote(uri[len("file://"):])) as f:
+                    text = f.read()
+            except OSError:
+                continue  # a missing artifact is another policy's problem
+            match = self.MINIMUM_RE.search(text)
+            if not match:
+                continue
+            minimum = int(match.group(1))
+            title = record.get("title") or ""
+            keyword = title.split()[0].lower() if title else ""
+            if not keyword:
+                continue
+            exclusion = self.EXCLUSION_RE.search(text)
+            exclude_terms = []
+            if exclusion:
+                exclude_terms = [
+                    w for w in exclusion.group(1).strip().lower().split()
+                    if w not in ("the", "weekly", keyword)
+                ]
+            sessions = [
+                t for t in ctx.week_tasks(["pending", "completed"])
+                if keyword in t["description"].lower()
+                and not any(x in t["description"].lower() for x in exclude_terms)
+            ]
+            if len(sessions) >= minimum:
+                continue
+            out.append(Warning(
+                self.id, "ERROR",
+                f"'{title}': {len(sessions)} of >= {minimum} sessions this week; "
+                "schedule the remaining sessions from the artifact in the week's "
+                "free afternoon slots",
+                [t.get("id") for t in sessions] or [record.get("id")],
+            ))
+        return out
+
+
 POLICIES: list[Policy] = [
-NoRecurrenceTemplates(),
-NoDuplicateTasks(),
-NoOverlaps(),
-DueNotMidnight(),
-PlannedAfterDue(),
-ForbiddenTags(),
-OmnAssignmentsCovered(),
-OmnAssignmentDueAccuracy(),
-ClassesScheduled(),
-RecurringEventsPresent(),
-LabHours(),
-WeekendAssignmentWork(),
-MorningBoundary(),
-OverduePending(),
-StaleScheduling(),
-EstWindowMatch(),
-MinimumEstimate(),
-EstFormat(),
-TransportSet(),
-ClassTravelUda(),
-TransitBuffers(),
-MissingLocation(),
-CarTripGrouping(),
-Meals(),
-AfternoonBreak(),
-VenueHours(),
-ImperativeVerb(),
-PianoSplitting(),
-VagueLocation(),
-MultipartChunkMinimum(),
-MultipartOrder(),
-MultipartMerge(),
-DayBudget(),
+    NoRecurrenceTemplates(),
+    NoDuplicateTasks(),
+    NoOverlaps(),
+    DueNotMidnight(),
+    PlannedAfterDue(),
+    ForbiddenTags(),
+    OmnAssignmentsCovered(),
+    OmnAssignmentDueAccuracy(),
+    ClassesScheduled(),
+    RecurringEventsPresent(),
+    LabHours(),
+    WeekendAssignmentWork(),
+    MorningBoundary(),
+    OverduePending(),
+    StaleScheduling(),
+    EstWindowMatch(),
+    MinimumEstimate(),
+    EstFormat(),
+    TransportSet(),
+    ClassTravelUda(),
+    TransitBuffers(),
+    MissingLocation(),
+    CarTripGrouping(),
+    Meals(),
+    AfternoonBreak(),
+    VenueHours(),
+    ImperativeVerb(),
+    PianoSplitting(),
+    VagueLocation(),
+    MultipartChunkMinimum(),
+    MultipartOrder(),
+    MultipartMerge(),
+    RecurrenceArtifactsCovered(),
+    DayBudget(),
 ]
 
 

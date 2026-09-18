@@ -1,0 +1,23 @@
+# An ALSA output device that plays into the PipeWire "piano-mix" virtual sink
+# defined in ~/.config/pipewire/pipewire.conf.d/60-piano-mix.conf.
+#
+# This is what makes the mix selectable by name in ALSA applications. In REAPER:
+# Options -> Preferences -> Audio -> Device, set "Audio system" to ALSA and pick
+# "Piano + Mic Mix (virtual output)" as the output device; switch back to your normal
+# device when you just want to play through the speakers.
+#
+# The mix carries the G-Track Pro microphone plus whatever is played into it, and is
+# also sent to the G-Track Pro headphones.
+
+pcm.piano_mix {
+    type pipewire
+    playback_node "piano-mix"
+    hint {
+        show on
+        description "Piano + Mic Mix (virtual output)"
+    }
+}
+
+ctl.piano_mix {
+    type pipewire
+}

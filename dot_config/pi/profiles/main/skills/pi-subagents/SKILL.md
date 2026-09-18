@@ -32,6 +32,12 @@ the intended behavior: while the chunk runs, a live subagent viewer renders
 under the code view in the transcript, so the user can watch each agent's
 status, tool calls, thinking time, and current activity in real time.
 
+Do **not** split one task across several parallel `python_exec` calls in the same
+message. A session has one interpreter, so those calls are serialized: the later
+ones wait (reporting `Queued: …`) instead of streaming, and each sees the
+namespace only as of its turn. One chunk that does the whole job is faster and
+renders better.
+
 ## API
 
 ```python

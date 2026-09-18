@@ -84,5 +84,6 @@ subagents.stop_all()    # abort everything spawned by this session
 - Spawned agents cannot spawn agents (they run at depth 1; `import pi_subagents` raises there).
 - Statuses: `starting → running → settled`, or `stopped` (aborted), `failed`, `dead` (pi died). `await` on an aborted handle raises `ValueError: await on closed handle` — resume explicitly with `h.resume(...)` first.
 - Deadlines: `wait_async(timeout=...)` defaults to `PI_SUBAGENTS_SETTLE_TIMEOUT` (30 min). Set explicit, generous timeouts for long fan-outs.
+- `python_exec` uses an **idle** timeout (`PTC_EXECUTION_TIMEOUT_MS`, default 270s): every interpreter frame — progress, output, nested tool calls, and each subagent activity update — re-arms it. A fan-out may run for hours as long as agents keep reporting; the chunk is only terminated after that window with no activity at all (and the session is then disposed, so provision a new one).
 - Each subagent is a real interactive pi in its own tmux window — the user can watch and steer them by hand at any time.
 - When a fan-out pattern is worth rerunning, export the session (`python_session_to_script`) and commit the script.

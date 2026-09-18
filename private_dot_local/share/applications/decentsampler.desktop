@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Decent Sampler
+GenericName=Sampler
+Comment=Play Decent Sampler instrument libraries
+Exec=/home/zlare/.local/bin/DecentSampler
+TryExec=/home/zlare/.local/bin/DecentSampler
+Icon=decentsampler
+Terminal=false
+Categories=Audio;Music;AudioVideo;
+Keywords=sampler;instrument;vst3;sfz;ds;
+StartupNotify=true
+StartupWMClass=DecentSampler

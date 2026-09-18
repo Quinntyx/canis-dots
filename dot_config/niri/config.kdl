@@ -125,6 +125,14 @@ window-rule {
     }
 }
 
+window-rule {
+    // Decent Sampler's editor sizes itself from its own fixed UI aspect ratio
+    // and gets unhappy when the tiling layout negotiates that size with it.
+    // Let it own its geometry instead.
+    match app-id=r"^DecentSampler$"
+    open-floating true
+}
+
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 

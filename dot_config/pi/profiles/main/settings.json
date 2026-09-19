@@ -38,7 +38,6 @@
     "git:github.com/Quinntyx/pi-web-access",
     "npm:pi-permissions",
     "npm:pi-mcp-adapter",
-    "git:git.quinntyx.dev/quinntyx/pi-auto-continue-after-compact",
     "git:git.quinntyx.dev/quinntyx/pi-autopilot",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",

@@ -28,7 +28,6 @@
   },
   "packages": [
     "git:github.com/Quinntyx/pi-ptc-next@152f309272e5548f01d61235dc2d0c37140f0c66",
-    "git:git.quinntyx.dev/quinntyx/pi-auto-continue-after-compact",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",

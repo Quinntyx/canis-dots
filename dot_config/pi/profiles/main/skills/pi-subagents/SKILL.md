@@ -83,6 +83,52 @@ subagents.list()        # snapshot rows for every spawned agent
 subagents.stop_all()    # abort everything spawned by this session
 ```
 
+## Choosing a model or effort level
+
+The subagent profile can reach **every** model its pi install knows (610 of them
+across 9 providers), so **never guess a slug and never refuse a named model** —
+look it up:
+
+```python
+caps = subagents.capabilities()          # no catalog dump: counts, providers, defaults, caps
+# {"default_model": "deepseek-router/deepseek-v4.1-flash", "default_thinking": "high",
+#  "thinking_levels": ["off", ..., "xhigh", "max"], "scoped_models": [...],
+#  "model_count": 610, "providers": [...], "max_concurrent": 8, ...}
+
+subagents.thinking_levels()              # valid values for agent(thinking=...)
+subagents.scoped_models()                # the subagent profile's picker set (NOT a limit on agent(model=))
+subagents.model_slugs("astra")           # every matching slug
+subagents.resolve_models("opus")         # matching ModelInfo rows (provider, context, thinking, images)
+subagents.best_model_match("astra")      # one pick: .slug, .context, .thinking, .images
+```
+
+`best_model_match` prefers an exact slug, then the profile's own default provider,
+then first-party entries over proxied ones, so `"astra"` resolves to
+`openai-codex/gpt-6-astra` and `"flash"` to `deepseek-router/deepseek-v4.1-flash`.
+It returns `None` when nothing really matches (the CLI search is fuzzy and returns
+unrelated neighbours, which the helper filters out).
+
+**Whenever the user names a model or an effort level, resolve it first:**
+
+```python
+# "spin up an Astra subagent to review your code"
+model = subagents.best_model_match("astra")      # -> openai-codex/gpt-6-astra
+reviewer = subagents.agent("Review the diff for correctness", name="reviewer",
+                           model=model.slug, thinking="high")
+
+# "use the cheap model for the mechanical ones, max effort for the synthesis"
+cheap  = subagents.agent(count_prompt,  name="counter",  model=subagents.best_model_match("flash").slug,
+                         thinking="low")
+strong = subagents.agent(synth_prompt,  name="synth",    model=subagents.best_model_match("opus").slug,
+                         thinking="max")
+```
+
+If a lookup returns `None`, or `capabilities()["depth"] > 0` says spawning is
+unavailable, say so plainly instead of spawning on an unintended model. Use
+`list_models(search)` when you need the full rows (context window, max output,
+thinking support, image support) to choose between candidates — for example to
+prefer a model with a bigger context for a large migration batch.
+
 ## Rules
 
 - Top-level `await` is already available inside `python_exec` — `await h`, never `asyncio.run(...)`.

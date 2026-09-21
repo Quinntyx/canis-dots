@@ -129,11 +129,22 @@ def zone_of(location) -> str | None:
     return "off"
 
 
+# Legs the user has stated explicitly; they override the generic model.
+STATED_TRANSIT: list[tuple[str, str, int]] = [
+    ("ecss", "activity center", 5),  # user: natatorium is ~5 min from ECSS
+]
+
+
 def transit_minutes(origin: str | None, destination: str | None) -> int:
     """Standing transit rule: 0m same place, 10m same building, 20m different
-    buildings both on campus, 30m whenever the trip goes off campus."""
+    buildings both on campus, 30m whenever the trip goes off campus. Legs the
+    user has stated explicitly win over the model."""
     if origin is None or destination is None:
         return 30
+    a_low, b_low = normalize_location(origin).lower(), normalize_location(destination).lower()
+    for x, y, minutes in STATED_TRANSIT:
+        if (x in a_low and y in b_low) or (y in a_low and x in b_low):
+            return minutes
     if normalize_location(origin).lower() == normalize_location(destination).lower():
         return 0
     a, b = zone_of(origin), zone_of(destination)

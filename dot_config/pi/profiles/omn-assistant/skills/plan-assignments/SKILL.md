@@ -211,11 +211,13 @@ warnings.
   the assignment depends on may not have happened yet.
 
 ## Weekends are protected
-- Avoid scheduling assignment work on weekends. Weekends are rest, personal
-  projects, going out, and events such as hackathons.
-- Schedule weekend-due homework in advance on weekdays. Doing homework on a
-  weekend is acceptable only when the deadline is that weekend and no
-  earlier capacity remains.
+- Homework lives on weekdays. Weekends are for driving, errands, groceries,
+  personal projects, going out, and events such as hackathons — so front-load
+  assignment work into Mon-Fri even when the deadline lands on a weekend.
+- Budget the standing weekend anchors on Saturday: a grocery run (car, ~1.5h)
+  and laundry (~1h). The user cancels a given week when they are not needed.
+- Wednesday carries a 3h swimming block after lab time (UTD Activity Center
+  natatorium, Mon-Thu 4-10 PM).
 
 ## Aggressive early scheduling
 - Schedule assignments the moment they become known; the first planning pass
@@ -264,11 +266,11 @@ warnings.
   and on the PyLingual meeting task.
 
 ## Daily meals
-- Schedule breakfast and dinner every day in consistent time blocks:
-  breakfast between 06:00 and 08:00, dinner between 17:00 and 20:00.
-- Default to breakfast 07:00-07:45 and dinner 18:00-18:45 every day; shift the
-  whole block (never scatter it) when a fixed commitment requires, and keep
-  the same block across days.
+- The user cooks every meal: budget one hour of cooking before breakfast, then
+  breakfast 07:30-08:15 (on 08:30-class mornings: cook 06:15-07:15, breakfast
+  07:15-08:00). Dinner stays 18:00-18:45 by default, shifted as one block when a
+  fixed commitment requires.
+- Prefer home/packed food over eating out when choosing lunch locations.
 
 ## Side projects and hobbies
 - Record a project the user mentions that is not in omn as a `type:project`

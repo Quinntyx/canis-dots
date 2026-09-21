@@ -127,6 +127,19 @@ today, and semantically equivalent formulations.
    task's `est` and time window to the actual time used, then reallocate the
    remainder. A completed `+fixed` block still anchors its authoritative
    window — never schedule pending work over it.
+11. Homework lives on weekdays. Weekends are for driving, errands, groceries,
+    and rest, so assignment work is front-loaded into Mon-Fri even when the
+    deadline itself lands on a weekend.
+12. Weekend + Wednesday anchors: a Saturday grocery run (car, ~1.5h) and
+    Saturday laundry (~1h) are budgeted every week (the user cancels a given
+    week when not needed), and Wednesday carries a 3h swimming block after lab
+    time at the UTD Activity Center natatorium (Mon-Thu 4-10 PM, Sat/Sun 12-8).
+13. The user cooks every meal: budget an hour of cooking before breakfast, so
+    breakfast runs 07:30-08:15 (or 06:15-07:15 cook + 07:15-08:00 breakfast on
+    mornings with an 08:30 class). Prefer packed home food over eating out.
+14. Canvas graded mail: surface every grade to the user and log it in omn; flag
+    any assignment left ungraded for more than two weeks; a grade below 90%
+    earns a 2h review block that week to read the feedback.
 
 ## Canvas item classification
 

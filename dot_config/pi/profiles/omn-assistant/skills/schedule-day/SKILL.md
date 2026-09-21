@@ -237,9 +237,11 @@ metadata:
   personal projects, going out, and events.
 
 ## Meals
-- Schedule breakfast and dinner daily in the same time block every day.
-- Breakfast defaults to 07:00-07:45 and must stay within 06:00-08:00; dinner
-  defaults to 18:00-18:45 and must stay within 17:00-20:00.
+- The user cooks every meal themselves: place an hour of cooking immediately
+  before breakfast (`Cook breakfast`), so breakfast defaults to 07:30-08:15;
+  on mornings with an 08:30 class use cook 06:15-07:15 and breakfast
+  07:15-08:00 so the commute still fits.
+- Dinner defaults to 18:00-18:45 and stays within 17:00-20:00.
 - Shift the whole meal block as one unit when a fixed commitment requires;
   tag generated meal actions with `+schedule` like lunch.
 

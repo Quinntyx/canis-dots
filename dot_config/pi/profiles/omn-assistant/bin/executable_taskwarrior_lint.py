@@ -612,7 +612,8 @@ class RecurringEventsPresent(Policy):
                      if t.get("status") in ("pending", "completed")
                      and ctx.in_week(t)
                      and parse_tw_date(t.get("scheduled")).date() == day
-                     and t.get("starttime") == start_time
+                     and (record["meta"].get("flexible_time")
+                         or t.get("starttime") == start_time)
                      and "fixed" in t.get("tags", [])),
                     None)
                 if hit is None:
@@ -676,10 +677,18 @@ class LabHours(Policy):
 
 
 class WeekendAssignmentWork(Policy):
-    """Weekends are protected: no deadline-bearing (assignment) work on Sat/Sun
-    unless the weekend deadline forces it. Personal projects are fine."""
+    """Homeworks belong on weekdays. Weekends are for driving, errands,
+    groceries, and rest, so assignment work scheduled on Sat/Sun is a warning
+    even when a deadline lands there: front-load it into the weekdays instead.
+    Personal projects (Petals, novel, piano) and errands are fine on weekends."""
 
     id = "weekend-assignment-work"
+
+    HOMEWORK = re.compile(
+        r"\b(homework|assignment|problem set|theory assignment|"
+        r"programming assignment|memo|essay|report|paper|quiz|exam prep|"
+        r"ps\d|hw\d|ta\d)\b",
+        re.IGNORECASE)
 
     def check(self, ctx):
         out = []
@@ -687,14 +696,20 @@ class WeekendAssignmentWork(Policy):
             sched = parse_tw_date(t.get("scheduled"))
             if not sched or sched.weekday() not in (5, 6):
                 continue
-            if t.get("due"):
-                out.append(Warning(
-                    self.id, "WARN",
-                    f"deadline-bearing task '{t['description'][:40]}' scheduled "
-                    f"{sched:%a %Y-%m-%d}; weekends are protected unless the "
-                    "weekend deadline forces it",
-                    [t.get("id")],
-                ))
+            if "fixed" in t.get("tags", []):
+                continue  # exams, appointments and events anchor the weekend
+            desc = t["description"]
+            if not (t.get("due") or self.HOMEWORK.search(desc)):
+                continue
+            if not self.HOMEWORK.search(desc):
+                continue  # errands with a due date are weekend-appropriate
+            out.append(Warning(
+                self.id, "WARN",
+                f"homework '{desc[:40]}' scheduled {sched:%a %Y-%m-%d}; schedule "
+                "homework on weekdays and keep weekends for errands, driving, "
+                "groceries, and rest",
+                [t.get("id")],
+            ))
         return out
 
 
@@ -730,6 +745,8 @@ class MorningBoundary(Policy):
                 desc = t["description"].lower()
                 if desc.startswith(("eat breakfast", "eat lunch", "eat dinner")):
                     continue  # meals are allowed in the morning
+                if desc.startswith("cook"):
+                    continue  # the user cooks before breakfast by request
                 start = ctx.clock(t["starttime"])
                 same_building = (
                     first_class is not None
@@ -1003,6 +1020,26 @@ class Meals(Policy):
         consistency(breakfasts, "breakfast", time(6, 0), time(8, 0))
         consistency(dinners, "dinner", time(17, 0), time(20, 0))
         consistency(lunches, "lunch", time(11, 0), time(14, 0))
+        # The user cooks every meal: an hour of cooking precedes breakfast.
+        for day in active_days:
+            cooks = [t for t in week[day] if t["description"].lower().startswith("cook")]
+            if not cooks:
+                out.append(Warning(
+                    self.id, "WARN",
+                    f"no cooking block scheduled on {day}; the user cooks every "
+                    "meal and budgets an hour before breakfast",
+                ))
+            breakfast = [t for t in week[day] if t["description"].lower().startswith("eat breakfast")]
+            if cooks and breakfast:
+                cook_end = max((ctx.clock(t.get("endtime")) for t in cooks if t.get("endtime")), default=None)
+                eat_start = ctx.clock(breakfast[0].get("starttime"))
+                if cook_end and eat_start and cook_end > eat_start:
+                    out.append(Warning(
+                        self.id, "WARN",
+                        f"cooking on {day} ends {cook_end:%H:%M} but breakfast "
+                        f"starts {eat_start:%H:%M}; cooking precedes breakfast",
+                        [t.get("id") for t in cooks + breakfast],
+                    ))
         for day, t in lunches:
             span = ctx.duration(t)
             if span and abs(span - timedelta(hours=1)) > timedelta(minutes=5):

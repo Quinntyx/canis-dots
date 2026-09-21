@@ -96,6 +96,13 @@ metadata:
   scheduled in Taskwarrior.
 - Canvas peer-review assignments are real obligations the user must complete; treat
   them as actionable course work, not notifications.
+- Canvas "assignment graded" emails carry the policy: report the grade to the user in
+  the brief and log it on the assignment's omn record (`meta.graded_at`, and
+  `meta.grade` when the email carries a score — score only arrived after the user
+  enabled scored notifications on 2026-09-21). If an assignment has been due for more
+  than two weeks with no graded email, surface a "check on this grade" item. When the
+  score is below 90%, create a 2h `+managed` review block that week to read the
+  feedback and revisit the material.
 - When the user defers a decision with phrasing like "let's come back to this later"
   or "I have to ask someone", create a revisit task (`+managed`, 0.5h default) a few
   days out from the current date, naming the open question and any deadline it must

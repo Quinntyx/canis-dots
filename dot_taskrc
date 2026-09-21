@@ -61,7 +61,7 @@ report.daily.sort=urgency-
 
 # Show the same actionable task set as daily, ordered by staged time.
 report.schedule.description=Chronological staged schedule
-report.schedule.filter=+READY
+report.schedule.filter=+READY and scheduled:today
 report.schedule.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description,urgency
 report.schedule.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
 report.schedule.sort=starttime+,urgency-

@@ -1161,8 +1161,10 @@ class PianoSplitting(Policy):
 
 
 class StaleScheduling(Policy):
-    """Pending tasks still scheduled on past days (carried work); they need
-    rebalancing or an explicit keep."""
+    """`task schedule` shows today's plan and nothing else. A pending task left
+    on a past date is carried work that was never rescheduled: it pollutes the
+    daily agenda and loses its time slot. This is an error, not a note, because
+    every planning pass must move unfinished work forward before it reports."""
 
     id = "stale-scheduling"
 
@@ -1171,10 +1173,12 @@ class StaleScheduling(Policy):
         for t in ctx.pending:
             sched = parse_tw_date(t.get("scheduled"))
             if sched and sched.date() < ctx.now.date():
+                days = (ctx.now.date() - sched.date()).days
                 out.append(Warning(
-                    self.id, "INFO",
-                    f"'{t['description'][:40]}' still scheduled for "
-                    f"{sched:%Y-%m-%d} (in the past); reschedule or confirm",
+                    self.id, "ERROR",
+                    f"'{t['description'][:40]}' is still scheduled for "
+                    f"{sched:%Y-%m-%d} ({days}d ago); reschedule it forward so "
+                    "`task schedule` stays today-only",
                     [t.get("id")],
                 ))
         return out

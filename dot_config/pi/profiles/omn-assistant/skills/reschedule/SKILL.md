@@ -86,6 +86,11 @@ metadata:
    current date or after its `due`.
 3. Run `task export status:pending` and confirm each day stays near the budget
    except the explicit deadline-driven exceptions.
+4. Run `task schedule` and confirm it lists only today's work: any pending task
+   left on a past `scheduled` date is carried work that was missed, and the
+   linter's `stale-scheduling` policy raises it as an ERROR. Reschedule those
+   items forward (or complete/cancel them with the user) until the report and
+   that policy are both clean.
 4. Fix any violation by moving `+managed` work only, then repeat Stage 5.
 
 # Guidelines

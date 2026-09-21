@@ -157,7 +157,10 @@ metadata:
 
 ## Stage 5: Verify
 
-1. Run `task schedule` and confirm chronological ordering by `starttime`.
+1. Run `task schedule` and confirm chronological ordering by `starttime`. The
+   report is now scoped to today (`scheduled:today`), so it must contain only
+   the selected day's work; use `task daily` or an export to inspect another
+   day, and reschedule anything still sitting on a past date.
 2. Confirm the report uses the same columns as `task ready`.
 3. Compare `task daily` and `task schedule` and confirm their pending task IDs
    are identical.

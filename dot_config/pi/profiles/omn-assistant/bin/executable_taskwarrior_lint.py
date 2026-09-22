@@ -575,7 +575,10 @@ class ClassesScheduled(Policy):
                 start = times[0]
                 occ_days = expand_rrule(
                     record["meta"]["rrule"], ctx.week_monday)
+                cancelled = set((record["meta"].get("cancelled") or []))
                 for day in occ_days:
+                    if str(day) in cancelled:
+                        continue  # instructor cancelled this occurrence
                     same_day = [
                         t for t in classes
                         if parse_tw_date(t.get("scheduled")).date() == day

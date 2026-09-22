@@ -140,12 +140,13 @@ today, and semantically equivalent formulations.
 14. Canvas graded mail: surface every grade to the user and log it in omn; flag
     any assignment left ungraded for more than two weeks; a grade below 90%
     earns a 2h review block that week to read the feedback.
-15. `task schedule` is today-scoped (`report.schedule.filter=+READY and
-    scheduled:today`) and must always come back clean: unfinished work is
-    rescheduled forward before it is reported, never left sitting on a past
-    date. The linter's `stale-scheduling` policy is an ERROR for exactly this,
-    so a planning pass is not done until that policy is silent. Use `task
-    daily` or an export when a future day's agenda is needed.
+15. `task schedule` keeps its full unscoped report (`report.schedule.filter=
+    +READY`) — the user wants stale items visible so they can mark them
+    complete. Never change the display rule to hide carried work. Instead,
+    before finishing any planning pass, reschedule or clear every pending task
+    still sitting on a past `scheduled` date so the report has nothing stale
+    on it; the linter's `stale-scheduling` policy is an ERROR for exactly
+    this, so a pass is not done until that policy is silent.
 
 ## Canvas item classification
 

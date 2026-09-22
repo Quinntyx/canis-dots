@@ -158,9 +158,11 @@ metadata:
 ## Stage 5: Verify
 
 1. Run `task schedule` and confirm chronological ordering by `starttime`. The
-   report is now scoped to today (`scheduled:today`), so it must contain only
-   the selected day's work; use `task daily` or an export to inspect another
-   day, and reschedule anything still sitting on a past date.
+   report is unscoped by design (past days stay visible so the user can mark
+   carried work complete); the invariant is that no *pending* task may sit on
+   a past `scheduled` date — reschedule those forward before reporting, and
+   let the linter's `stale-scheduling` ERROR enforce it. Never hide the
+   problem by narrowing the report.
 2. Confirm the report uses the same columns as `task ready`.
 3. Compare `task daily` and `task schedule` and confirm their pending task IDs
    are identical.

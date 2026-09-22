@@ -176,6 +176,9 @@ today, and semantically equivalent formulations.
 2. A task the user marked completed is intentional; never "restore" a
    completed task back to pending on the assumption that it is too early for
    it to be done. Verify the current time first, and if in doubt, ask.
+3. A pending task that vanishes (deleted) was deleted by the user on purpose:
+   never restore it, never re-create it, and don't ask about it — proceed as
+   if it never existed.
 
 ### Ren relay messages
 

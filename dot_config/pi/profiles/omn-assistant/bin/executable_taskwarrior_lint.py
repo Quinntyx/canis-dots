@@ -1470,6 +1470,42 @@ class PianoPracticeAfterLesson(Policy):
         return out
 
 
+class HomeBetweenClasses(Policy):
+    """A two-hour gap between classes is spent at the SU, not at the room:
+    warn when a task is scheduled at home while a class still starts later
+    that same day. The user only heads home mid-day for a genuine need
+    (changing clothes before an event, an errand that only works from home,
+    the cooked lunch). Advisory: the agent okays genuine needs."""
+
+    id = "home-between-classes"
+
+    def check(self, ctx):
+        out = []
+        for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
+            classes = [
+                t for t in tasks
+                if "class" in t.get("tags", []) and ctx.datetimes(t)
+            ]
+            if not classes:
+                continue
+            last_class_start = max(ctx.datetimes(t)[0] for t in classes)
+            for t in tasks:
+                if not (t.get("location") or "").lower().startswith("at home"):
+                    continue
+                span = ctx.datetimes(t)
+                if not span or span[1] > last_class_start:
+                    continue  # after the last class, going home is normal
+                out.append(Warning(
+                    self.id, "WARN",
+                    f"'{t['description'][:36]}' at home "
+                    f"({span[0]:%H:%M}-{span[1]:%H:%M}) with a class still "
+                    f"starting {last_class_start:%H:%M} on {day}; the interim "
+                    "belongs at the SU unless there is a genuine need",
+                    [t.get("id")],
+                ))
+        return out
+
+
 POLICIES: list[Policy] = [
     NoRecurrenceTemplates(),
     NoDuplicateTasks(),
@@ -1504,6 +1540,7 @@ POLICIES: list[Policy] = [
     MultipartOrder(),
     MultipartMerge(),
     PianoPracticeAfterLesson(),
+    HomeBetweenClasses(),
     RecurrenceArtifactsCovered(),
     DayBudget(),
 ]

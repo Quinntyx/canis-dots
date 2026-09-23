@@ -133,6 +133,11 @@ metadata:
 
 # Guidelines
 
+## Scoped requests
+
+- Do exactly what the user asked for; never reschedule or re-plan other work
+  on the side. A reschedule pass happens only when the user requests one.
+
 ## Schedule linter
 
 After the week's tasks are registered (and again after any rebalance), run:

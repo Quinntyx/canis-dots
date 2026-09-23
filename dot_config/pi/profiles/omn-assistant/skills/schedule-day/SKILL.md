@@ -348,6 +348,11 @@ metadata:
 - If no person record exists for the named person, say so and ask for their
   schedule instead of guessing at their availability.
 
+## Scoped requests
+
+- Do exactly what the user asked for; never reschedule or re-plan unrelated
+  items on the side. Rescheduling is its own request.
+
 ## Ownership
 
 - Modify only `+managed` tasks.

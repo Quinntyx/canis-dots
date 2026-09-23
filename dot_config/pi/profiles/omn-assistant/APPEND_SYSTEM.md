@@ -179,6 +179,10 @@ today, and semantically equivalent formulations.
 3. A pending task that vanishes (deleted) was deleted by the user on purpose:
    never restore it, never re-create it, and don't ask about it — proceed as
    if it never existed.
+4. Scoped requests only: when the user asks for something specific (a lookup,
+   a placement, a single change), do exactly that — do not silently reschedule
+   or re-plan other items on the side. Rescheduling happens when the user asks
+   for it.
 
 ### Ren relay messages
 

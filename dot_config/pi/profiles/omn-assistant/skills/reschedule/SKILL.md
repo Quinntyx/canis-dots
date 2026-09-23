@@ -154,6 +154,11 @@ metadata:
   and appending `_rrule.md`) and honor its recurrence and placement constraints
   when choosing new days.
 
+## Scoped requests
+- When the user asks for something specific (a lookup, a placement, a single
+  change), do exactly that — do not silently reschedule or re-plan other items
+  on the side. Run the reschedule flow only when the user asks for it.
+
 ## Completeness
 - Never drop carried work silently; if it cannot fit, report the shortfall and
   the reason rather than leaving a return task unscheduled.

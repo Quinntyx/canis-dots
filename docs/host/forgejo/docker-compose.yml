@@ -20,8 +20,10 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "127.0.0.1:3000:3000"   # web — loopback only, cloudflared is on the host
-      # - "127.0.0.1:2222:22"    # SSH — matches tcp://localhost:2222 ingress, if re-enabled
+      - "127.0.0.1:3000:3000"       # web — loopback only, cloudflared is on the host
+      - "127.0.1.1:3000:3000"       # web — hostname "araveia" resolves here via /etc/hosts
+      - "100.110.255.43:3000:3000"  # web — tailnet peers via MagicDNS (100.110.255.43 = araveia)
+      # - "127.0.0.1:2222:22"      # SSH — matches tcp://localhost:2222 ingress, if re-enabled
 
   # Forgejo Actions runner (Forgejo 15+ flow: UUID + token in config, not env).
   # Starts only with: docker compose --profile runner up -d runner

@@ -1431,6 +1431,45 @@ class RecurrenceArtifactsCovered(Policy):
         return out
 
 
+class PianoPracticeAfterLesson(Policy):
+    """No Practice piano immediately after the piano lesson: the user's hands
+    cannot take two hours of piano back to back. A lesson plus practice counts
+    as continuous playing, so practice must wait at least PIANO_BREAK after
+    the lesson ends (sessions themselves stay capped at one hour)."""
+
+    id = "piano-after-lesson"
+
+    PIANO_BREAK = timedelta(minutes=30)
+
+    def check(self, ctx):
+        out = []
+        lessons = [
+            t for t in ctx.week_tasks(["pending", "completed"])
+            if "piano lesson" in t["description"].lower() and ctx.datetimes(t)
+        ]
+        practices = [
+            t for t in ctx.week_pending()
+            if t["description"].strip().lower() == "practice piano" and ctx.datetimes(t)
+        ]
+        for lesson in lessons:
+            _, l_end = ctx.datetimes(lesson)
+            l_day = parse_tw_date(lesson.get("scheduled")).date()
+            for p in practices:
+                p_begin, _ = ctx.datetimes(p)
+                if p_begin.date() != l_day or p_begin < l_end:
+                    continue
+                if p_begin - l_end < self.PIANO_BREAK:
+                    out.append(Warning(
+                        self.id, "ERROR",
+                        f"'{p['description']}' starts {p_begin:%H:%M}, only "
+                        f"{p_begin - l_end} after the lesson ends {l_end:%H:%M}; "
+                        f"hands get a {self.PIANO_BREAK} break (no 2h of piano "
+                        "in a row)",
+                        [p.get("id"), lesson.get("id")],
+                    ))
+        return out
+
+
 POLICIES: list[Policy] = [
     NoRecurrenceTemplates(),
     NoDuplicateTasks(),
@@ -1464,6 +1503,7 @@ POLICIES: list[Policy] = [
     MultipartChunkMinimum(),
     MultipartOrder(),
     MultipartMerge(),
+    PianoPracticeAfterLesson(),
     RecurrenceArtifactsCovered(),
     DayBudget(),
 ]

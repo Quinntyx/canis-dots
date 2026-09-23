@@ -526,7 +526,18 @@ class OmnAssignmentsCovered(Policy):
         for record, due in ctx.omn_assignments():
             if record.get("id") in self.IN_CLASS_IDS:
                 continue
-            matches = tw_by_due.get(due, [])
+            # A due date alone does not prove coverage: require the task on that
+            # date to share a word with the assignment title, so another
+            # assignment with the same deadline cannot mask a missing one.
+            title_words = [w for w in re.split(
+                r"[^a-z0-9]+",
+                re.sub(r"\[[^\]]*\]|\([^)]*\)", "", record.get("title", "")).lower()
+            ) if len(w) >= 4]
+            matches = [
+                t for t in tw_by_due.get(due, [])
+                if not title_words
+                or any(w in t["description"].lower() for w in title_words)
+            ]
             title = record.get("title", "")[:40]
             if not matches:
                     near = due <= ctx.week_sunday + timedelta(days=7)

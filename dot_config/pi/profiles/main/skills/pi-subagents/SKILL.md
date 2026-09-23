@@ -81,6 +81,7 @@ s.turns; s.duration_ms; s.session_file
 
 subagents.list()        # snapshot rows for every spawned agent
 subagents.stop_all()    # abort everything spawned by this session
+subagents.finish()      # CLOSE every subagent permanently (kills tmux windows)
 ```
 
 ## Choosing a model or effort level
@@ -128,6 +129,23 @@ unavailable, say so plainly instead of spawning on an unintended model. Use
 `list_models(search)` when you need the full rows (context window, max output,
 thinking support, image support) to choose between candidates — for example to
 prefer a model with a bigger context for a large migration batch.
+
+## Closing subagents (always do this)
+
+Every spawned subagent is a **real pi process in its own tmux window** — if you
+never close them, they pile up as orphaned windows. So the last line of every
+fan-out chunk, after the results are in and no resume/steer/history inspection is
+needed, is:
+
+```python
+subagents.finish()            # close everything this session spawned
+subagents.finish(handles)     # or just the handles from this fan-out
+```
+
+`finish()` kills the tmux windows and cleans their sockets; it is safe to call
+twice. Per-handle equivalents: `h.kill()` (close permanently) vs `h.abort()`
+(stop the run but keep the window for a later resume). If the model may still
+want to continue a subagent's work, leave that one open and finish the rest.
 
 ## Rules
 

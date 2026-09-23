@@ -541,8 +541,11 @@ class OmnAssignmentsCovered(Policy):
             title = record.get("title", "")[:40]
             if not matches:
                     near = due <= ctx.week_sunday + timedelta(days=7)
+                    # Past due dates cannot be scheduled anymore; they are
+                    # history (graded or gone), so only future gaps error.
+                    severity = "INFO" if due < ctx.now.date() else ("ERROR" if near else "INFO")
                     out.append(Warning(
-                        self.id, "ERROR" if near else "INFO",
+                        self.id, severity,
                         f"omn assignment '{title}' due {due} has no Taskwarrior "
                         "task with that due date"
                         + ("" if near else " (far future; fine to leave for weekly planning)"),

@@ -361,12 +361,21 @@ class NoDuplicateTasks(Policy):
                 groups[(t["description"].strip().lower(), sched.date())].append(t)
         out = []
         for (desc, day), tasks in sorted(groups.items()):
-            if len(tasks) > 1:
-                out.append(Warning(
-                    self.id, "ERROR",
-                    f"{len(tasks)} duplicate pending tasks '{desc[:40]}' on {day}",
-                    [t.get("id") for t in tasks],
-                ))
+            if len(tasks) < 2:
+                continue
+            # Same description twice a day is only a duplicate when the windows
+            # collide (or times are missing); distinct sessions are intentional.
+            spans = [ctx.datetimes(t) for t in tasks]
+            if all(spans) and not any(
+                a[0] < b[1] and b[0] < a[1]
+                for i, a in enumerate(spans) for b in spans[i + 1:]
+            ):
+                continue
+            out.append(Warning(
+                self.id, "ERROR",
+                f"{len(tasks)} duplicate pending tasks '{desc[:40]}' on {day}",
+                [t.get("id") for t in tasks],
+            ))
         return out
 
 
@@ -588,8 +597,9 @@ class ClassesScheduled(Policy):
                          if t.get("starttime") == start.strftime("%H:%M")),
                         None)
                     if hit is None:
+                        past = day < ctx.now.date()
                         out.append(Warning(
-                            self.id, "ERROR",
+                            self.id, "INFO" if past else "ERROR",
                             f"lecture '{record['title']}' on {day} "
                             f"{start:%H:%M} missing from Taskwarrior",
                             [record.get("id")],

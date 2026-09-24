@@ -1473,16 +1473,14 @@ class PianoPracticeAfterLesson(Policy):
 
 
 class HomeBetweenClasses(Policy):
-    """The interim between two classes belongs at the SU, not at the room.
-    A task scheduled at home inside a class-to-class gap is flagged: ERROR
-    when the gap is under two hours (the user does not travel home for short
-    gaps), WARN for longer gaps. Genuine needs (changing for an event, an
-    errand that only works from home, the cooked lunch, the piano) are the
-    agent's to okay explicitly."""
+    """The interim between two classes is normally spent at the SU, not at
+    the room: warn when a task is scheduled at home inside a class-to-class
+    gap, stating the gap length (the user does not go home for short gaps).
+    Genuine needs (changing for an event, an errand that only works from
+    home, the cooked lunch, the piano) are the agent's to okay explicitly -
+    by reasoning through the choice, not by rubber-stamping."""
 
     id = "home-between-classes"
-
-    SHORT_GAP = timedelta(hours=2)
 
     def check(self, ctx):
         out = []
@@ -1510,15 +1508,12 @@ class HomeBetweenClasses(Policy):
                 if not began_after or next_class is None:
                     continue
                 gap = next_class - max(cs[1] for cs in class_spans if cs[1] <= span[0])
-                severity = "ERROR" if gap < self.SHORT_GAP else "WARN"
                 out.append(Warning(
-                    self.id, severity,
+                    self.id, "WARN",
                     f"'{t['description'][:36]}' at home "
                     f"({span[0]:%H:%M}-{span[1]:%H:%M}) inside a "
-                    f"{gap} class-to-class gap on {day}; "
-                    + ("do not travel home for a gap this short - stay at the SU"
-                       if severity == "ERROR" else
-                       "the interim belongs at the SU unless there is a genuine need"),
+                    f"{gap} class-to-class gap on {day}; the interim belongs "
+                    "at the SU unless there is a genuine need",
                     [t.get("id")],
                 ))
         return out

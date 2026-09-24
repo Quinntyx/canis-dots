@@ -107,7 +107,16 @@ subagents.best_model_match("astra")      # one pick: .slug, .context, .thinking,
 then first-party entries over proxied ones, so `"astra"` resolves to
 `openai-codex/gpt-6-astra` and `"flash"` to `deepseek-router/deepseek-v4.1-flash`.
 It returns `None` when nothing really matches (the CLI search is fuzzy and returns
-unrelated neighbours, which the helper filters out).
+unrelated neighbours, which the helper filters out). When the user names a specific
+provider's variant, pass the full `provider/model` slug — exact slugs always win.
+
+The catalog is re-read every couple of minutes (`PI_SUBAGENTS_CATALOG_TTL`), so a
+model added since the session started still resolves; a lookup that misses is
+re-checked live before giving up. If a model you expected is `None`, try the slug
+you know, or `list_models(refresh=True)`.
+
+Prompts have no size limit: they are delivered to the subagent over pi-sock (not
+through the tmux command), so a very long prompt is fine.
 
 **Whenever the user names a model or an effort level, resolve it first:**
 

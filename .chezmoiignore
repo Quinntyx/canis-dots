@@ -59,6 +59,7 @@ docs/host/forgejo/forgejo/gitea/conf/
 .config/pi/profiles/daily_assistant/git
 .config/pi/profiles/subagents/git
 .config/pi/profiles/mail/git
+.config/pi/profiles/design-subagents/git
 .local/bin/forge-git
 .local/bin/gh
 .local/bin/python3.14

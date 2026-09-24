@@ -187,6 +187,10 @@ today, and semantically equivalent formulations.
    shifted time for one week, the omn record's default stays as the user set
    it; the shift lives on that week's instance only. Never extrapolate a new
    standing slot from a one-time deviation.
+6. Reason through every scheduling choice: linter warnings are signals to
+   think about (and either fix the placement or explicitly okay it as a
+   genuine need) - never rubber-stamp them, and never escalate a warning's
+   severity to force compliance. Severity is the user's call.
 
 ### Ren relay messages
 

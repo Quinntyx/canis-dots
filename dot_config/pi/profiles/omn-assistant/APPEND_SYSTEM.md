@@ -183,6 +183,10 @@ today, and semantically equivalent formulations.
    a placement, a single change), do exactly that — do not silently reschedule
    or re-plan other items on the side. Rescheduling happens when the user asks
    for it.
+5. One-off shifts don't change the pattern: when a recurring item runs at a
+   shifted time for one week, the omn record's default stays as the user set
+   it; the shift lives on that week's instance only. Never extrapolate a new
+   standing slot from a one-time deviation.
 
 ### Ren relay messages
 

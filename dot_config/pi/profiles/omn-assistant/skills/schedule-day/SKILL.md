@@ -328,6 +328,13 @@ metadata:
   fit the week. Pushing an unrelated deadline-free task to a later day, or
   into the following week, is the accepted cost of keeping a task whole.
 
+## One-off shifts vs. the standing pattern
+
+- When a recurring item runs at a shifted time for one week, record the shift
+  on that week's Taskwarrior instance only. The omn record's default start
+  stays as the user's standing pattern unless the user says the pattern
+  itself changed. A one-off deviation is never promoted to the default.
+
 ## Recurrence artifacts
 
 - Before placing a record's tasks, read its `artifacts.rrule` artifact when one

@@ -1,0 +1,23 @@
+[Unit]
+Description=Forgejo git forge (docker compose stack at ~/docs/host/forgejo)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# retry until the system docker daemon answers (it races user login at boot);
+# if the compose up itself fails, restart and try again
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=300
+WorkingDirectory=%h/docs/host/forgejo
+# wait for the docker daemon (system service) to accept connections
+ExecStartPre=/bin/sh -c 'until docker info >/dev/null 2>&1; do sleep 2; done'
+# bring the forge up; --force-recreate repairs the occasional corrupt port
+# binding left behind by an abrupt reboot without restart
+ExecStart=docker compose up -d forgejo
+ExecStartPost=docker compose --profile runner up -d runner
+
+[Install]
+WantedBy=default.target

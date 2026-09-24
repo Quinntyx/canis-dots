@@ -1473,24 +1473,26 @@ class PianoPracticeAfterLesson(Policy):
 
 
 class HomeBetweenClasses(Policy):
-    """A two-hour gap between classes is spent at the SU, not at the room:
-    warn when a task is scheduled at home while a class still starts later
-    that same day. The user only heads home mid-day for a genuine need
-    (changing clothes before an event, an errand that only works from home,
-    the cooked lunch). Advisory: the agent okays genuine needs."""
+    """The interim between two classes belongs at the SU, not at the room.
+    A task scheduled at home inside a class-to-class gap is flagged: ERROR
+    when the gap is under two hours (the user does not travel home for short
+    gaps), WARN for longer gaps. Genuine needs (changing for an event, an
+    errand that only works from home, the cooked lunch, the piano) are the
+    agent's to okay explicitly."""
 
     id = "home-between-classes"
+
+    SHORT_GAP = timedelta(hours=2)
 
     def check(self, ctx):
         out = []
         for day, tasks in sorted(ctx.by_day(ctx.week_pending()).items()):
-            classes = [
-                t for t in tasks
+            class_spans = sorted(
+                ctx.datetimes(t) for t in tasks
                 if "class" in t.get("tags", []) and ctx.datetimes(t)
-            ]
-            if not classes:
+            )
+            if len(class_spans) < 2:
                 continue
-            class_spans = sorted(ctx.datetimes(t) for t in classes)
             for t in tasks:
                 if not (t.get("location") or "").lower().startswith("at home"):
                     continue
@@ -1498,19 +1500,25 @@ class HomeBetweenClasses(Policy):
                 if not span:
                     continue
                 # "In the middle" = the task sits in a class-to-class gap:
-                # some class ends before it starts, and the last class of the
-                # day starts after it ends. Morning-at-home items (breakfast,
-                # cooking) are not a bounce - the day starts there.
+                # some class ends before it starts, and a later class starts
+                # after it ends. Morning-at-home items (breakfast, cooking)
+                # are not a bounce - the day starts there.
                 began_after = any(cs[1] <= span[0] for cs in class_spans)
-                ends_before = span[1] <= class_spans[-1][0]
-                if not (began_after and ends_before):
+                next_class = min(
+                    (cs[0] for cs in class_spans if cs[0] >= span[1]),
+                    default=None)
+                if not began_after or next_class is None:
                     continue
+                gap = next_class - max(cs[1] for cs in class_spans if cs[1] <= span[0])
+                severity = "ERROR" if gap < self.SHORT_GAP else "WARN"
                 out.append(Warning(
-                    self.id, "WARN",
+                    self.id, severity,
                     f"'{t['description'][:36]}' at home "
-                    f"({span[0]:%H:%M}-{span[1]:%H:%M}) inside a class-to-class "
-                    f"gap on {day}; the interim belongs at the SU unless there "
-                    "is a genuine need",
+                    f"({span[0]:%H:%M}-{span[1]:%H:%M}) inside a "
+                    f"{gap} class-to-class gap on {day}; "
+                    + ("do not travel home for a gap this short - stay at the SU"
+                       if severity == "ERROR" else
+                       "the interim belongs at the SU unless there is a genuine need"),
                     [t.get("id")],
                 ))
         return out

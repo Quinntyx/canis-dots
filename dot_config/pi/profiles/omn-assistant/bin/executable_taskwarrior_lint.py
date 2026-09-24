@@ -252,6 +252,8 @@ class Context:
             meta = r.get("meta", {})
             if meta.get("kind") == "in-class":
                 continue  # completed in class; no take-home Taskwarrior work
+            if meta.get("active") is False:
+                continue  # deactivated record (superseded or cancelled)
             due = parse_omn_date(meta.get("due"))
             if due:
                 out.append((r, due))
@@ -1488,19 +1490,27 @@ class HomeBetweenClasses(Policy):
             ]
             if not classes:
                 continue
-            last_class_start = max(ctx.datetimes(t)[0] for t in classes)
+            class_spans = sorted(ctx.datetimes(t) for t in classes)
             for t in tasks:
                 if not (t.get("location") or "").lower().startswith("at home"):
                     continue
                 span = ctx.datetimes(t)
-                if not span or span[1] > last_class_start:
-                    continue  # after the last class, going home is normal
+                if not span:
+                    continue
+                # "In the middle" = the task sits in a class-to-class gap:
+                # some class ends before it starts, and the last class of the
+                # day starts after it ends. Morning-at-home items (breakfast,
+                # cooking) are not a bounce - the day starts there.
+                began_after = any(cs[1] <= span[0] for cs in class_spans)
+                ends_before = span[1] <= class_spans[-1][0]
+                if not (began_after and ends_before):
+                    continue
                 out.append(Warning(
                     self.id, "WARN",
                     f"'{t['description'][:36]}' at home "
-                    f"({span[0]:%H:%M}-{span[1]:%H:%M}) with a class still "
-                    f"starting {last_class_start:%H:%M} on {day}; the interim "
-                    "belongs at the SU unless there is a genuine need",
+                    f"({span[0]:%H:%M}-{span[1]:%H:%M}) inside a class-to-class "
+                    f"gap on {day}; the interim belongs at the SU unless there "
+                    "is a genuine need",
                     [t.get("id")],
                 ))
         return out

@@ -18,13 +18,20 @@ to spawn it correctly, wait for it, and replicate the final design.
 ```python
 import pi_subagents as subagents
 
-h = subagents.agent(
-    brief,
-    name="designer",
-    profile="design-subagents",   # dedicated profile: pi-ui-forge tools live here
-    cwd=mock_folder,              # durable, your choice of location
+pool = subagents.AgentPool(concurrency=1, name="design")
+design = pool.stage("design", slots=1)
+
+h = design.submit(
+    subagents.Task(
+        brief,
+        name="designer",
+        profile="design-subagents",   # dedicated profile: pi-ui-forge tools live here
+        cwd=mock_folder,              # durable, your choice of location
+        timeout=4 * 60 * 60,          # the design loop blocks on user markup by design
+    )
 )
-result = await h                  # resolves when the user approves or closes the editor
+result = await h                    # AgentResult; resolves when the user approves or closes
+assert result.ok, result.error
 ```
 
 - **`mock_folder`** is the session home. Choose it deliberately: inside the
@@ -36,24 +43,25 @@ result = await h                  # resolves when the user approves or closes th
   discipline — keep the brief about the *product*, not the mechanics.
 - **The await is long by design**: the subagent blocks inside a feedback tool
   for as long as the user is marking up the mock. That is the loop working,
-  not a hang. Pass a generous `wait_async` timeout (4+ hours) or poll
-  `h.status`.
+  not a hang. The `Task(timeout=...)` above keeps the settle wait generous;
+  the pool survives a timed-out chunk, so a later chunk can re-await the same
+  handle.
 - **Context lifecycle — the subagent is disposable.** Design rounds
   accumulate images in the subagent's context (review canvas shots,
   screenshot reads) and providers cap request size — long sessions start
   failing with 4xx errors (413/400). Watch the context row in the viewer
-  (`h.state()`): at roughly **25% or after ~15 review rounds**, finish that
-  subagent and spawn a fresh one from the SAME mock folder — it resumes
+  (`h.state()`): at roughly **25% or after ~15 review rounds**, close the pool
+  and submit a fresh designer task from the SAME mock folder — it resumes
   from `design-notes.md` (the design contract) and `app/`, which carry all
   state. Never treat the subagent's memory as the source of truth; the
   contract file is.
-- Do not spawn extra agents to "help" the design loop; the alternation is
+- Do not submit extra tasks to "help" the design loop; the alternation is
   user-driven and single-threaded.
 - You may keep working in your own session meanwhile; the design subagent is
   independent. Only reconcile after it settles.
 - When it settles: read `mock_folder/design-notes.md`, look at the page
   images under `mock_folder/shots/` (they arrive in the subagent's final
-  summary too), then `subagents.finish()`.
+  summary too), then `pool.close()`.
 
 ## Replicating the design
 

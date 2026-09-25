@@ -1,18 +1,15 @@
 {
   "groupToolCalls": true,
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "0.87.1",
   "theme": "everforest-tui-light",
   "defaultProvider": "deepseek-router",
   "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "high",
   "enabledModels": [
-    "deepseek-router/deepseek-v4-pro",
     "openai-codex/gpt-5.6-sol",
     "opencode-go/glm-5.3-flash",
-    "antigravity/gemini-3.8-flash-tiered",
-    "openai-codex/gpt-6-astra",
-    "deepseek-router/deepseek-v4.1-flash",
-    "deepseek-router/deepseek-v4.1-flash-1m"
+    "deepseek-router/deepseek-v4.1-flash-1m",
+    "bitdeer/zai-org/GLM-5.3-Flash"
   ],
   "providers": {
     "openrouter": {
@@ -45,7 +42,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-buddy-extension",
     "git:git.quinntyx.dev/quinntyx/pi-cwd-handoff",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
-    "git:git.quinntyx.dev/quinntyx/pi-exit-command",
     "git:git.quinntyx.dev/quinntyx/pi-image-fallback",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
     "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
@@ -53,12 +49,13 @@
     "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
-    "git:git.quinntyx.dev/quinntyx/pi-idle-time@d25b190082e0fe1b31f42846478eacdd06819927"
+    "git:git.quinntyx.dev/quinntyx/pi-idle-time"
   ],
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "compaction": {
     "reserveTokens": 0
   },
   "enableSkillCommands": true,
-  "tuiMode": "fullscreen"
+  "tuiMode": "fullscreen",
+  "fullscreenScrollbar": "hidden"
 }

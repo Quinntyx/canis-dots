@@ -19,5 +19,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command"
   ],
-  "lastChangelogVersion": "0.85.1"
+  "lastChangelogVersion": "0.87.1",
+  "hideThinkingBlock": true
 }

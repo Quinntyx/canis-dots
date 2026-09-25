@@ -20,6 +20,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",
     "git:git.quinntyx.dev/quinntyx/pi-ui-forge"
   ],
-  "lastChangelogVersion": "0.85.1",
-  "hideThinkingBlock": true
+  "lastChangelogVersion": "0.87.1",
+  "hideThinkingBlock": false
 }

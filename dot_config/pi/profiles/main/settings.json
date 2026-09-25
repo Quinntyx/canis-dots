@@ -1,4 +1,5 @@
 {
+  "groupToolCalls": true,
   "lastChangelogVersion": "0.85.1",
   "theme": "everforest-tui-light",
   "defaultProvider": "deepseek-router",

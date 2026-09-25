@@ -1,4 +1,5 @@
 {
+  "groupToolCalls": true,
   "theme": "everforest-tui-light",
   "defaultProvider": "deepseek-router",
   "defaultModel": "deepseek-v4.1-flash",

@@ -1,4 +1,5 @@
 {
+  "groupToolCalls": true,
   "theme": "everforest-tui-light",
   "defaultProvider": "opencode",
   "defaultModel": "glm-5.3-flash",

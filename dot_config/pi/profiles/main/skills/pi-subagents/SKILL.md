@@ -15,8 +15,9 @@ metadata:
 
 - A task whose work decomposes into agent-sized units (files, features, topics,
   review passes) or a user request naming subagents, pools, or workflows.
-- A provisioned PTC python session (`provision_python_session`), or the ability
-  to provision one.
+- A live Jupyter-like kernel (`provision_kernel`), or the ability to provision
+  one. Every kernel requires a notebook path (.ipynb); for throwaway scratch
+  work pass a /tmp path — throwaway kernels work exactly like durable ones.
 - A tmux environment with the `subagents` pi profile (checked at import; the
   API raises plainly when absent).
 - Model or effort-level requests, when the user names them, resolved through
@@ -26,10 +27,12 @@ metadata:
 
 - One or more `AgentPool` workflows that submit `Task`s, consume results in
   completion order, and terminate (cyclic workflows gated by a round limit).
-- Aggregated findings returned to the caller; durable orchestration exported
-  with `python_session_to_script` when the pattern is worth rerunning.
+- Aggregated findings returned to the caller; the kernel's notebook file on
+  disk records every executed cell with its outputs.
 - Every spawned pi window destroyed via `pool.close()` (or `finish()`) before
-  the chunk ends, unless results are deliberately kept for follow-ups.
+  the cell ends, unless results are deliberately kept for follow-ups. End
+  workflows with `pool.close()` as the cell's last line — its echoed
+  PoolSummary is the workflow report.
 - No orphaned tmux windows, no unclosed pools, no silently ignored failures
   (failed results are reported, not dropped).
 
@@ -39,22 +42,26 @@ metadata:
    many units or stages -> pool with stages sized to the fan-out. State the
    stages and the termination condition (especially any review/fix cycle and
    its round cap) before writing code.
-2. `provision_python_session` once per task (optionally with a seeding script).
-3. In ONE `python_exec` chunk: define the tasks, build the pool, submit, and
-   consume. Blocking is intended: a live subagent viewer renders under the code
-   view while the chunk runs.
+2. `provision_kernel(notebook=...)` once per task — a durable notebook inside
+   the project, or a /tmp path for scratch.
+3. In ONE `exec_cell` cell: define the tasks, build the pool, submit, and
+   consume. Blocking is intended: a live subagent viewer renders under the
+   code view while the cell runs.
 4. Consume with `while (result := await pool.pop(timeout=...)) is not None:`
    and route by `result.stage`; submit follow-ups inside the loop.
 5. After the loop, either keep specific settled sessions for follow-ups (submit
-   with `session_handle=...`) or close: `pool.close()` kills every window and
-   invalidates handles. `subagents.finish()` closes all live pools.
-6. When the orchestration should be rerunnable, export it with
-   `python_session_to_script` and commit the script.
+   with `session_handle=...`) or close: `pool.close()` kills every window,
+   invalidates handles, and echoes the workflow summary (PoolSummary).
+   `subagents.finish()` closes all live pools.
+6. Substantive, edited code belongs in files: write the file, then run
+   `exec_cell(file=...)` — IPython %run semantics (definitions land in the
+   namespace, tracebacks map to the real file). Re-run after editing; do not
+   import session files as modules.
 
-Do not split one workflow across parallel `python_exec` calls: a session has
-one interpreter, so the calls serialize and each sees stale state. One chunk
-per workflow step; if a chunk is interrupted, the pool survives in the
-namespace and the next chunk resumes with `pool.pop()`.
+Do not split one workflow across parallel `exec_cell` calls: a kernel runs one
+cell at a time, so the calls serialize and each sees stale state. One cell per
+workflow step; if a cell is interrupted, the pool survives in the namespace and
+the next cell resumes with `pool.pop()`.
 
 # API
 
@@ -79,19 +86,19 @@ hs = build.submit_all(tasks)    # fan out
 # Consume in completion order; None = quiescent (pool stays usable).
 while (result := await pool.pop(timeout=3600)) is not None:
     if result.stage is build and result.ok:
-        # parent=result copies metadata; only explicit overrides change it
         review.submit(subagents.Task(f"Review:\n{result.body}"),
                       parent=result)
     elif result.stage is review:
         verdict = result.unwrap()          # body, or raises the stored error
         rounds = result.task.metadata["rounds"]
         if not verdict["ok"] and rounds < 5:
-            nxt = build.submit(subagents.Task("Fix it", metadata={"rounds": rounds + 1}),
-                               parent=result)
+            build.submit(subagents.Task("Fix it", metadata={"rounds": rounds + 1}),
+                         parent=result)
     # failures arrive as results (result.ok False, result.error set);
     # only pop timeouts raise (AgentPoolTimeoutError with .pool/.snapshot).
 
-pool.close()   # the ONLY teardown: invalidates handles, kills every window
+summary = pool.close()   # the ONLY teardown: invalidates handles, kills every
+                         # window, and echoes the PoolSummary report
 ```
 
 Handle operations: `await h` / `h.wait(timeout)` -> `AgentResult`;
@@ -119,19 +126,20 @@ Result fields: `task`, `stage`, `handle`, `body` (str or dict response),
 
 # Rules
 
-- Top-level `await` is available in `python_exec`; never `asyncio.run(...)`.
+- Top-level `await` is available in `exec_cell`; never `asyncio.run(...)`.
 - Gate every cyclic workflow on `metadata["rounds"] >= N` unless the user
   explicitly says unbounded; `pop()` returning None means quiescent, so an
   ungated cycle never terminates.
 - Pop timeouts (`AgentPoolTimeoutError`) leave the pool and work intact: inspect
   `pool.snapshot()` / `pool.handles(status={"queued","starting","running"})` and
-  continue in the same or a later chunk.
+  continue in the same or a later cell.
 - Set explicit `Task.timeout` values for models that can fail at the provider;
   an errored turn may otherwise wait out the default settle timeout (30 min).
 - `PI_SUBAGENTS_MAX_CONCURRENT` (default 8) caps all pools globally; stage
   slots are priorities, not hard limits - idle slots are borrowed.
-- Spawned agents cannot spawn agents; keep orchestration in the parent chunk.
+- Spawned agents cannot spawn agents; keep orchestration in the parent cell.
 - Each subagent is a real interactive pi in a tmux window titled
   `pi - (subagent) <name> - <cwd>`; the user can watch and steer them by hand.
-- Interrupts (Esc, `/ptc interrupt`) stop the chunk, not the pool; `/ptc kill`
-  drops the interpreter and orphans running windows - avoid it mid-workflow.
+- Interrupts (Esc, `/ptc interrupt`) stop the cell, not the pool or the
+  kernel; `/ptc kill` drops the interpreter and orphans running windows -
+  avoid it mid-workflow.

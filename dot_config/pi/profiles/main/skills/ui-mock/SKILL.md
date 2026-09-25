@@ -44,7 +44,7 @@ assert result.ok, result.error
 - **The await is long by design**: the subagent blocks inside a feedback tool
   for as long as the user is marking up the mock. That is the loop working,
   not a hang. The `Task(timeout=...)` above keeps the settle wait generous;
-  the pool survives a timed-out chunk, so a later chunk can re-await the same
+  the pool survives a timed-out cell, so a later cell can re-await the same
   handle.
 - **Context lifecycle — the subagent is disposable.** Design rounds
   accumulate images in the subagent's context (review canvas shots,

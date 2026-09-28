@@ -6,10 +6,12 @@ set -gx SUDO_EDITOR helix
 # Silence the first-run greeting ("Welcome to fish..." / "Type help...")
 set -g fish_greeting
 
-# Permit pi-ptc-next's local Python subprocess. Pi already has unrestricted
-# bash access in this setup, so this does not widen the practical trust boundary.
-set -gx PTC_ALLOW_UNSANDBOXED_SUBPROCESS true
-set -e PTC_USE_DOCKER
+# pi-pycells: enable subagent orchestration (the value also caps concurrent
+# agents) and run spawned subagents under the dedicated `subagents` profile
+# (managed with ppi). Unset PI_SUBAGENTS_MAX_CONCURRENT to disable subagents;
+# unset PI_CODING_SUBAGENT_DIR to let subagents share your config.
+set -gx PI_SUBAGENTS_MAX_CONCURRENT 8
+set -gx PI_CODING_SUBAGENT_DIR $HOME/.config/pi/profiles/subagents
 
 # ==========================================
 # Abbreviations

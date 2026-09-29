@@ -536,28 +536,43 @@ def todo_durations(task: dict) -> dict[str, float]:
 
 def attribute_block(span_hours: float, refs: list[str],
                     pinned: dict[str, float],
-                    est_hours: dict[str, float]) -> dict[str, float]:
-    """Split one block's time across its todo bullets.
+                    est_hours: dict[str, float],
+                    already: dict[str, float] | None = None) -> dict[str, float]:
+    """Attribute one block without creating time or double-satisfying work.
 
-    Pinned bullets (explicit @10m-style durations) consume exactly their
-    stated time. Everything left goes to the open-ended bullets, divided
-    proportionally to their record est when known, else evenly. No bullet is
-    credited more than its requirement needs, so surplus time in one block
-    never masks another requirement's shortfall.
+    Pinned bullets consume block time sequentially in todo order. Open-ended
+    bullets share the remainder in proportion to their *remaining* est; items
+    without an est use a small equal-share weight. Credited time never exceeds
+    either the block span or a known requirement's remaining need.
     """
-    credit: dict[str, float] = {r: 0.0 for r in refs}
-    used = sum(min(h, span_hours) for h in pinned.values())
-    left = max(0.0, span_hours - used)
-    for r, h in pinned.items():
-        credit[r] = min(h, span_hours)
-    open_refs = [r for r in refs if r not in pinned]
+    already = already or {}
+    refs = list(dict.fromkeys(refs))
+    credit: dict[str, float] = {ref: 0.0 for ref in refs}
+    left = max(0.0, span_hours)
+
+    for ref in refs:
+        if ref not in pinned or left <= 0:
+            continue
+        consumed = min(pinned[ref], left)
+        left -= consumed
+        need = est_hours.get(ref, 0.0)
+        remaining_need = max(0.0, need - already.get(ref, 0.0))
+        credit[ref] = min(consumed, remaining_need) if need > 0 else consumed
+
+    open_refs = [ref for ref in refs if ref not in pinned]
     if open_refs and left > 0:
-        weights = [max(est_hours.get(r, 0.0), 0.25) for r in open_refs]
+        weights = []
+        for ref in open_refs:
+            need = est_hours.get(ref, 0.0)
+            remaining_need = max(0.0, need - already.get(ref, 0.0))
+            weights.append(remaining_need if need > 0 else 0.25)
         total = sum(weights)
-        for r, w in zip(open_refs, weights):
-            share = left * (w / total)
-            cap = est_hours.get(r, 0.0)
-            credit[r] += min(share, cap) if cap > 0 else share
+        if total > 0:
+            for ref, weight in zip(open_refs, weights):
+                share = left * weight / total
+                need = est_hours.get(ref, 0.0)
+                remaining_need = max(0.0, need - already.get(ref, 0.0))
+                credit[ref] = min(share, remaining_need) if need > 0 else share
     return credit
 
 
@@ -591,14 +606,17 @@ class TodoCoverage(Policy):
         # duration, open-ended bullets share what remains proportionally to
         # their requirement est (see attribute_block).
         attributed: dict[str, float] = defaultdict(float)
-        covered_before: dict[str, list] = defaultdict(list)
+        scheduled_credit: dict[str, list] = defaultdict(list)
         referenced_any = False
         overruns: list[tuple] = []
         est_map = {r.get("id"): _omn_est_hours(r) for r in ctx.omn}
-        for t in ctx.tasks:
-            refs = todo_refs(t)
-            if not refs:
-                continue
+        referenced_tasks = [t for t in ctx.tasks if todo_refs(t)]
+        referenced_tasks.sort(key=lambda t: (
+            parse_tw_date(t.get("scheduled")) or datetime.max.replace(tzinfo=TZ),
+            t.get("starttime") or "",
+        ))
+        for t in referenced_tasks:
+            refs = list(dict.fromkeys(todo_refs(t)))
             referenced_any = True
             span = ctx.duration(t)
             if span is None:
@@ -608,11 +626,13 @@ class TodoCoverage(Policy):
             if sum(pinned.values()) > span_hours + 1e-9:
                 overruns.append((t, sum(pinned.values()), span_hours))
             sched = parse_tw_date(t.get("scheduled"))
-            credit = attribute_block(span_hours, refs, pinned, est_map)
-            for ref, h in credit.items():
-                attributed[ref] += h
-                if sched:
-                    covered_before[ref].append((sched.date(), t))
+            credit = attribute_block(
+                span_hours, refs, pinned, est_map, attributed)
+            if not sched:
+                continue  # unscheduled work cannot satisfy a dated requirement
+            for ref, hours in credit.items():
+                attributed[ref] += hours
+                scheduled_credit[ref].append((sched.date(), hours, t))
 
         out = []
         if not referenced_any:
@@ -637,16 +657,17 @@ class TodoCoverage(Policy):
             if rid in self.IN_CLASS_IDS:
                 continue
             est_hours = est_map.get(rid, 0.0) or _omn_est_hours(record)
-            on_time = [t for (day, t) in covered_before.get(rid, [])
-                       if day <= due]
+            on_time = [(hours, t) for (day, hours, t)
+                       in scheduled_credit.get(rid, []) if day <= due]
+            on_time_hours = sum(hours for hours, _ in on_time)
             satisfied = (
-                attributed.get(rid, 0.0) + 1e-9 >= est_hours
+                on_time_hours + 1e-9 >= est_hours
                 if est_hours else bool(on_time)
             )
             if satisfied:
                 continue
             near = due <= ctx.week_sunday + timedelta(days=7)
-            have = attributed.get(rid, 0.0)
+            have = on_time_hours
             if est_hours:
                 # Being under-est is an allowed, visible sacrifice; lateness
                 # is not. Partial coverage before the deadline is a WARN, a

@@ -62,21 +62,41 @@ metadata:
 5. Sum the estimates into a weekly workload total; proceed to Stage 4.
 
 ## Stage 4: Build the proposed schedule
-1. Compute each day's class hours from the event `meta.rrule`, then each day's
-   assignment capacity as the budget minus class hours minus any unmanaged
-   `est:` on that day.
-2. Place every assignment on days before its `due`, applying the splitting and
-   pull-forward rules in the Guidelines; claim the earliest capacity first
-   (aggressive early scheduling) and keep weekends free of assignment work
-   unless the deadline forces it.
-2a. Allocate the weekly lab time before placing other work: 6 hours at Prof.
-   Jee's lab centered on Monday/Wednesday 10:00-17:00, including the 1h
-   PyLingual meeting, with the remaining 5 hours as contiguous as possible.
-3. Add side projects to the lightest days to round each day toward the budget.
-4. Present the proposed plan as a table of day, class hours, tasks, estimates,
-   and deadlines, with per-day totals.
-5. If the user accepts the plan, proceed to Stage 5; otherwise revise the plan
-   from the user's feedback and repeat Stage 4.
+1. Build a composer spec containing every authoritative fixed occurrence,
+   unmanaged timed task, meal, weekly lab/swim anchor, and required rest or
+   travel buffer. Fixed records retain their real time and location; encode
+   travel or a rule such as the 30-minute post-piano rest through
+   `buffer_before` / `buffer_after`, never as a soft preference.
+2. Add each flexible omn requirement with its `omn_id`, `est`, `available`,
+   hard `due`, `kind`, cohesive `topic`, and actual `location`. Use 30-minute
+   slots and a 30-minute minimum block unless the user requests a finer pass.
+3. Run the candidate proposer, not a hand-written greedy placement:
+
+   ```sh
+   ~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py SPEC.json \
+     --candidates-per-profile 3 --out CANDIDATES.json
+   ```
+
+   The composer lexicographically minimizes: assignment estimate shortfall,
+   assignment weekend work, assignment delay (front-loading), non-assignment
+   estimate shortfall, and cohesive block count. Deadlines, availability,
+   fixed windows, sleep, daily block caps, and minimum block length are hard.
+   Profiles affect placement only after those system priorities are locked.
+4. Reject an `INFEASIBLE` candidate. When `optimization_exact` is false, rerun
+   it with a larger `--timeout-ms` before calling it best; an approximate
+   candidate can still be shown, but must be labeled approximate.
+5. Compare candidates by their objective report and explicit `sacrifices`, not
+   by the fuzzed tie score. Fuzz exists only to offer different near-equivalent
+   placements. Never choose a candidate that hides estimate shortfall or
+   deadline-forced weekend work from the user.
+6. Allocate the weekly lab time before flexible work: 6 hours at Prof. Jee's
+   lab centered on Monday/Wednesday 10:00-17:00, including the 1h PyLingual
+   meeting, with the remaining 5 hours as contiguous as possible.
+7. Present the strongest candidates as a table of day, fixed hours, composed
+   blocks, estimate coverage, deadlines, and sacrifices. Explain why one is
+   preferred; the user remains the final chooser.
+8. If the user accepts the plan, proceed to Stage 5; otherwise revise the spec
+   from the user's feedback and rerun Stage 4.
 
 ## Stage 5: Register in Taskwarrior
 1. Expand each active fixed event into one concrete action per occurrence in the
@@ -100,8 +120,8 @@ metadata:
 
    ```
    description: "Follow up with recruiters after career fair"
-   todo:        "- Micron - intern pipeline and resume review [omn:manual:contact:micron]"
-                "- Crescent Systems - entry-level SWE reqs [omn:manual:contact:crescent]"
+   todo:        "- Micron - intern pipeline and resume review @10m [omn:manual:contact:micron]"
+                "- Crescent Systems - entry-level SWE reqs @10m [omn:manual:contact:crescent]"
    ```
 
    Cohesion is absolute: never mix unrelated topics in one block, and never
@@ -111,12 +131,16 @@ metadata:
    block shows.
 7. Requirements do not map 1:1 to blocks. Several small items (a reply, a
    signup, a purchase) belong as bullets inside one topical block; one large
-   requirement may span several blocks, including across days. Granularity
-   lives in omn; blocks are the schedule built to satisfy it. Give every block
-   its `scheduled` date, `est` equal to its window, `+managed`, `location`,
-   `transport`, and `travel` when the action requires travel. A block's `due`
-   is optional; omit it unless useful, and never let it sit later than the
-   earliest due among its todos.
+   requirement may span several blocks, including across days. Pin a small
+   todo's own expected duration as `@10m` or `@0.5h`; leave the large or
+   open-ended requirement unpinned. Coverage consumes pinned bullets in todo
+   order and attributes the block's remainder to the open-ended requirement(s)
+   by their remaining est. Never pin a requirement's full multi-hour est on
+   every piece. Granularity lives in omn; blocks are the schedule built to
+   satisfy it. Give every block its `scheduled` date, `est` equal to its
+   window, `+managed`, `location`, `transport`, and `travel` when the action
+   requires travel. A block's `due` is optional; omit it unless useful, and
+   never let it sit later than the earliest due among its todos.
 8. When a deadline is day-granularity (Canvas gives a date with no meaningful
    time, or the user names a bare day), encode `due` as **23:59 local time on
    that day** — never midnight. Midnight makes the deadline elapse at the
@@ -192,9 +216,11 @@ warnings.
 - omn owns the *requirements*: every satisfiable external item exists as an
   omn record (assignment, event, signup, reply). Taskwarrior owns the
   *schedule* built to satisfy them. There is deliberately no 1:1 mapping.
-- A Taskwarrior entry is a **block**: one topic, one sitting. Its `description`
-  is a one-glance title; its `todo` UDA holds one bullet per covered omn
-  record, each ending `[omn:<record id>]`.
+- A Taskwarrior entry is a **block**: one topic, one location, one sitting. Its
+  `description` is a one-glance title; its `todo` UDA holds one bullet per
+  covered omn record, each ending `[omn:<record id>]`. Add `@10m` / `@0.5h`
+  before the ref only for fixed-duration small todos; an unpinned todo is an
+  open-ended consumer of the block's remaining time.
 - Begin every description with an imperative verb so it reads as a direct action.
 - Keep durable existence, recurrence, and source state in omn; reference them
   from blocks by id in the `todo` UDA rather than mirroring them.

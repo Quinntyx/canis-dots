@@ -50,7 +50,7 @@ import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
-from z3 import And, Bool, BoolVal, If, PbEq, Solver, sat
+from z3 import And, Bool, BoolVal, If, Not, PbEq, Solver, sat
 from z3 import Sum as ZSum
 
 SLOT_DEFAULT = 15

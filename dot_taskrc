@@ -67,3 +67,9 @@ report.schedule.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
 report.schedule.sort=starttime+,urgency-
 uda.travel.type=string
 uda.travel.label=Travel
+
+# Block todo list: the omn requirements a block covers, one bullet each,
+# formatted "- <one-glance item> [omn:<record id>]". The Taskwarrior
+# description stays a single glance-level title; this UDA carries detail.
+uda.todo.type=string
+uda.todo.label=Todos

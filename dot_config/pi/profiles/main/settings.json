@@ -28,7 +28,7 @@
     }
   },
   "packages": [
-    "git:github.com/Quinntyx/pi-ptc-next",
+    "git:github.com/Quinntyx/pi-pycells",
     "npm:@narumitw/pi-btw",
     "git:github.com/Quinntyx/pi-antigravity-auth",
     "npm:pi-everforest-tui",
@@ -49,13 +49,17 @@
     "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
-    "git:git.quinntyx.dev/quinntyx/pi-idle-time"
+    "git:git.quinntyx.dev/quinntyx/pi-idle-time",
+    "git:git.quinntyx.dev/quinntyx/pi-tps",
+    "git:github.com/Quinntyx/pi-sock"
   ],
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "compaction": {
     "reserveTokens": 0
   },
   "enableSkillCommands": true,
   "tuiMode": "fullscreen",
-  "fullscreenScrollbar": "hidden"
+  "fullscreenScrollbar": "hidden",
+  "toolActivityParam": true,
+  "toolBackground": "outlines"
 }

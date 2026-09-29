@@ -119,11 +119,15 @@ metadata:
 - Preserve assignment work above project work whenever room must be made.
 
 ## Multi-part (split) tasks
-- Treat every piece of a split task as one unit: `Start X` / `Continue X` /
-  `Finish X` are the same task divided in time, not independent items.
+- A requirement larger than one sitting becomes consecutive same-topic blocks:
+  `Start X` / `Continue X` / `Finish X`. They are one requirement divided in
+  time, not independent items.
+- Every piece carries a `todo` UDA bullet referencing the same omn record, so
+  coverage is provable from any one of the pieces. When re-planning, keep the
+  same omn id in the pieces that survive.
 - When the user asks to move or cancel one piece, scan the whole week for the
-  task's other pieces, decide the new division, and keep the total estimated
-  hours the same across the pieces.
+  requirement's other pieces, decide the new division, and keep the total
+  estimated hours the same across the pieces.
 - Re-divide before moving: prefer merging pieces into one contiguous block (on
   a later day when needed) over keeping the same number of pieces, and never
   produce a piece shorter than one hour.
@@ -132,8 +136,8 @@ metadata:
   a `Start` piece is never scheduled at or after its `Finish` piece.
 - Never slide a piece naively: moving one block without re-planning its
   siblings produces nonsense such as a `Finish` piece before its `Start`.
-- When the whole task cannot fit before its deadline, prefer dropping unrelated
-  deadline-free work out of the week over fragmenting the task further.
+- When the whole requirement cannot fit before its deadline, prefer dropping
+  unrelated deadline-free work out of the week over fragmenting it further.
 
 ## Rippling and deadlines
 - Reassign carried work to the earliest day with capacity, earliest deadlines

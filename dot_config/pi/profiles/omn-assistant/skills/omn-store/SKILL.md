@@ -261,18 +261,27 @@ metadata:
 
 - Canvas adapters emit source facts and import them through `omn import`.
 - Store the private Canvas feed URL in shell environment configuration, never in omn.
-- Omn owns durable existence, recurrence, source state, and relationships.
-- Taskwarrior records concrete work and attendance actions only.
+- Omn owns the requirements: durable existence, recurrence, source state, and
+  relationships for everything the user must satisfy or attend.
+- Taskwarrior owns the schedule built to satisfy those requirements: cohesive
+  blocks, each with a one-glance `description` and a `todo` UDA listing one
+  bullet per covered omn record with its `[omn:<id>]` reference.
+- There is no 1:1 mapping between omn records and Taskwarrior blocks. Several
+  requirements may share one block as bullets; one requirement may span several
+  blocks across days. Fixed-time events stay 1:1 with their occurrences.
 - Begin every Taskwarrior description with an imperative verb.
-- In Taskwarrior, `due` is the real deadline and `scheduled` is the planned action date.
-- Give each Taskwarrior task a compact action-specific `est` string.
+- In Taskwarrior, `due` is a real deadline the block must respect and
+  `scheduled` is the planned day; a block's `due`, when set, never falls later
+  than the earliest due among its todos.
+- Give each Taskwarrior block a compact `est` string equal to its window.
 - Use decimal hours or days with explicit units; never use ISO 8601 durations.
 - Represent each active fixed event occurrence as an independent action task.
 - Give fixed events local `starttime` and `endtime` values in 24-hour `HH:MM`.
 - Copy `meta.location` into the Taskwarrior `location` UDA for every fixed event.
 - Use an explicit schedule-check instruction when the location varies or is unknown.
 - Tag fixed events with `+managed +fixed`; add `+class` only for classes.
-- Split multi-action assignments into independent tasks sharing the real deadline.
+- Cohesion is absolute: never mix unrelated topics in one block, and give a
+  due-soon item its own block rather than shoving it into an unrelated one.
 - Never add deadline trackers, parents, deliverables, work blocks, hierarchy, or relationship tags.
-- Do not create Taskwarrior tasks merely because an omn fact exists unless the user approves a plan.
+- Do not create Taskwarrior blocks merely because an omn fact exists unless the user approves a plan.
 - Write agreed assignment estimates back to `meta.est` before registering managed Taskwarrior work.

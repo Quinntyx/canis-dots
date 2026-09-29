@@ -503,13 +503,29 @@ class OverduePending(Policy):
         return out
 
 
-class OmnAssignmentsCovered(Policy):
-    """Every omn assignment with a due date must exist in Taskwarrior (pending
-    or completed) with the same due date."""
+TODO_REF = re.compile(r"\[omn:([^\]\s]+)\]")
 
-    id = "omn-assignments-covered"
 
-    # In-class work is done during the lecture and needs no take-home task.
+def todo_refs(task: dict) -> list[str]:
+    """omn record ids referenced by a block's `todo` UDA, in order."""
+    return TODO_REF.findall(task.get("todo") or "")
+
+
+class TodoCoverage(Policy):
+    """omn is the source of requirements; Taskwarrior blocks satisfy them.
+
+    A block's `todo` UDA lists one bullet per omn record it covers, each
+    ending in [omn:<id>]. For each requirement, sum the time of the blocks
+    that reference it (block time split evenly across its bullets) scheduled
+    on or before its due date, and require that to meet the requirement's
+    meta.est. Requirements with no meta.est need only one block before the
+    due date. Fixed-time events (classes, appointments) are covered by the
+    per-occurrence class policies instead, and never through todo refs.
+    """
+
+    id = "todo-coverage"
+
+    # In-class work is done during the lecture and needs no take-home block.
     # The omn annotation (meta.kind = "in-class") is the source of truth, but
     # provider re-ingest replaces meta wholesale, so ids are pinned here too.
     IN_CLASS_IDS = {
@@ -519,61 +535,100 @@ class OmnAssignmentsCovered(Policy):
     }
 
     def check(self, ctx):
-        tw_by_due = defaultdict(list)
+        # Blocks that carry todo refs, with their time attributed per bullet.
+        attributed: dict[str, float] = defaultdict(float)
+        covered_before: dict[str, list] = defaultdict(list)
+        referenced_any = False
         for t in ctx.tasks:
-            due = parse_tw_date(t.get("due"))
-            if due:
-                tw_by_due[due.date()].append(t)
-        out = []
-        for record, due in ctx.omn_assignments():
-            if record.get("id") in self.IN_CLASS_IDS:
+            refs = todo_refs(t)
+            if not refs:
                 continue
-            # A due date alone does not prove coverage: require the task on that
-            # date to share a word with the assignment title, so another
-            # assignment with the same deadline cannot mask a missing one.
-            title_words = [w for w in re.split(
-                r"[^a-z0-9]+",
-                re.sub(r"\[[^\]]*\]|\([^)]*\)", "", record.get("title", "")).lower()
-            ) if len(w) >= 4]
-            matches = [
-                t for t in tw_by_due.get(due, [])
-                if not title_words
-                or any(w in t["description"].lower() for w in title_words)
-            ]
-            title = record.get("title", "")[:40]
-            if not matches:
-                    near = due <= ctx.week_sunday + timedelta(days=7)
-                    # Past due dates cannot be scheduled anymore; they are
-                    # history (graded or gone), so only future gaps error.
-                    severity = "INFO" if due < ctx.now.date() else ("ERROR" if near else "INFO")
-                    out.append(Warning(
-                        self.id, severity,
-                        f"omn assignment '{title}' due {due} has no Taskwarrior "
-                        "task with that due date"
-                        + ("" if near else " (far future; fine to leave for weekly planning)"),
-                        [record.get("id")],
-                    ))
+            referenced_any = True
+            span = ctx.duration(t)
+            if span is None:
+                span = ctx.est_of(t) or timedelta(0)
+            per = span / len(refs)
+            sched = parse_tw_date(t.get("scheduled"))
+            for ref in refs:
+                attributed[ref] += per.total_seconds() / 3600.0
+                if sched:
+                    covered_before[ref].append((sched.date(), t))
+
+        out = []
+        if not referenced_any:
+            out.append(Warning(
+                self.id, "INFO",
+                "no Taskwarrior block carries a `todo` UDA yet, so requirement "
+                "coverage cannot be checked; the todo-based system is still "
+                "being migrated onto live tasks",
+            ))
+            return out
+
+        for record, due in ctx.omn_assignments():
+            rid = record.get("id")
+            if rid in self.IN_CLASS_IDS:
+                continue
+            est_hours = _omn_est_hours(record)
+            on_time = [t for (day, t) in covered_before.get(rid, [])
+                       if day <= due]
+            satisfied = (
+                attributed.get(rid, 0.0) + 1e-9 >= est_hours
+                if est_hours else bool(on_time)
+            )
+            if satisfied:
+                continue
+            near = due <= ctx.week_sunday + timedelta(days=7)
+            severity = "INFO" if due < ctx.now.date() else ("ERROR" if near else "INFO")
+            if est_hours:
+                have = f"{attributed.get(rid, 0.0):.2f}h of {est_hours}h"
+            else:
+                have = "0 blocks"
+            out.append(Warning(
+                self.id, severity,
+                f"'{record.get('title', '')[:36]}' due {due} has {have} scheduled "
+                f"before the deadline; add it to a block's todo list"
+                + ("" if near else " (far future; fine to leave for weekly planning)"),
+                [rid],
+            ))
         return out
 
 
+def _omn_est_hours(record: dict) -> float:
+    """meta.est as float hours; 0.0 when absent or unparseable."""
+    est = (record.get("meta") or {}).get("est")
+    if not est:
+        return 0.0
+    d = parse_est(est) or iso_duration(est)
+    if d is None:
+        return 0.0
+    return d.total_seconds() / 3600.0
+
+
 class OmnAssignmentDueAccuracy(Policy):
-    """Canvas-backed Taskwarrior tasks must carry the omn assignment's exact
-    due (23:59 local of the omn due day), not a planning target."""
+    """A block that carries todo refs must not claim a due date later than the
+    earliest due among the requirements it covers: every todo in a block has
+    to be finished when the block ends. Blocks may omit `due` entirely - the
+    temporal guarantee lives in todo-coverage."""
 
     id = "omn-assignment-due-accuracy"
 
     def check(self, ctx):
-        due_days = {due for _, due in ctx.omn_assignments()}
+        dues_by_id = {rec.get("id"): due for rec, due in ctx.omn_assignments()}
         out = []
         for t in ctx.pending:
             due = parse_tw_date(t.get("due"))
             if not due:
                 continue
-            if due.date() in due_days and due.time() != time(23, 59):
+            refs = [r for r in todo_refs(t) if r in dues_by_id]
+            if not refs:
+                continue
+            earliest = min(dues_by_id[r] for r in refs)
+            if due.date() > earliest:
                 out.append(Warning(
                     self.id, "WARN",
-                    f"'{t['description'][:40]}' due {due:%Y-%m-%d} {due:%H:%M} "
-                    "does not match the omn assignment due (expected 23:59 local)",
+                    f"'{t['description'][:40]}' due {due:%Y-%m-%d} but covers "
+                    f"requirement(s) due {earliest}; a block cannot be due later "
+                    "than its earliest todo",
                     [t.get("id")],
                 ))
         return out
@@ -1526,7 +1581,7 @@ POLICIES: list[Policy] = [
     DueNotMidnight(),
     PlannedAfterDue(),
     ForbiddenTags(),
-    OmnAssignmentsCovered(),
+    TodoCoverage(),
     OmnAssignmentDueAccuracy(),
     ClassesScheduled(),
     RecurringEventsPresent(),

@@ -93,20 +93,43 @@ metadata:
    the authoritative schedule instead of leaving `location` blank.
 5. Do not create duplicate event tasks when the same description, date, and time
    window already exist.
-6. Convert each planned assignment into one or more concrete action tasks.
-7. Give every action the assignment's actual Canvas `meta.due` as its real
-   `due`, its planned `scheduled` date set to the day the action is meant to
-   happen, its own `est`, `+managed`, and `travel` when the action requires
-   travel.
+6. Compose every remaining omn requirement into **cohesive blocks**. A block is
+   one topic worked in one sitting; its `description` is a one-glance title for
+   that topic, and its `todo` UDA carries one bullet per covered omn record,
+   each ending `[omn:<record id>]`:
+
+   ```
+   description: "Follow up with recruiters after career fair"
+   todo:        "- Micron - intern pipeline and resume review [omn:manual:contact:micron]"
+                "- Crescent Systems - entry-level SWE reqs [omn:manual:contact:crescent]"
+   ```
+
+   Cohesion is absolute: never mix unrelated topics in one block, and never
+   drop a due-soon item into an unrelated block to save a slot - give it its
+   own block instead, even a 0.5h solo one. The glance title must be a perfect
+   summary of the bullets, because that title is what the Google Calendar
+   block shows.
+7. Requirements do not map 1:1 to blocks. Several small items (a reply, a
+   signup, a purchase) belong as bullets inside one topical block; one large
+   requirement may span several blocks, including across days. Granularity
+   lives in omn; blocks are the schedule built to satisfy it. Give every block
+   its `scheduled` date, `est` equal to its window, `+managed`, `location`,
+   `transport`, and `travel` when the action requires travel. A block's `due`
+   is optional; omit it unless useful, and never let it sit later than the
+   earliest due among its todos.
 8. When a deadline is day-granularity (Canvas gives a date with no meaningful
    time, or the user names a bare day), encode `due` as **23:59 local time on
    that day** — never midnight. Midnight makes the deadline elapse at the
    start of the day, which falsely paints the task as overdue all day. Verify
    Canvas times before assuming: Canvas "due <date>" means 11:59 PM that day,
    not 12:00 AM.
-9. Represent a single-action assignment with exactly one Taskwarrior task.
-10. Represent multiple actions as independent tasks with descriptive names and
-   the same assignment deadline; do not create parent or tracking tasks.
+9. Cap the number of blocks per day: every block costs a full
+   context-switching tax (transit, settling in, remembering where you were),
+   so pack cohesive work into as few blocks as the day allows. Target at
+   most six non-meal, non-class blocks per day; more than that means the day
+   needs consolidating, not more scheduling.
+10. Represent a multi-day requirement as consecutive same-topic blocks named
+   `Start X` / `Continue X` / `Finish X`; never as unrelated separate tasks.
 11. Add concrete side-project tasks with `scheduled`, `est`, and `+managed`; add
    `due` only when a real deadline exists.
 12. Never add `deliverable` or `workblock` tags or create hierarchy-only entries.
@@ -166,31 +189,32 @@ warnings.
   and only by the minimum needed; state the exception before applying it.
 
 ## Taskwarrior task model
-- Every Taskwarrior entry must describe a concrete action or attendance
-  commitment the user can perform.
+- omn owns the *requirements*: every satisfiable external item exists as an
+  omn record (assignment, event, signup, reply). Taskwarrior owns the
+  *schedule* built to satisfy them. There is deliberately no 1:1 mapping.
+- A Taskwarrior entry is a **block**: one topic, one sitting. Its `description`
+  is a one-glance title; its `todo` UDA holds one bullet per covered omn
+  record, each ending `[omn:<record id>]`.
 - Begin every description with an imperative verb so it reads as a direct action.
-- Keep durable existence, recurrence, and source state in omn; convert only each
-  actionable occurrence or work unit into Taskwarrior.
-- Use `due` only for the real deadline and `scheduled` only for the planned day.
-- Set `due` on Canvas-backed assignments exactly from the omn `meta.due` value;
-  never replace it with a planning target, a safety margin, or the scheduled
-  date.
-- Set `scheduled` to the day the action is actually meant to happen, matching
-  the accepted plan; do not default it to the due date or another placeholder.
-- Treat attending a class as a concrete task due and scheduled on its occurrence
-  date.
+- Keep durable existence, recurrence, and source state in omn; reference them
+  from blocks by id in the `todo` UDA rather than mirroring them.
+- Use `due` only for a real deadline the block must respect and `scheduled`
+  only for the planned day; a block's `due`, when set, must never fall later
+  than the earliest due among its todos.
+- Set `scheduled` to the day the block is actually meant to happen, matching
+  the accepted plan; do not default it to a due date or another placeholder.
+- Treat attending a class as a concrete task on its occurrence date; fixed
+  events stay 1:1 with omn occurrences because attendance occupies a fixed
+  slot that no other work can absorb.
 - Put fixed local times in `starttime` and `endtime` using 24-hour `HH:MM`.
 - Copy the authoritative place into `location` for every fixed event task.
 - Tag every immovable event with `+fixed`; add `+class` only for classes and never
   move fixed tasks to balance capacity.
-- When work needs multiple actions, create independent tasks with the same real
-  deadline and schedule each action on its intended day.
 - Do not create deadline trackers, parent tasks, work blocks, deliverables,
   hierarchy, or relationship tags in Taskwarrior.
-- Make descriptions sufficient for the user to know what action to take.
 - Store `est` as a compact human-readable string using decimal hours or days.
-- Treat 0.5 hours as the minimum estimate for any allocated task; never create
-  0h tasks, and merge or consolidate smaller actions into 0.5h or larger tasks.
+- Treat 0.5 hours as the minimum block length; never create 0h blocks, and
+  fold smaller items into a cohesive block as bullets.
 - Never write ISO 8601 duration forms into Taskwarrior `est`.
 - Expand day-scale estimates against the current daily budget during capacity
   calculations.

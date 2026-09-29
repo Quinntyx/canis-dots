@@ -307,10 +307,12 @@ metadata:
   schedule work at a vague location such as "near room X", "(near
   classroom)", or "somewhere in <building>": the user cannot easily settle
   into work outside a classroom, and walks to the SU instead.
-- A gap is work time only when the usable window can hold a whole piece — a
-  single-part task, or one full hour of a split task. Anything shorter stays
-  unallocated: the user walks to the SU and settles in rather than starting a
-  piece that cannot finish.
+- A gap is work time only when the usable window can hold a whole block. A
+  sub-0.5h remainder stays unallocated: the user walks to the SU and settles
+  in rather than starting something that cannot finish.
+- A short gap is also the worst place for a *new* block: the context tax of
+  transit plus settling dominates. Prefer leaving short gaps empty and doing
+  the topic in a longer window elsewhere, unless the deadline forces it.
 
 ## Split tasks
 

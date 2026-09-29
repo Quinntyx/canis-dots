@@ -50,7 +50,7 @@ import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
-from z3 import And, Bool, BoolVal, If, Not, PbEq, Solver, sat
+from z3 import And, Bool, BoolVal, If, Not, PbLe, Solver, sat
 from z3 import Sum as ZSum
 
 SLOT_DEFAULT = 15
@@ -109,26 +109,38 @@ def deadline_slot(spec, req):
 
 
 # ------------------------------------------------------------------- profiles
-
+# Weight vocabulary (all soft; hard rules live in the constraint model):
+#   deadline       HARD: no slot of a requirement may land after its due.
+#   est_shortfall  soft: willingness to give a requirement less time than its
+#                  estimate. Weight per missing slot. Lateness is never the
+#                  lever - this is.
+#   crunch         soft: cost for work landing in the last quarter of its
+#                  runway. Present in every profile; it is a placement
+#                  preference, not deadline permission.
+#   switches       soft: cost per context switch between requirements.
+#   free_time      soft: reward for 2h+ contiguous free runs.
+#   project_late   soft: cost for project work drifting into the back half.
+#   cohesion       soft: reward for 1h+ runs of one requirement.
+#   weekend        soft: cost for weekend work.
 PROFILES = {
     "baseline": {
-        "switches": 10, "assignment_late": 0, "free_time": 4,
+        "switches": 10, "est_shortfall": 60, "crunch": 8, "free_time": 4,
         "project_late": 5, "cohesion": 3, "weekend": 12,
     },
     "assignments-first": {
-        "switches": 6, "assignment_late": 60, "free_time": 1,
+        "switches": 6, "est_shortfall": 300, "crunch": 30, "free_time": 1,
         "project_late": 6, "cohesion": 2, "weekend": 30,
     },
     "free-time-first": {
-        "switches": 8, "assignment_late": 20, "free_time": 40,
+        "switches": 8, "est_shortfall": 25, "crunch": 6, "free_time": 40,
         "project_late": 5, "cohesion": 3, "weekend": 8,
     },
     "projects-first": {
-        "switches": 8, "assignment_late": 10, "free_time": 3,
+        "switches": 8, "est_shortfall": 90, "crunch": 8, "free_time": 3,
         "project_late": 60, "cohesion": 3, "weekend": 10,
     },
     "cohesion-max": {
-        "switches": 3, "assignment_late": 15, "free_time": 6,
+        "switches": 3, "est_shortfall": 90, "crunch": 10, "free_time": 6,
         "project_late": 8, "cohesion": 40, "weekend": 12,
     },
 }
@@ -162,15 +174,19 @@ def build_model(spec, weights, timeout_ms=30000):
     free = [And([fslots.get(s) is None, *[~occ[i][s] for i in range(len(reqs))]])
             for s in range(n_slots)]
 
-    # Requirement sizing: work in proportion to est, by deadline.
+    # Requirement sizing: work by deadline. `need` is an upper bound (a
+    # requirement is never overscheduled past its est); falling short of est
+    # is allowed but paid through the est_shortfall weight. Deadline lateness
+    # itself is hard: only slots before `dl` may ever be occupied.
+    shortfall_terms = []
     for i, r in enumerate(reqs):
         need = req_slots(spec, r)
         dl = min(deadline_slot(spec, r), n_slots)
         allowed = [occ[i][s] for s in range(min(dl, n_slots)) if fslots.get(s) is None]
         if not allowed:
             continue
-        # Exactly `need` slots of requirement i, all before the deadline.
-        solver.add(PbEq([(a, 1) for a in allowed], need))
+        solver.add(PbLe([(a, 1) for a in allowed], need))
+        shortfall_terms.append(need - ZSum([If(a, 1, 0) for a in allowed]))
 
     # At most one requirement per slot (batching shows up as adjacency).
     for s in range(n_slots):
@@ -181,7 +197,8 @@ def build_model(spec, weights, timeout_ms=30000):
     # Soft costs folded into ONE integer objective: lexicographic Optimize is
     # far too slow at week scale, and fuzzing only perturbs weights anyway.
     w_sw = int(round(weights["switches"]))
-    w_late = int(round(weights["assignment_late"]))
+    w_short = int(round(weights["est_shortfall"]))
+    w_crunch = int(round(weights["crunch"]))
     w_proj = int(round(weights["project_late"]))
     w_wknd = int(round(weights["weekend"]))
     w_free = int(round(weights["free_time"]))
@@ -198,12 +215,19 @@ def build_model(spec, weights, timeout_ms=30000):
         if terms:
             cost = cost + w_sw * ZSum(terms)
 
-    # Deadline pressure: work landing in the last quarter of the runway.
+    # Deadline crunch: work landing in the last quarter of the runway costs
+    # every profile something; this is a placement preference, not a lateness
+    # allowance (deadlines are hard above).
     for i, r in enumerate(reqs):
         dl = min(deadline_slot(spec, r), n_slots)
         runway = max(1, dl // 4)
         for s in range(max(0, dl - runway), dl):
-            cost = cost + w_late * If(occ[i][s], 1, 0)
+            cost = cost + w_crunch * If(occ[i][s], 1, 0)
+
+    # Est shortfall: every slot a requirement is missing costs w_short. This
+    # is the soft lever; deadline lateness is hard and never traded.
+    for t in shortfall_terms:
+        cost = cost + w_short * t
 
     # Project work drifting into the back half of the week.
     for i, r in enumerate(reqs):

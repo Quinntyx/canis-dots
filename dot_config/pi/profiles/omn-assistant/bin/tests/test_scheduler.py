@@ -1,0 +1,563 @@
+"""Core tests for the scheduler redesign: sources, model, decode."""
+
+from __future__ import annotations
+
+import itertools
+import json
+import re
+from datetime import date, datetime, timedelta
+
+import pytest
+
+from scheduler import rrule as rrule_mod
+from scheduler import sources
+from scheduler.common import (
+    ComposerConfig,
+    normalize_week_start,
+)
+from scheduler.decode import decode_candidate
+from scheduler.model import build_model, solve_candidates
+
+WEEK = "2026-09-28"
+PIN_RE = re.compile(r"@(\d+)m")
+
+
+def config(**overrides) -> ComposerConfig:
+    base = {"step": 30, "min_block": 30, "max_block": 240, "day_cap": 6,
+            "wake_hour": 6, "max_blocks": 12, "candidates": 1,
+            "solver_timeout_ms": 8_000, "seed": 11}
+    base.update(overrides)
+    return ComposerConfig(**base)
+
+
+def spec_file(tmp_path, spec: dict):
+    path = tmp_path / "spec.json"
+    spec.setdefault("week_start", WEEK)
+    path.write_text(json.dumps(spec))
+    return path
+
+
+def solve_spec(tmp_path, spec, cfg=None):
+    cfg = cfg or config()
+    week = sources.load_spec(spec_file(tmp_path, spec), cfg)
+    return week, solve_candidates(week, cfg)
+
+
+def total_alloc(blocks, req_index):
+    return sum(b["allocations"].get(req_index, 0) for b in blocks)
+
+
+def parse_pins(todo: str):
+    pinned = {}
+    for line in todo.splitlines():
+        ref = re.search(r"\[omn:([^\]]+)\]", line)
+        pin = PIN_RE.search(line)
+        if ref and pin:
+            pinned[ref.group(1)] = int(pin.group(1))
+    return pinned
+
+
+# ------------------------------------------------------------------ coverage
+
+
+def test_hard_coverage_is_exact(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": 2.0,
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    assert total_alloc(candidate["blocks"], 0) == 120
+
+
+def test_one_block_covers_many_requirements(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [
+            {"omn_id": "a", "title": "A", "est": 1.0,
+             "due": "2026-10-04T23:59:00", "topic": "m", "location": "home"},
+            {"omn_id": "b", "title": "B", "est": 1.0,
+             "due": "2026-10-04T23:59:00", "topic": "m", "location": "home"},
+        ],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    assert len(candidate["blocks"]) == 1
+    assert set(candidate["blocks"][0]["allocations"]) == {0, 1}
+
+
+def test_one_requirement_spans_many_blocks(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "maximum_block_minutes": 60,
+        "requirements": [{"omn_id": "a", "title": "A", "est": 4.0,
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    }, config(max_block=60, max_blocks=12))
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    assert len(candidate["blocks"]) >= 4
+    assert total_alloc(candidate["blocks"], 0) == 240
+
+
+# ------------------------------------------------------- temporal constraints
+
+
+def test_fixed_intervals_are_excluded(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "fixed": [{"id": "f", "desc": "Class", "day": "2026-09-28",
+                   "start": "06:00", "end": "12:00"}],
+        "requirements": [{"omn_id": "a", "title": "A", "est": 1.0,
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    for block in candidate["blocks"]:
+        end = block["start"] + block["duration"]
+        blocked_start = 6 * 60
+        blocked_end = 12 * 60
+        assert not (block["start"] < blocked_end and blocked_start < end)
+
+
+def test_blocks_never_overlap(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [
+            {"omn_id": "a", "title": "A", "est": 2.0,
+             "due": "2026-10-04T23:59:00", "topic": "m", "location": "home"},
+            {"omn_id": "b", "title": "B", "est": 2.0,
+             "due": "2026-10-04T23:59:00", "topic": "n", "location": "SU"},
+        ],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    spans = sorted((b["start"], b["start"] + b["duration"])
+                   for b in candidate["blocks"])
+    for (s1, e1), (s2, e2) in itertools.pairwise(spans):
+        assert e1 <= s2
+
+
+def test_requirement_window_is_respected(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": 2.0,
+                          "available": "2026-09-29T00:00:00",
+                          "due": "2026-09-29T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    # Tuesday only: 1440..2880
+    for block in candidate["blocks"]:
+        end = block["start"] + block["duration"]
+        assert 1440 <= block["start"] and end <= 2880
+
+
+def test_impossible_window_yields_unsat_core(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "imp", "title": "Impossible", "est": 2.0,
+                          "available": "2026-09-28T12:00:00",
+                          "due": "2026-09-28T11:00:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "INFEASIBLE"
+    assumptions = {item["assumption"] for item in candidate["unsat_core"]}
+    assert "coverage:imp" in assumptions
+    assert any(a.startswith("window:imp") for a in assumptions)
+
+
+def test_fixed_collision_is_flagged_blocking(tmp_path):
+    week, _candidates = solve_spec(tmp_path, {
+        "fixed": [
+            {"id": "f1", "desc": "A", "day": "2026-09-28",
+             "start": "10:00", "end": "11:00"},
+            {"id": "f2", "desc": "B", "day": "2026-09-28",
+             "start": "10:30", "end": "11:30"},
+        ],
+        "requirements": [],
+    })
+    tags = {(d.tag, d.severity) for d in week.diagnostics}
+    assert ("fixed-collision", "blocking") in tags
+
+
+def test_sleep_is_a_fixed_interval(tmp_path):
+    week = sources.load_spec(spec_file(tmp_path, {"requirements": []}), config())
+    sleep = [f for f in week.fixed_intervals if f.source == "sleep"]
+    assert len(sleep) == 7
+    assert all(f.start % 1440 == 0 and f.end % 1440 == 360 for f in sleep)
+
+
+# ----------------------------------------------- weekend targets stay soft
+
+
+def test_weekend_target_never_weakens_coverage(tmp_path):
+    # Mon-Fri daytime is fully consumed; only the weekend can host the work.
+    fixed = []
+    for offset in range(5):
+        day = (normalize_week_start(WEEK) + timedelta(days=offset)).isoformat()
+        fixed.append({"id": f"f{offset}", "desc": "blocked", "day": day,
+                      "start": "06:00", "end": "24:00"})
+    _week, candidates = solve_spec(tmp_path, {
+        "fixed": fixed,
+        "requirements": [{"omn_id": "a", "title": "A", "est": 1.0,
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    assert total_alloc(candidate["blocks"], 0) == 60
+    assert all(b["day"] >= 5 for b in candidate["blocks"])
+    assert candidate["soft"]["timing"]["locked"] >= 0
+
+
+# ------------------------------------------------------------ live filtering
+
+
+def omn_task(rid, **meta):
+    base = {"id": rid, "record": "item", "type": "task", "title": meta.pop("title", rid),
+            "tags": meta.pop("tags", []), "meta": meta}
+    return base
+
+
+def live_week(omn, tasks=(), cfg=None):
+    cfg = cfg or config()
+    return sources.load_live(WEEK, cfg, omn_records=omn, task_records=list(tasks))
+
+
+def test_inactive_and_superseded_are_skipped():
+    week = live_week([
+        omn_task("a", est="1h", due="2026-10-02", active=False),
+        omn_task("b", est="1h", due="2026-10-02", superseded_by="a"),
+        omn_task("c", est="1h", due="2026-10-02"),
+    ])
+    assert {r.id for r in week.requirements} == {"c"}
+    tags = {d.tag for d in week.diagnostics}
+    assert "inactive-record" in tags
+
+
+def test_missing_estimate_is_blocking_not_guessed():
+    week = live_week([omn_task("a", due="2026-10-02")])
+    assert week.requirements == []
+    assert any(d.tag == "missing-estimate" and d.blocking
+               for d in week.diagnostics)
+
+
+def test_ambiguous_placeholder_estimate_is_blocking():
+    week = live_week([omn_task("a", est="2h", est_status="midpoint-placeholder",
+                               due="2026-10-02")])
+    assert any(d.tag == "ambiguous-estimate" and d.blocking
+               for d in week.diagnostics)
+
+
+def test_explicitly_pending_overdue_requirement_is_blocking_not_dropped():
+    week = live_week([omn_task("a", est="2h", due="2026-09-01", active=True)])
+    assert any(d.tag == "overdue-requirement" and d.blocking
+               for d in week.diagnostics)
+    assert week.requirements == []
+
+
+def test_historical_feed_item_is_not_assumed_pending():
+    week = live_week([
+        omn_task("a", est="2h", due="2026-09-01", tags=["canvas", "ical"]),
+    ])
+    assert not any(d.tag == "overdue-requirement" for d in week.diagnostics)
+    assert week.requirements == []
+
+
+def test_rrule_cancelled_occurrence_is_removed():
+    event = {
+        "id": "ev", "record": "item", "type": "event", "title": "Recurring",
+        "tags": ["recurring"],
+        "meta": {
+            "active": True,
+            "start": "2026-09-28T10:00:00-05:00",
+            "end": "2026-09-28T11:00:00-05:00",
+            "rrule": "FREQ=WEEKLY;BYDAY=MO,WE",
+            "cancelled": ["2026-09-28"],
+        },
+    }
+    week = live_week([event])
+    starts = {f.start for f in week.fixed_intervals if f.source == "omn-event"}
+    # Monday (day 0) cancelled; Wednesday (day 2) kept.
+    assert (2 * 1440 + 600) in starts
+    assert (0 * 1440 + 600) not in starts
+
+
+def test_recurring_event_expands_into_week():
+    event = {
+        "id": "ev", "record": "item", "type": "event", "title": "Weekly",
+        "tags": ["recurring"],
+        "meta": {
+            "active": True,
+            "start": "2026-09-04T15:45:00-05:00",
+            "end": "2026-09-04T16:45:00-05:00",
+            "rrule": "FREQ=WEEKLY;BYDAY=FR;UNTIL=20261210T235959Z",
+        },
+    }
+    week = live_week([event])
+    starts = [f.start for f in week.fixed_intervals if f.source == "omn-event"]
+    assert starts == [4 * 1440 + 15 * 60 + 45]
+
+
+def test_mlh_catalog_event_is_not_an_attendance_commitment():
+    event = {
+        "id": "mlh:x", "record": "item", "type": "event", "title": "Hack",
+        "tags": ["mlh", "hackathon"],
+        "meta": {"start": "2026-10-02T10:00:00-05:00",
+                 "end": "2026-10-04T10:00:00-05:00", "source": "mlh"},
+    }
+    week = live_week([event])
+    assert not any(item.id.startswith("mlh:x") for item in week.fixed_intervals)
+
+
+def test_nested_same_course_event_is_not_a_fixed_collision():
+    lecture = {
+        "id": "lecture", "record": "item", "type": "event", "title": "Lecture",
+        "tags": ["class"],
+        "meta": {"start": "2026-10-01T10:00:00-05:00",
+                 "end": "2026-10-01T11:15:00-05:00", "location": "FO 2.404",
+                 "course_id": "course"},
+    }
+    quiz = {
+        "id": "quiz", "record": "item", "type": "event", "title": "Quiz",
+        "tags": ["quiz"],
+        "meta": {"start": "2026-10-01T10:00:00-05:00",
+                 "end": "2026-10-01T10:15:00-05:00", "location": "FO 2.404",
+                 "course_id": "course"},
+    }
+    week = live_week([lecture, quiz])
+    assert not any(item.tag == "fixed-collision" for item in week.diagnostics)
+
+
+def test_pending_fixed_task_is_unavailable_window():
+    task = {
+        "uuid": "11111111-1111-1111-1111-111111111111", "status": "pending",
+        "description": "Attend class", "scheduled": "20260929T050000Z",
+        "starttime": "10:00", "endtime": "11:00", "tags": ["managed", "fixed"],
+    }
+    week = live_week([], [task])
+    fixed = [f for f in week.fixed_intervals if f.source == "task-fixed"]
+    assert len(fixed) == 1
+    assert fixed[0].start == 1 * 1440 + 600
+
+
+# ------------------------------------------------------- legacy / carried work
+
+
+def test_unmatched_legacy_managed_is_blocking():
+    task = {
+        "uuid": "22222222-2222-2222-2222-222222222222", "status": "pending",
+        "description": "Old work", "scheduled": "20260928T050000Z",
+        "tags": ["managed"], "est": "1h",
+    }
+    week = live_week([], [task])
+    assert any(d.tag == "legacy-managed-unmatched" and d.blocking
+               for d in week.diagnostics)
+    assert week.legacy[0].reconciled is False
+
+
+def test_reconciled_legacy_references_active_omn():
+    task = {
+        "uuid": "33333333-3333-3333-3333-333333333333", "status": "pending",
+        "description": "Old work", "scheduled": "20260928T050000Z",
+        "tags": ["managed"], "est": "1h",
+        "todo": "- thing @10m [omn:a]",
+    }
+    week = live_week([omn_task("a", est="1h", due="2026-10-02")], [task])
+    assert week.legacy[0].reconciled is True
+    assert not any(d.tag == "legacy-managed-unmatched" and d.blocking
+                   for d in week.diagnostics)
+
+
+def test_carried_task_is_reported_not_deleted():
+    task = {
+        "uuid": "44444444-4444-4444-4444-444444444444", "status": "pending",
+        "description": "Carried", "scheduled": "20260101T060000Z",
+        "tags": ["managed"], "est": "1h",
+    }
+    week = live_week([], [task])
+    assert week.legacy[0].carried is True
+    # Carried work is preserved (still a blocking diagnostic, never deleted).
+    assert any(d.tag == "legacy-managed-unmatched" for d in week.diagnostics)
+
+
+# --------------------------------------------------------------- decode/pins
+
+
+def test_todo_pins_and_open_ended_primary(tmp_path):
+    week, candidates = solve_spec(tmp_path, {
+        "requirements": [
+            {"omn_id": "big", "title": "Big", "est": 2.0,
+             "due": "2026-10-04T23:59:00", "topic": "m", "location": "home"},
+            {"omn_id": "small", "title": "Small", "est": "10m",
+             "due": "2026-09-30T23:59:00", "topic": "m", "location": "home"},
+        ],
+    })
+    candidate = candidates[0]
+    decoded = decode_candidate(week, candidate["blocks"])
+    assert decoded["records"]
+    for record in decoded["records"]:
+        pins = parse_pins(record["todo"])
+        start = _hhmm(record["starttime"])
+        end = _hhmm(record["endtime"])
+        assert sum(pins.values()) <= (end - start)
+    # The small item is always pinned.
+    small_pins = [parse_pins(r["todo"]).get("small") for r in decoded["records"]]
+    assert any(pin is not None for pin in small_pins)
+
+
+def test_sum_of_pinned_never_exceeds_duration(tmp_path):
+    week, candidates = solve_spec(tmp_path, {
+        "maximum_block_minutes": 120,
+        "requirements": [
+            {"omn_id": f"r{i}", "title": f"R{i}", "est": "30m",
+             "due": "2026-10-04T23:59:00", "topic": "m", "location": "home"}
+            for i in range(4)
+        ],
+    }, config(max_block=120))
+    candidate = candidates[0]
+    decoded = decode_candidate(week, candidate["blocks"])
+    for record in decoded["records"]:
+        pins = parse_pins(record["todo"])
+        duration = _hhmm(record["endtime"]) - _hhmm(record["starttime"])
+        assert sum(pins.values()) <= duration
+
+
+def _hhmm(value: str) -> int:
+    if value == "00:00":
+        return 24 * 60
+    hour, minute = value.split(":")
+    return int(hour) * 60 + int(minute)
+
+
+# ----------------------------------------------------------- candidate design
+
+
+def test_candidates_are_diverse(tmp_path):
+    cfg = config(candidates=3)
+    week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "30m",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    }, cfg)
+    decoded = [decode_candidate(week, c["blocks"]) for c in candidates
+               if c["status"] == "ok"]
+    fingerprints = {item["fingerprint"] for item in decoded}
+    assert len(fingerprints) >= 2
+
+
+def test_spec_solving_is_deterministic(tmp_path):
+    spec = {"requirements": [{"omn_id": "a", "title": "A", "est": 2.0,
+                              "due": "2026-10-04T23:59:00", "topic": "m",
+                              "location": "home"}]}
+    path = spec_file(tmp_path, spec)
+    cfg = config(candidates=2)
+    week = sources.load_spec(path, cfg)
+    first = solve_candidates(week, cfg)
+    second = solve_candidates(week, cfg)
+    # The spec seam is operationally deterministic: identical statuses and
+    # identical exact coverage. Z3 may pick a different legal placement within
+    # a single process (global AST ids feed its search), so placement itself is
+    # only guaranteed reproducible from a fresh interpreter.
+    assert [c["status"] for c in first] == [c["status"] for c in second]
+    for candidate in first + second:
+        assert candidate["status"] == "ok"
+        assert total_alloc(candidate["blocks"], 0) == 120
+    fingerprints = [decode_candidate(week, c["blocks"])["fingerprint"] for c in first]
+    assert len(set(fingerprints)) == len(first)
+
+
+def test_build_model_bounds_blocks(tmp_path):
+    week = sources.load_spec(spec_file(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "30m",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    }), config(max_blocks=5))
+    data = build_model(week, config(max_blocks=5))
+    assert 1 <= len(data.blocks) <= 5
+
+
+def test_flexible_blocks_reserve_location_transit(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [
+            {"omn_id": "home", "title": "Home", "est": "1h",
+             "due": "2026-09-28T18:00:00", "topic": "a",
+             "location": "At home"},
+            {"omn_id": "campus", "title": "Campus", "est": "1h",
+             "due": "2026-09-28T18:00:00", "topic": "b",
+             "location": "SU Starbucks"},
+        ],
+    })
+    blocks = sorted(candidates[0]["blocks"], key=lambda item: item["start"])
+    assert len(blocks) == 2
+    assert blocks[0]["start"] + blocks[0]["duration"] + 30 <= blocks[1]["start"]
+
+
+def test_flexible_work_obeys_morning_and_evening_boundaries(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "4h",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    for block in candidates[0]["blocks"]:
+        minute = block["start"] % 1440
+        assert minute >= 10 * 60
+        assert minute + block["duration"] <= 18 * 60
+
+
+def test_weekly_block_cap_is_hard_and_tracked(tmp_path):
+    cfg = config(max_blocks=2)
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [
+            {"omn_id": f"r{i}", "title": f"R{i}", "est": "30m",
+             "due": "2026-10-04T23:59:00", "topic": f"topic-{i}",
+             "location": "home"}
+            for i in range(3)
+        ],
+    }, cfg)
+    candidate = candidates[0]
+    assert candidate["status"] == "INFEASIBLE"
+    assert any(item["assumption"] == "cap:week"
+               for item in candidate["unsat_core"])
+
+
+def test_live_week_never_places_work_before_current_time():
+    now = datetime.fromisoformat("2026-09-29T14:17:00-05:00")
+    week = sources.load_live(
+        WEEK, config(),
+        omn_records=[omn_task("a", est="1h", due="2026-10-02")],
+        task_records=[], now=now,
+    )
+    assert week.requirements[0].window_start == 1 * 1440 + 14 * 60 + 30
+
+
+# ------------------------------------------------------------------- RRULE
+
+
+def test_rrule_weekly_byday_within_window():
+    start = datetime.fromisoformat("2026-09-28T10:00:00-05:00")
+    days = rrule_mod.expand_weekly(
+        "FREQ=WEEKLY;BYDAY=MO,WE", start, date(2026, 9, 28), date(2026, 10, 4))
+    assert days == [date(2026, 9, 28), date(2026, 9, 30)]
+
+
+def test_rrule_until_excludes_later_occurrences():
+    start = datetime.fromisoformat("2026-09-28T10:00:00-05:00")
+    days = rrule_mod.expand_weekly(
+        "FREQ=WEEKLY;BYDAY=MO;UNTIL=20260928T235959Z", start,
+        date(2026, 9, 28), date(2026, 10, 12))
+    assert days == [date(2026, 9, 28)]
+
+
+def test_rrule_interval_skips_weeks():
+    start = datetime.fromisoformat("2026-09-28T10:00:00-05:00")
+    days = rrule_mod.expand_weekly(
+        "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO", start,
+        date(2026, 9, 28), date(2026, 10, 18))
+    assert days == [date(2026, 9, 28), date(2026, 10, 12)]
+
+
+def test_rrule_rejects_non_weekly():
+    start = datetime.fromisoformat("2026-09-28T10:00:00-05:00")
+    with pytest.raises(rrule_mod.UnsupportedRecurrence):
+        rrule_mod.expand_weekly("FREQ=DAILY", start, date(2026, 9, 28),
+                                date(2026, 10, 4))

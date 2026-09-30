@@ -28,21 +28,17 @@
     }
   },
   "packages": [
-    "git:github.com/Quinntyx/pi-pycells",
+    "git:git.quinntyx.dev/quinntyx/pi-pycells",
     "npm:@narumitw/pi-btw",
-    "git:github.com/Quinntyx/pi-antigravity-auth",
+    "git:git.quinntyx.dev/quinntyx/pi-antigravity-auth",
     "npm:pi-everforest-tui",
-    "git:github.com/Quinntyx/pi-session-move",
-    "git:github.com/Quinntyx/pi-web-access",
+    "git:git.quinntyx.dev/quinntyx/pi-session-move",
+    "git:git.quinntyx.dev/quinntyx/pi-web-access",
     "npm:pi-permissions",
     "npm:pi-mcp-adapter",
-    "git:git.quinntyx.dev/quinntyx/pi-autopilot",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
-    "git:git.quinntyx.dev/quinntyx/pi-buddy-extension",
-    "git:git.quinntyx.dev/quinntyx/pi-cwd-handoff",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
-    "git:git.quinntyx.dev/quinntyx/pi-image-fallback",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
     "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
     "git:git.quinntyx.dev/quinntyx/pi-setup-command",
@@ -51,7 +47,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
     "git:git.quinntyx.dev/quinntyx/pi-idle-time",
     "git:git.quinntyx.dev/quinntyx/pi-tps",
-    "git:github.com/Quinntyx/pi-sock"
+    "git:git.quinntyx.dev/quinntyx/pi-sock"
   ],
   "hideThinkingBlock": true,
   "compaction": {

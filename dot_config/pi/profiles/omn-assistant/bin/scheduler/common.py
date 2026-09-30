@@ -320,6 +320,7 @@ class SupportWindow:
     latest: int
     location: str | None = None
     after: str | None = None
+    hard: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -333,6 +334,7 @@ class SupportWindow:
             "latest": self.latest,
             "location": self.location,
             "after": self.after,
+            "hard": self.hard,
         }
 
 

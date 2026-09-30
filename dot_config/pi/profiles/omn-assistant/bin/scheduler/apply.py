@@ -236,9 +236,15 @@ def _candidate_validation_error(week: WeekInput, candidate: dict) -> str | None:
     if any(count > week.day_cap for count in day_counts.values()):
         return "candidate exceeds a daily block cap"
     for rid, requirement in requirements.items():
-        need = max(requirement.required_minutes, MIN_ALLOC_MINUTES)
-        if totals[rid] != need:
-            return f"candidate coverage for {rid} is {totals[rid]}m, expected {need}m"
+        # The hard contract is the minimum (meta.min_est); the full est is the
+        # target whose shortfall shows up as the candidate's stretch bucket.
+        minimum = (requirement.minimum_minutes
+                   if requirement.minimum_minutes is not None
+                   else requirement.required_minutes)
+        need = max(min(minimum, requirement.required_minutes), MIN_ALLOC_MINUTES)
+        if totals[rid] < need:
+            return (f"candidate coverage for {rid} is {totals[rid]}m, "
+                    f"expected at least {need}m")
     spans.sort()
     for first, second in itertools.pairwise(spans):
         gap = transit_minutes(first[2], second[2])

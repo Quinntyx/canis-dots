@@ -1,0 +1,7 @@
+{
+  "test_scheduler.py::test_violated_day_constraint_is_infeasible_with_core": true,
+  "test_scheduler.py::test_fixed_intervals_are_excluded": true,
+  "test_scheduler.py::test_hard_coverage_is_exact": true,
+  "test_scheduler.py::test_completed_work_credits_requirement": true,
+  "test_scheduler.py::test_elapsed_support_windows_today_are_dropped": true
+}

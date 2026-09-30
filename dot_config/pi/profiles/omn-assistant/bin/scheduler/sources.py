@@ -386,7 +386,8 @@ SUPPORT_SPECS = [
     {"kind": "lunch", "label": "Eat lunch", "dur_min": 60, "dur_max": 60,
      "clock": (11 * 60, 14 * 60), "location": "At home"},
     {"kind": "afternoon-break", "label": "Take afternoon break", "dur_min": 60,
-     "dur_max": 120, "clock": (14 * 60, 18 * 60), "location": "SU Starbucks"},
+     "dur_max": 120, "clock": (14 * 60, 18 * 60), "location": "SU Starbucks",
+     "hard": False},
     {"kind": "dinner", "label": "Eat dinner", "dur_min": 45, "dur_max": 45,
      "clock": (17 * 60, 21 * 60), "location": "At home"},
 ]
@@ -408,6 +409,7 @@ def default_supports(week_start: date) -> list:
                 latest=day_base + spec["clock"][1],
                 location=spec.get("location"),
                 after=spec.get("after"),
+                hard=spec.get("hard", True),
             ))
     return out
 
@@ -919,13 +921,14 @@ def load_live(
         ))
 
     # Support windows on elapsed days are gone: the plan never recreates
-    # yesterday's breakfast. Same for a window that has fully elapsed today.
-    now_minutes = current.hour * 60 + current.minute
+    # yesterday's breakfast. Same for a window that has fully elapsed today
+    # (support.latest is already week-absolute).
+    now_week_minutes = ((current.date() - week_start).days * 1440
+                        + current.hour * 60 + current.minute)
     supports = [
         support for support in default_supports(week_start)
         if (week_start + timedelta(days=support.day)) >= current.date()
-        and (support.day * 1440 + support.latest) >= (
-            (current.date() - week_start).days * 1440 + now_minutes)
+        and support.latest >= now_week_minutes
     ]
 
     fixed = fixed_from_omn(omn, week_start, config, diagnostics)

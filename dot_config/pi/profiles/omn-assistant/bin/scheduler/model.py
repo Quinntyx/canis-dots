@@ -388,12 +388,13 @@ def _build_support_constraints(week, config, blocks, used, start, dur, day, solv
         # dropping meals. Only a fixed commitment genuinely covering the
         # support's window (an all-day event, a hackathon) may absorb it —
         # sleep is excluded, it is a modeling artifact, not a commitment.
-        # Placement is HARD against work: the user would rather lose sleep
-        # than skip a meal, so the solver relocates deadline work instead of
-        # dropping meals. Only when fixed commitments (with their transit
-        # margins) genuinely leave no segment that fits the meal does it
-        # become optional — sleep is excluded, it is a modeling artifact.
-        if not _support_unplaceable(support, week.fixed_intervals):
+        # Placement is HARD against work for meals (the user would rather
+        # lose sleep than skip one); the afternoon break is soft-optional —
+        # it yields to lab hours and deadline work. Even a hard meal turns
+        # optional when fixed commitments (with transit margins) genuinely
+        # leave no segment that fits it — sleep is excluded, it is a modeling
+        # artifact.
+        if support.hard and not _support_unplaceable(support, week.fixed_intervals):
             solver.add(s_placed[sid])
         # An unplaced support parks on the first grid point at/after its
         # window start with minimum length so it never accidentally

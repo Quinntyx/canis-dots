@@ -246,14 +246,18 @@ class Context:
 
     def omn_assignments(self) -> list[dict]:
         out = []
+        inactive_statuses = {"completed", "cancelled", "canceled",
+                             "superseded", "deleted"}
         for r in self.omn:
             if r.get("type") != "task":
                 continue
             meta = r.get("meta", {})
             if meta.get("kind") == "in-class":
                 continue  # completed in class; no take-home Taskwarrior work
-            if meta.get("active") is False:
+            if meta.get("active") is False or meta.get("superseded_by"):
                 continue  # deactivated record (superseded or cancelled)
+            if str(meta.get("status", "")).lower() in inactive_statuses:
+                continue  # completed/cancelled by the user or the agent
             due = parse_omn_date(meta.get("due"))
             if due:
                 out.append((r, due))
@@ -666,7 +670,10 @@ class TodoCoverage(Policy):
             )
             if satisfied:
                 continue
-            near = due <= ctx.week_sunday + timedelta(days=7)
+            # Deferred work is next week's plan's business: only dues inside
+            # this week are "near". Later dues degrade to INFO so the weekly
+            # plan run still surfaces them without crying error.
+            near = due <= ctx.week_sunday
             have = on_time_hours
             if est_hours:
                 # Being under-est is an allowed, visible sacrifice; lateness
@@ -798,7 +805,13 @@ class RecurringEventsPresent(Policy):
             if not times:
                 continue
             start_time = times[0].strftime("%H:%M")
+            cancelled = {
+                str(item)[:10] for item in
+                (record["meta"].get("cancelled") or [])
+            } if isinstance(record["meta"].get("cancelled"), list) else set()
             for day in expand_rrule(record["meta"]["rrule"], ctx.week_monday):
+                if day.isoformat() in cancelled:
+                    continue  # the user cancelled this occurrence
                 hit = next(
                     (t for t in ctx.tasks
                      if t.get("status") in ("pending", "completed")
@@ -1568,8 +1581,19 @@ class RecurrenceArtifactsCovered(Policy):
                     w for w in exclusion.group(1).strip().lower().split()
                     if w not in ("the", "weekly", keyword)
                 ]
+            # Deferred sessions count when they land in the week after this
+            # one: carried work lands before its due date, not necessarily
+            # inside the week that deferred it.
+            carry_start = ctx.week_sunday + timedelta(days=1)
+            carry_end = ctx.week_sunday + timedelta(days=7)
+            carried = [
+                t for t in ctx.tasks
+                if t.get("status") == "pending"
+                and carry_start <= (parse_tw_date(t.get("scheduled"))
+                                    or date.min) <= carry_end
+            ]
             sessions = [
-                t for t in ctx.week_tasks(["pending", "completed"])
+                t for t in ctx.week_tasks(["pending", "completed"]) + carried
                 if keyword in t["description"].lower()
                 and not any(x in t["description"].lower() for x in exclude_terms)
             ]

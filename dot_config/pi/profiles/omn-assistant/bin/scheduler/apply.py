@@ -34,8 +34,9 @@ from .common import (
     transit_minutes,
 )
 
-UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
-                     r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+UUID_RE = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
 TODO_REF = re.compile(r"\[omn:([^\]\s]+)\]")
 REFUSAL_TAGS = {"fixed-collision", "missing-estimate", "ambiguous-estimate",
                 "fixed-missing-time", "unsupported-rrule",
@@ -100,16 +101,14 @@ class Taskwarrior:
         code, out, err = self._runner(self.add_command(record))
         if code != 0:
             raise RuntimeError(f"task add failed: {err.strip()}")
-        uuid = out.strip().splitlines()[-1].strip() if out.strip() else ""
-        if UUID_RE.match(uuid):
-            return uuid
-        # Fall back to a fresh export: match the block we just created.
-        for task in self.export():
-            if (task.get("status") == "pending"
-                    and task.get("description") == record["description"]
-                    and _scheduled_date(task) == record["scheduled"]
-                    and "composer" in (task.get("tags") or [])):
-                return str(task.get("uuid"))
+        # `task rc.verbose=new-uuid add` prints "Created task <uuid>." — search
+        # for the uuid anywhere in the output rather than matching the whole
+        # line. A wrong capture here can alias two same-description blocks
+        # (e.g. two pieces of one assignment on one day), so never fall back
+        # to export-matching while freshly created tasks are still pending.
+        match = UUID_RE.search(out)
+        if match:
+            return match.group(0)
         raise RuntimeError(f"could not determine uuid of created task: {out!r}")
 
 

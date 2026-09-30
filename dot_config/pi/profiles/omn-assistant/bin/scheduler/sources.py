@@ -675,6 +675,13 @@ def legacy_from_tasks(tasks: list, plan_ids: set, week_start: date,
                 "recreated from the plan's support windows",
                 [entry.uuid],
             ))
+        elif not refs and "composer" in tags:
+            diagnostics.append(Diagnostic(
+                "legacy-composer-replaceable", INFO,
+                f"composer block '{entry.description[:48]}' (leftover from an "
+                f"earlier apply) is replaced by the new plan",
+                [entry.uuid],
+            ))
         else:
             reason = ("no [omn:<id>] todo refs" if not refs
                       else "todo refs do not resolve to active omn records")

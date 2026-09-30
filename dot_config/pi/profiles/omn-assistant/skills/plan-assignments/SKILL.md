@@ -62,43 +62,95 @@ metadata:
 5. Sum the estimates into a weekly workload total; proceed to Stage 4.
 
 ## Stage 4: Build the proposed schedule
-1. Build a composer spec containing every authoritative fixed occurrence,
-   unmanaged timed task, meal, weekly lab/swim anchor, and required rest or
-   travel buffer. Fixed records retain their real time and location; encode
-   travel or a rule such as the 30-minute post-piano rest through
-   `buffer_before` / `buffer_after`, never as a soft preference.
-2. Add each flexible omn requirement with its `omn_id`, `est`, `available`,
-   hard `due`, `kind`, cohesive `topic`, and actual `location`. Use 30-minute
-   slots and a 30-minute minimum block unless the user requests a finer pass.
-3. Run the candidate proposer, not a hand-written greedy placement:
+1. Let the composer read ground truth directly rather than hand-building a
+   spec: it reads `omn export` and the Taskwarrior export for the selected
+   Monday-to-Sunday week. It expands active omn events (and their RFC 5545
+   weekly `rrule`s, honoring `cancelled` dates) plus pending `+fixed`
+   Taskwarrior windows and the 00:00-06:00 sleep block into authoritative fixed
+   intervals. `+fixed` items are unavailable windows, never work.
+2. It turns each active omn task into a flexible requirement from its
+   `meta.est`, `meta.due`, `meta.target_week`, `meta.available`/`unlock`,
+   `kind`, derived topic, and `location`. A requirement with no estimate, an
+   ambiguous/placeholder estimate, or a `due` before the week is a BLOCKING
+   diagnostic — never guess an `est`; fill it in (Stage 3) or reconcile it in
+   omn. A pending `+managed` task whose `todo` refs do not resolve to plan ids
+   is BLOCKING carried work, never grounds for silent deletion.
+3. Run the candidate proposer:
 
    ```sh
-   ~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py SPEC.json \
-     --candidates-per-profile 3 --out CANDIDATES.json
+   ~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py plan \
+     --week <monday> --candidates 3 --out CANDIDATES.json
    ```
 
-   The composer lexicographically minimizes: assignment estimate shortfall,
-   assignment weekend work, assignment delay (front-loading), non-assignment
-   estimate shortfall, and cohesive block count. Deadlines, availability,
-   fixed windows, sleep, daily block caps, and minimum block length are hard.
-   Profiles affect placement only after those system priorities are locked.
-4. Reject an `INFEASIBLE` candidate. When `optimization_exact` is false, rerun
-   it with a larger `--timeout-ms` before calling it best; an approximate
-   candidate can still be shown, but must be labeled approximate.
-5. Compare candidates by their objective report and explicit `sacrifices`, not
-   by the fuzzed tie score. Fuzz exists only to offer different near-equivalent
-   placements. Never choose a candidate that hides estimate shortfall or
-   deadline-forced weekend work from the user.
+   Pass `--spec FILE` only for deterministic tests/debugging, never for real
+   planning. Requirement coverage, availability/deadline windows, fixed
+   intervals, the 30-minute grid, 10:00–18:00 flexible-work boundary,
+   minimum/maximum block length, location-based transit gaps, the per-day and
+   weekly block caps, and block non-overlap are HARD tracked constraints.
+   Blocking source diagnostics short-circuit before Z3 with a semantic core;
+   the composer never solves a smaller, misleading subset. The solver
+   then minimizes a few nonnegative soft buckets — assignment timing/weekend
+   pressure, rest/daily-load intrusions, and cohesion/context/waste — probing a
+   small target ladder per bucket and locking the first satisfiable threshold;
+   "good enough" beats optimal. `--candidates` offers placements that differ by
+   fingerprint and/or documented threshold ladder, never by weakening a hard
+   constraint.
+
+   Additional hard/soft machinery: a requirement with `meta.indivisible: true`
+   must sit in one block wholesale (used for single-sitting items like a
+   Quinncia recording session). Standing support windows (cook breakfast,
+   breakfast, lunch, afternoon break, dinner) are placed as pushable,
+   shrinkable intervals with their own daily windows and duration bounds;
+   they are decoded into `+managed +schedule +composer` records with no todo,
+   and are dropped (not failed) when a fixed commitment legitimately covers
+   their window, at a soft cost. A minute-grid capacity precheck runs before
+   Z3: when requirements exceed the week's flexible minutes it returns an
+   instant INFEASIBLE whose core names the shortage (per requirement or
+   aggregate), instead of burning solver time or silently dropping work.
+4. Reject an `INFEASIBLE` candidate and read its `unsat_core`: it names the
+   requirement, fixed interval, or daily cap that made the week impossible.
+   Never auto-drop a requirement to manufacture a satisfiable week. A plan with
+   `has_blocking_diagnostics: true` is not applicable as-is. When
+   `optimization_exact` is false, rerun with a larger `--timeout-ms` before
+   calling a candidate best, and label an approximate candidate as approximate.
+5. Compare candidates by their `soft` bucket report and `fingerprint`, and
+   explain the tradeoff. Coverage is hard, so no candidate hides estimate
+   shortfall; never present one that would sit work past its real deadline.
 6. Allocate the weekly lab time before flexible work: 6 hours at Prof. Jee's
    lab centered on Monday/Wednesday 10:00-17:00, including the 1h PyLingual
    meeting, with the remaining 5 hours as contiguous as possible.
 7. Present the strongest candidates as a table of day, fixed hours, composed
-   blocks, estimate coverage, deadlines, and sacrifices. Explain why one is
-   preferred; the user remains the final chooser.
-8. If the user accepts the plan, proceed to Stage 5; otherwise revise the spec
-   from the user's feedback and rerun Stage 4.
+   blocks, and estimate coverage. Explain why one is preferred; the user
+   remains the final chooser.
+8. If the user accepts the plan, proceed to Stage 5; otherwise revise the
+   inputs (omn estimates, availability) from the user's feedback and rerun
+   Stage 4. Do not edit the composer's hard constraints to force a fit.
 
 ## Stage 5: Register in Taskwarrior
+0. Prefer the composer's own apply path for the accepted candidate:
+
+   ```sh
+   # preview (dry-run is the default)
+   ~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py apply \
+     --plan CANDIDATES.json --candidate N
+   # write
+   ~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py apply \
+     --plan CANDIDATES.json --candidate N --yes
+   ```
+
+   It refuses to write when any diagnostic is blocking, the candidate's
+   optimization status is unknown, a pending managed task cannot be reconciled,
+   or fixed intervals conflict. It reloads omn and Taskwarrior, refuses a stale
+   plan, validates exact allocations/windows/transit, matches tasks by UUID
+   (never the mutable numeric id), and preserves unmanaged and `+fixed` tasks
+   plus composer blocks from other weeks. It replaces only the selected week's
+   solver-owned `+managed +composer` blocks (plus reconciled carried blocks),
+   creating and verifying replacements before deleting old blocks. Then it
+   re-exports to
+   verify, runs `taskwarrior_lint.py`, then the gcal-sync skill; a failed
+   calendar sync is reported, not rolled back. Steps 1-14 below remain the
+   model for anything the composer does not cover (unmanaged/`+fixed` tasks and
+   hand fixes).
 1. Expand each active fixed event into one concrete action per occurrence in the
    target week.
 2. Begin every event description with an imperative verb; use `Attend` for

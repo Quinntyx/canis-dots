@@ -161,8 +161,10 @@ def test_impossible_window_yields_unsat_core(tmp_path):
     candidate = candidates[0]
     assert candidate["status"] == "INFEASIBLE"
     assumptions = {item["assumption"] for item in candidate["unsat_core"]}
-    assert "coverage:imp" in assumptions
-    assert any(a.startswith("window:imp") for a in assumptions)
+    # The capacity precheck names it first when the window cannot hold the
+    # minutes; a pure window/coverage UNSAT core is the fallback shape.
+    assert assumptions & {"capacity:imp", "coverage:imp"}
+    assert any("imp" in a for a in assumptions)
 
 
 def test_fixed_collision_is_flagged_blocking(tmp_path):
@@ -296,6 +298,78 @@ def test_recurring_event_expands_into_week():
     week = live_week([event])
     starts = [f.start for f in week.fixed_intervals if f.source == "omn-event"]
     assert starts == [4 * 1440 + 15 * 60 + 45]
+
+
+def test_indivisible_requirement_sits_in_one_block(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "quin", "title": "Quinncia", "est": "2h",
+                          "indivisible": True,
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    allocating = [b for b in candidate["blocks"] if b["allocations"]]
+    assert len(allocating) == 1
+    assert total_alloc(candidate["blocks"], 0) == 120
+
+
+def test_indivisible_larger_than_max_block_is_unsat(tmp_path):
+    cfg = config(max_block=60, max_blocks=12)
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "big", "title": "Big single sitting",
+                          "est": "2h", "indivisible": True,
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    }, cfg)
+    candidate = candidates[0]
+    assert candidate["status"] == "INFEASIBLE"
+    assumptions = {item["assumption"] for item in candidate["unsat_core"]}
+    assert "indivisible:big" in assumptions
+
+
+def test_supports_are_placed_daily_within_windows(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "1h",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    supports = [s for s in candidate["supports"] if s["placed"]]
+    parked = [s for s in candidate["supports"] if not s["placed"]]
+    # An empty week should not need to drop a single support.
+    assert parked == []
+    for support in supports:
+        minute = support["start"] % 1440
+        assert minute >= 6 * 60  # never inside the sleep window
+
+    def kind(support):
+        return support["id"].split(":")[1]
+
+    # Cooking immediately precedes breakfast every day.
+    for day in range(7):
+        cook = next(s for s in supports
+                    if s["day"] == day and kind(s) == "cook-breakfast")
+        breakfast = next(s for s in supports
+                         if s["day"] == day and kind(s) == "breakfast")
+        assert cook["start"] + cook["duration"] <= breakfast["start"]
+        assert breakfast["start"] - (cook["start"] + cook["duration"]) < 60
+
+
+def test_support_records_have_no_todo_and_are_replaced_on_apply(tmp_path):
+    week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "30m",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    decoded = decode_candidate(week, candidates[0]["blocks"],
+                               candidates[0]["supports"])
+    assert decoded["supports"]
+    for record in decoded["supports"]:
+        assert record.get("todo") is None
+        assert record.get("due") is None
+        assert "schedule" in record["tags"] and "composer" in record["tags"]
 
 
 def test_mlh_catalog_event_is_not_an_attendance_commitment():

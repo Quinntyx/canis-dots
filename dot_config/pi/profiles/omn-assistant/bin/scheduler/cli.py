@@ -51,7 +51,8 @@ def command_plan(args) -> int:
     output_candidates = []
     for candidate in candidates:
         if candidate.get("status") == "ok":
-            decoded = decode_candidate(week, candidate["blocks"])
+            decoded = decode_candidate(week, candidate["blocks"],
+                                       candidate.get("supports", []))
             record = {
                 "candidate_index": candidate["candidate_index"],
                 "status": candidate["status"],
@@ -61,6 +62,7 @@ def command_plan(args) -> int:
                 "soft": candidate["soft"],
                 "fingerprint": decoded["fingerprint"],
                 "records": decoded["records"],
+                "support_records": decoded["supports"],
                 "blocks": decoded["blocks"],
                 "unsat_core": [],
                 "diagnostics": candidate["diagnostics"],

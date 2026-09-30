@@ -239,6 +239,22 @@ def test_apply_preserves_composer_blocks_from_other_weeks(tmp_path):
     assert any(task.get("uuid") == "future" for task in gateway.tasks)
 
 
+def test_apply_refuses_tampered_support_placement(tmp_path):
+    week = spec_week(tmp_path, {"requirements": []})
+    bad = candidate([record()])
+    bad["supports"] = [{
+        "id": "support:dinner:2026-10-01", "start": 21 * 60 + 3 * 1440,
+        "duration": 45, "location": "At home",
+    }]
+    gateway = FakeTaskwarrior([])
+    report = apply_candidate(
+        week, bad, taskwarrior=gateway,
+        dry_run=False, confirmed=True, run_lint=False, run_gcal=False,
+    )
+    assert report.refused and "support" in report.refused
+    assert gateway.added == []
+
+
 def test_apply_refuses_tampered_candidate_coverage(tmp_path):
     week = spec_week(tmp_path, {"requirements": []})
     bad = candidate([record()])

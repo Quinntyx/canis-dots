@@ -241,6 +241,38 @@ def _candidate_validation_error(week: WeekInput, candidate: dict) -> str | None:
     return None
 
 
+def _validate_supports(week: WeekInput, supports: list) -> str | None:
+    by_id = {item.id: item for item in week.supports}
+    spans = []
+    for support in supports:
+        spec = by_id.get(support.get("id"))
+        if spec is None:
+            return "candidate places an unknown support window"
+        try:
+            start, duration = int(support["start"]), int(support["duration"])
+        except (KeyError, TypeError, ValueError):
+            return "candidate contains a malformed support placement"
+        if not (spec.dur_min <= duration <= spec.dur_max):
+            return "candidate support duration is out of bounds"
+        if not (spec.earliest <= start and start + duration <= spec.latest):
+            return "candidate support sits outside its window"
+        spans.append((start, start + duration,
+                      support.get("location"), spec.after, spec.id))
+    spans.sort()
+    for first, second in itertools.pairwise(spans):
+        gap = transit_minutes(first[2], second[2])
+        if first[1] + gap > second[0]:
+            return "candidate supports overlap or omit their transit gap"
+    for start, _end, _location, after, _sid in spans:
+        if not after:
+            continue
+        predecessor = next((item for item in spans
+                            if f":{after}:" in item[4]), None)
+        if predecessor is None or predecessor[1] > start:
+            return "candidate support violates its ordering dependency"
+    return None
+
+
 def refuse_reason(week: WeekInput, candidate: dict) -> str | None:
     blocking = week.blocking()
     for diagnostic in blocking:
@@ -254,6 +286,9 @@ def refuse_reason(week: WeekInput, candidate: dict) -> str | None:
     validation_error = _candidate_validation_error(week, candidate)
     if validation_error:
         return f"refusing to apply: {validation_error}"
+    support_error = _validate_supports(week, candidate.get("supports", []))
+    if support_error:
+        return f"refusing to apply: {support_error}"
     return None
 
 
@@ -290,7 +325,9 @@ def apply_candidate(
         return report
 
     owned, protected = _classify_owned(export, plan_ids, week)
-    for record in candidate.get("records", []):
+    created_records = (list(candidate.get("support_records", []))
+                       + list(candidate.get("records", [])))
+    for record in created_records:
         report.commands.append(" ".join(taskwarrior.add_command(record)))
     for task in owned:
         report.commands.append(" ".join(taskwarrior.delete_command(task["uuid"])))
@@ -305,7 +342,7 @@ def apply_candidate(
     try:
         # Create and verify the replacement before deleting any existing work.
         # A partial add can be rolled back; deleting first cannot be undone.
-        for record in candidate.get("records", []):
+        for record in created_records:
             uuid = taskwarrior.add(record)
             report.created.append({"uuid": uuid, "record": record})
         report.verification = _verify(taskwarrior, report.created)

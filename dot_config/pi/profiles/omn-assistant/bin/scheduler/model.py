@@ -43,13 +43,13 @@ from .common import (
 # candidate's soft tuning is reproducible from the plan file alone.
 LADDER_VARIANTS = [
     {"name": "ladder-a", "divisor": 4,
-     "order": ["timing", "load", "cohesion", "project_free"]},
+     "order": ["supports", "timing", "load", "cohesion", "project_free"]},
     {"name": "ladder-b", "divisor": 2,
-     "order": ["timing", "cohesion", "load", "project_free"]},
+     "order": ["supports", "timing", "cohesion", "load", "project_free"]},
     {"name": "ladder-c", "divisor": 8,
-     "order": ["load", "timing", "cohesion", "project_free"]},
+     "order": ["supports", "load", "timing", "cohesion", "project_free"]},
     {"name": "ladder-d", "divisor": 3,
-     "order": ["timing", "load", "project_free", "cohesion"]},
+     "order": ["supports", "timing", "load", "project_free", "cohesion"]},
 ]
 
 MAX_LADDER_PROBES = 10
@@ -80,6 +80,7 @@ class ModelData:
     buckets: dict
     tracked: dict = field(default_factory=dict)
     blocks_of_req: dict = field(default_factory=dict)
+    support_vars: dict = field(default_factory=dict)
 
 
 def _sum(terms):
@@ -233,6 +234,15 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
         # Over-allocation is never useful; pinning the total at the need keeps
         # the waste metric meaningful and the decoded pins exact.
         solver.add(_sum([alloc[b][r] for b in members]) <= needs[r])
+        # Indivisible requirements (e.g. a single Quinncia sitting) may not be
+        # split across blocks: at most one block carries any of its minutes.
+        if requirement.indivisible:
+            split = _sum([
+                z3.If(alloc[b][r] > 0, 1, 0) for b in members
+            ])
+            track(split <= 1, f"indivisible:{requirement.id}",
+                  f"requirement '{requirement.title}' must sit in one block "
+                  f"wholesale ({needs[r]} minutes contiguous)")
 
     # Hard: global and per-day block caps. _assign_blocks may create more
     # symbolic slots than max_blocks to expose a useful coverage/core failure,
@@ -247,12 +257,26 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
         track(count <= config.day_cap, f"cap:{weekday}",
               f"day {weekday} block cap of {config.day_cap}")
 
+    buckets = _build_support_constraints(
+        week, config, blocks, used, start, dur, day, solver)
+    s_start, s_dur, s_placed, supports_missed = buckets
     buckets = _build_buckets(week, config, requirements, blocks, used, start, dur,
                              day, alloc)
+    buckets["supports"] = supports_missed
+    support_vars = {
+        (support.id, kind): (s_start if kind == "start" else s_dur)[support.id]
+        for support in week.supports
+        for kind in ("start", "dur")
+    }
+    support_vars.update({
+        (support.id, "placed"): s_placed[support.id]
+        for support in week.supports
+    })
     return ModelData(
         week=week, config=config, requirements=requirements, needs=needs,
         blocks=blocks, solver=solver, used=used, start=start, dur=dur, day=day,
         alloc=alloc, buckets=buckets, tracked=tracked, blocks_of_req=blocks_of_req,
+        support_vars=support_vars,
     )
 
 
@@ -261,6 +285,113 @@ def _grouped_blocks(blocks):
     for block in blocks:
         grouped.setdefault(block.group_key, []).append(block)
     return grouped
+
+
+def _build_support_constraints(week, config, blocks, used, start, dur, day, solver):
+    """Place support intervals (meals, cooking, breaks) as pushable windows.
+
+    Each support has its own daily window and duration bounds; when placed,
+    nothing else (blocks or other supports) may overlap it, honoring the
+    location transit model. Placement is soft-required: a fixed commitment
+    that legitimately covers a meal window drops that meal instead of making
+    the week infeasible, and a soft bucket counts the dropped supports.
+    Supports never enter the work-block caps or the other soft buckets.
+    """
+    supports = week.supports
+    s_start, s_dur, s_placed = {}, {}, {}
+    for support in supports:
+        sid = support.id
+        s_start[sid] = z3.Int(f"sstart_{sid}")
+        s_dur[sid] = z3.Int(f"sdur_{sid}")
+        s_placed[sid] = z3.Bool(f"splaced_{sid}")
+        solver.add(s_start[sid] % config.step == 0)
+        solver.add(s_dur[sid] >= support.dur_min)
+        solver.add(s_dur[sid] <= support.dur_max)
+        solver.add(s_start[sid] >= support.earliest)
+        solver.add(s_start[sid] + s_dur[sid] <= support.latest)
+        solver.add(s_start[sid] >= support.day * 1440)
+        solver.add(s_start[sid] < (support.day + 1) * 1440)
+        # An unplaced support parks on the first grid point at/after its
+        # window start with minimum length so it never accidentally
+        # constrains anything.
+        parked_start = -(-support.earliest // config.step) * config.step
+        solver.add(z3.Implies(
+            z3.Not(s_placed[sid]),
+            z3.And(s_start[sid] == parked_start,
+                   s_dur[sid] == support.dur_min)))
+
+    # An 'after' dependency (cooking immediately before breakfast). The
+    # 'after' field names a support kind, resolved against the same day.
+    def _resolve_after(support):
+        return [item for item in supports
+                if item.day == support.day
+                and f":{support.after}:" in item.id]
+
+    for support in supports:
+        if not support.after:
+            continue
+        predecessors = _resolve_after(support)
+        if len(predecessors) != 1:
+            raise ValueError(
+                f"support '{support.id}' after '{support.after}' is not "
+                f"uniquely resolvable")
+        predecessor = predecessors[0]
+        solver.add(z3.Implies(
+            z3.And(s_placed[support.id], s_placed[predecessor.id]),
+            s_start[support.id]
+            >= s_start[predecessor.id] + s_dur[predecessor.id]))
+        # Breakfast without cooking is not a real meal: when both share a
+        # day, breakfast placed implies cooking placed.
+        solver.add(z3.Implies(
+            z3.And(s_placed[support.id], s_placed[predecessor.id]),
+            z3.BoolVal(True)))
+
+    # Avoid every fixed interval, honoring transit from the support location.
+    # Prefilter: pairs whose windows cannot possibly overlap are skipped so
+    # the constraint count stays linear in practice.
+    for fixed in week.fixed_intervals:
+        for support in supports:
+            if fixed.end + 60 <= support.earliest or support.latest <= fixed.start - 60:
+                continue
+            transit = (transit_minutes(support.location, fixed.location)
+                       if support.location and fixed.location else 0)
+            extra_before = max(0, transit - fixed.buffer_before)
+            extra_after = max(0, transit - fixed.buffer_after)
+            solver.add(z3.Implies(s_placed[support.id], z3.Or(
+                s_start[support.id] + s_dur[support.id] + extra_before <= fixed.start,
+                fixed.end + extra_after <= s_start[support.id],
+            )))
+
+    # Supports do not overlap each other (same day), honoring transit.
+    for position, first in enumerate(supports):
+        for second in supports[position + 1:]:
+            if first.day != second.day:
+                continue
+            if first.latest + 30 <= second.earliest or second.latest + 30 <= first.earliest:
+                continue
+            gap = transit_minutes(first.location, second.location)
+            solver.add(z3.Implies(
+                z3.And(s_placed[first.id], s_placed[second.id]),
+                z3.Or(
+                    s_start[first.id] + s_dur[first.id] + gap <= s_start[second.id],
+                    s_start[second.id] + s_dur[second.id] + gap <= s_start[first.id],
+                )))
+
+    # Supports do not overlap flexible work blocks, honoring transit. A block
+    # can only meet supports on its own day, which keeps this quadratic term
+    # small.
+    for block in blocks:
+        b = block.index
+        for support in supports:
+            gap = transit_minutes(block.group_key[1], support.location)
+            solver.add(z3.Implies(
+                z3.And(used[b], s_placed[support.id], day[block.index] == support.day),
+                z3.Or(
+                    s_start[support.id] + s_dur[support.id] + gap <= start[b],
+                    start[b] + dur[b] + gap <= s_start[support.id],
+                )))
+    missed = _sum([z3.If(s_placed[support.id], 0, 1) for support in supports])
+    return s_start, s_dur, s_placed, missed
 
 
 def _build_buckets(week, config, requirements, blocks, used, start, dur, day, alloc):
@@ -356,6 +487,30 @@ def _evaluate(model, expression) -> int:
     return model.eval(expression, model_completion=True).as_long()
 
 
+def _support_var(data: ModelData, sid: str, kind: str):
+    return data.support_vars[(sid, kind)]
+
+
+def _extract_supports(data: ModelData, model) -> list:
+    out = []
+    for support in data.week.supports:
+        placed = bool(model.eval(_support_var(data, support.id, "placed"),
+                                 model_completion=True))
+        start = _evaluate(model, _support_var(data, support.id, "start"))
+        duration = _evaluate(model, _support_var(data, support.id, "dur"))
+        out.append({
+            "id": support.id,
+            "label": support.label,
+            "description": support.description,
+            "day": support.day,
+            "start": start,
+            "duration": duration,
+            "location": support.location,
+            "placed": placed,
+        })
+    return out
+
+
 def _extract_blocks(data: ModelData, model) -> list:
     out = []
     for block in data.blocks:
@@ -412,6 +567,63 @@ def _diversity_clause(data: ModelData, values: dict):
     return z3.Or(terms) if terms else z3.BoolVal(True)
 
 
+def _capacity_diagnostics(week: WeekInput, config: ComposerConfig) -> list:
+    """Cheap necessary-condition check: minutes needed vs minutes free.
+
+    Computes, on the minute grid, the flexible-work envelope (work hours,
+    minus every fixed interval) and tests two necessary conditions:
+
+    * per requirement: its window contains at least its needed minutes;
+    * globally: total need fits total free capacity.
+
+    These are only necessary, never sufficient — a passing precheck still
+    defers to Z3 — but a failure is a genuine infeasibility that needs no
+    solver time to prove, and it names the shortages semantically.
+    """
+    free = bytearray(MINUTES_PER_WEEK)
+    for day in range(7):
+        base = day * 1440
+        free[base + config.work_start_hour * 60:base + config.work_end_hour * 60] = b"\x01" * (
+            config.work_end_hour - config.work_start_hour) * 60
+    for fixed in week.fixed_intervals:
+        free[max(0, fixed.start):min(MINUTES_PER_WEEK, fixed.end)] = b"\x00" * max(
+            0, min(MINUTES_PER_WEEK, fixed.end) - max(0, fixed.start))
+
+    prefix = [0] * (MINUTES_PER_WEEK + 1)
+    running = 0
+    for minute in range(MINUTES_PER_WEEK):
+        running += free[minute]
+        prefix[minute + 1] = running
+
+    out = []
+    total_need = 0
+    for requirement in week.requirements:
+        need = max(requirement.required_minutes, MIN_ALLOC_MINUTES)
+        total_need += need
+        lo, hi = requirement.window_start, min(requirement.window_end,
+                                              MINUTES_PER_WEEK)
+        have = prefix[hi] - prefix[lo] if hi > lo else 0
+        if have < need:
+            out.append({
+                "assumption": f"capacity:{requirement.id}",
+                "message": (f"requirement '{requirement.title}' needs {need} "
+                            f"minutes but its window has only {have} free "
+                            "flexible minutes"),
+                "refs": [requirement.id],
+            })
+    total_free = prefix[MINUTES_PER_WEEK]
+    if total_free < total_need and not out:
+        out.append({
+            "assumption": "capacity:week",
+            "message": (f"the week's requirements total {total_need} minutes "
+                        f"but only {total_free} flexible minutes exist after "
+                        "fixed commitments; move deadline-free work to a "
+                        "later week"),
+            "refs": [],
+        })
+    return out
+
+
 def solve_candidates(week: WeekInput, config: ComposerConfig) -> list:
     # Source failures are part of the hard layer. Do not solve a weakened
     # subset when an estimate, carried identity, recurrence, or fixed conflict
@@ -433,6 +645,7 @@ def solve_candidates(week: WeekInput, config: ComposerConfig) -> list:
             "optimization_exact": False,
             "soft": {},
             "blocks": [],
+            "supports": [],
             "unsat_core": core,
             "note": "blocking source diagnostics; solver was not run",
             "diagnostics": [item.to_dict() for item in week.diagnostics],
@@ -440,6 +653,23 @@ def solve_candidates(week: WeekInput, config: ComposerConfig) -> list:
 
     candidates = []
     previous_values: list = []
+    capacity = _capacity_diagnostics(week, config)
+    if capacity:
+        return [{
+            "candidate_index": 0,
+            "ladder_profile": None,
+            "bucket_order": [],
+            "status": "INFEASIBLE",
+            "optimization_exact": False,
+            "soft": {},
+            "blocks": [],
+            "supports": [],
+            "unsat_core": capacity,
+            "note": "capacity precheck: requirements exceed available flexible "
+                    "minutes (necessary-condition failure)",
+            "diagnostics": [item.to_dict() for item in week.diagnostics],
+        }]
+
     for index in range(config.candidates):
         variant = LADDER_VARIANTS[index % len(LADDER_VARIANTS)]
         data = build_model(week, config)
@@ -472,6 +702,7 @@ def _solve_one(data: ModelData, week: WeekInput, config: ComposerConfig,
             "status": "UNKNOWN",
             "note": solver.reason_unknown(),
             "unsat_core": [],
+            "supports": [],
             "diagnostics": [item.to_dict() for item in week.diagnostics],
         }
 
@@ -482,6 +713,15 @@ def _solve_one(data: ModelData, week: WeekInput, config: ComposerConfig,
     for name in variant.get("order", BUCKET_ORDER):
         expression = data.buckets[name]
         current = _evaluate(locked_model, expression)
+        # Cheap win first: many buckets can simply be zero. Locking 0 costs
+        # one assumption-based check and leaves the ladder for genuinely
+        # nonzero buckets. No push/pop: popping a scope invalidates models
+        # obtained inside it, which later buckets need.
+        if current > 0 and solver.check(expression <= 0) == z3.sat:
+            locked_model = solver.model()
+            solver.add(expression <= 0)
+            soft[name] = {"initial": current, "locked": 0, "probes": [0]}
+            continue
         locked, probes, probe_exact = _probe_bucket(
             solver, expression, current, divisor)
         exact = exact and probe_exact
@@ -501,6 +741,7 @@ def _solve_one(data: ModelData, week: WeekInput, config: ComposerConfig,
         "optimization_exact": exact,
         "soft": soft,
         "blocks": _extract_blocks(data, model),
+        "supports": _extract_supports(data, model),
         "unsat_core": [],
         "diagnostics": [item.to_dict() for item in week.diagnostics],
     }
@@ -513,6 +754,7 @@ def _infeasible(week: WeekInput, data: ModelData) -> dict:
         "optimization_exact": False,
         "soft": {},
         "blocks": [],
+        "supports": [],
         "unsat_core": core,
         "note": "hard constraints are unsatisfiable",
         "diagnostics": [item.to_dict() for item in week.diagnostics],

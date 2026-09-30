@@ -28,6 +28,7 @@ from .common import (
     FixedInterval,
     LegacyTask,
     Requirement,
+    SupportWindow,
     WeekInput,
     hhmm_to_minutes,
     local_iso_timestamp,
@@ -255,6 +256,7 @@ def requirements_from_omn(
             est_raw=meta.get("est"),
             transport=derive_transport(record),
             travel=derive_travel(record, location),
+            indivisible=bool(meta.get("indivisible")),
             source="omn",
         ))
     return out
@@ -302,7 +304,65 @@ def requirements_from_spec(spec: dict, week_start: date, config: ComposerConfig,
             est_raw=str(item.get("est")),
             transport=str(item.get("transport") or "no-car"),
             travel=item.get("travel"),
+            indivisible=bool(item.get("indivisible")),
             source="spec",
+        ))
+    return out
+
+
+# Standing support patterns (the user cooks every meal). Windows mirror the
+# linter's Meals policy: breakfast 06:00-08:00, lunch 11:00-14:00 (1h),
+# dinner 17:00-20:00, one hour of cooking before breakfast, and a 1-2h
+# afternoon break. Supports are pushable/shrinkable inside these bounds.
+SUPPORT_SPECS = [
+    {"kind": "cook-breakfast", "label": "Cook breakfast", "dur_min": 60,
+     "dur_max": 60, "clock": (6 * 60, 7 * 60 + 30), "location": "At home"},
+    {"kind": "breakfast", "label": "Eat breakfast", "dur_min": 45,
+     "dur_max": 45, "clock": (6 * 60 + 45, 8 * 60), "location": "At home",
+     "after": "cook-breakfast"},
+    {"kind": "lunch", "label": "Eat lunch", "dur_min": 60, "dur_max": 60,
+     "clock": (11 * 60, 14 * 60), "location": "At home"},
+    {"kind": "afternoon-break", "label": "Take afternoon break", "dur_min": 60,
+     "dur_max": 120, "clock": (14 * 60, 18 * 60), "location": "SU Starbucks"},
+    {"kind": "dinner", "label": "Eat dinner", "dur_min": 45, "dur_max": 45,
+     "clock": (17 * 60, 20 * 60), "location": "At home"},
+]
+
+
+def default_supports(week_start: date) -> list:
+    out = []
+    for day, _date in enumerate(week_dates(week_start)):
+        for spec in SUPPORT_SPECS:
+            day_base = day * 1440
+            out.append(SupportWindow(
+                id=f"support:{spec['kind']}:{_date.isoformat()}",
+                label=spec["label"],
+                description=spec["label"],
+                day=day,
+                dur_min=spec["dur_min"],
+                dur_max=spec["dur_max"],
+                earliest=day_base + spec["clock"][0],
+                latest=day_base + spec["clock"][1],
+                location=spec.get("location"),
+                after=spec.get("after"),
+            ))
+    return out
+
+
+def supports_from_spec(spec: dict, week_start: date) -> list:
+    out = []
+    for item in spec.get("supports", []):
+        out.append(SupportWindow(
+            id=str(item["id"]),
+            label=str(item.get("label") or item["id"]),
+            description=str(item.get("description") or item.get("label") or item["id"]),
+            day=int(item["day"]),
+            dur_min=int(item.get("dur_min", item.get("duration", 30))),
+            dur_max=int(item.get("dur_max", item.get("duration", 30))),
+            earliest=int(item["earliest"]),
+            latest=int(item["latest"]),
+            location=item.get("location"),
+            after=item.get("after"),
         ))
     return out
 
@@ -638,7 +698,8 @@ def detect_fixed_collisions(intervals: list, week_start: date,
 
 
 def _assemble(week_start: date, config: ComposerConfig, requirements, fixed,
-              legacy, diagnostics, source: str, metadata=None) -> WeekInput:
+              legacy, diagnostics, source: str, metadata=None,
+              supports=None) -> WeekInput:
     config.validate()
     intervals = list(fixed)
     intervals.extend(sleep_intervals(week_start, config.wake_hour))
@@ -657,6 +718,7 @@ def _assemble(week_start: date, config: ComposerConfig, requirements, fixed,
         work_end_hour=config.work_end_hour,
         daily_budget_minutes=config.daily_budget_minutes,
         max_blocks=config.max_blocks,
+        supports=list(supports) if supports is not None else default_supports(week_start),
         legacy=legacy,
         source=source,
         metadata=metadata or {},
@@ -676,8 +738,11 @@ def load_spec(path, config: ComposerConfig | None = None) -> WeekInput:
     legacy = [LegacyTask(**item) for item in spec.get("legacy_managed_tasks", [])]
     if spec.get("sleep", True) is False:
         config.wake_hour = 0
+    supports = (supports_from_spec(spec, week_start)
+                if "supports" in spec else default_supports(week_start))
     return _assemble(week_start, config, requirements, fixed, legacy, diagnostics,
-                     source="spec", metadata={"spec_path": str(path)})
+                     source="spec", metadata={"spec_path": str(path)},
+                     supports=supports)
 
 
 def load_live(

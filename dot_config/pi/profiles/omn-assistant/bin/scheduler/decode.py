@@ -55,7 +55,35 @@ def _earliest_due(requirements):
     return min(dues) if dues else None
 
 
-def decode_candidate(week, blocks: list) -> dict:
+def _support_records(week, supports: list) -> list:
+    """Decode placed support windows into Taskwarrior records.
+
+    Support records are tagged ``+managed +schedule +composer`` so they show
+    in the calendar and are replaced wholesale on re-apply, but they carry no
+    ``todo`` and no ``due`` — they are time scaffolding, not requirements.
+    """
+    records = []
+    for support in supports:
+        if not support.get("placed", True):
+            continue
+        day = week.week_start + timedelta(days=int(support["day"]))
+        start = int(support["start"])
+        duration = int(support["duration"])
+        record = {
+            "description": support["description"],
+            "scheduled": day.isoformat(),
+            "starttime": minutes_to_hhmm(start % MINUTES_PER_DAY),
+            "endtime": minutes_to_hhmm(start % MINUTES_PER_DAY + duration),
+            "location": support.get("location") or "At home",
+            "transport": "no-car",
+            "est": format_est_minutes(duration),
+            "tags": ["managed", "schedule", "composer"],
+        }
+        records.append(record)
+    return records
+
+
+def decode_candidate(week, blocks: list, supports: list | None = None) -> dict:
     """Turn model block dicts into candidate records + summaries."""
     records = []
     summaries = []
@@ -119,15 +147,20 @@ def decode_candidate(week, blocks: list) -> dict:
         })
     return {
         "records": records,
+        "supports": _support_records(week, supports or []),
         "blocks": summaries,
         "fingerprint": fingerprint(blocks),
     }
 
 
-def fingerprint(blocks: list) -> str:
+def fingerprint(blocks: list, supports: list | None = None) -> str:
     parts = sorted(
         f"{'@'.join(str(part) for part in block['group'])}:"
         f"{block['start']}:{block['duration']}"
         for block in blocks
     )
+    for support in supports or []:
+        if support.get("placed", True):
+            parts = sorted(parts + [
+                f"support:{support['id']}:{support['start']}:{support['duration']}"])
     return "|".join(parts)

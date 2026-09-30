@@ -222,6 +222,7 @@ class Requirement:
     weekend_allowed: bool = True
     transport: str = "no-car"
     travel: str | None = None
+    indivisible: bool = False
     source: str = "omn"
 
     @property
@@ -253,6 +254,7 @@ class Requirement:
             "weekend_allowed": self.weekend_allowed,
             "transport": self.transport,
             "travel": self.travel,
+            "indivisible": self.indivisible,
             "source": self.source,
         }
 
@@ -289,6 +291,42 @@ class FixedInterval:
             "buffer_before": self.buffer_before,
             "buffer_after": self.buffer_after,
             "cohort": self.cohort,
+        }
+
+
+@dataclass
+class SupportWindow:
+    """A pushable/shrinkable support interval (meals, breaks, cooking).
+
+    Supports occupy real time but are not work blocks: no todo bullets, no
+    omn requirement behind them. Each one has its own daily time window and
+    duration bounds so it can be pushed or trimmed as the day demands —
+    unlike fixed intervals, which are authoritative and immovable.
+    """
+
+    id: str
+    label: str
+    description: str
+    day: int
+    dur_min: int
+    dur_max: int
+    earliest: int
+    latest: int
+    location: str | None = None
+    after: str | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "description": self.description,
+            "day": self.day,
+            "dur_min": self.dur_min,
+            "dur_max": self.dur_max,
+            "earliest": self.earliest,
+            "latest": self.latest,
+            "location": self.location,
+            "after": self.after,
         }
 
 
@@ -335,6 +373,7 @@ class WeekInput:
     work_end_hour: int = 18
     daily_budget_minutes: int = 8 * 60
     max_blocks: int = 24
+    supports: list = field(default_factory=list)
     legacy: list = field(default_factory=list)
     source: str = "live"
     metadata: dict = field(default_factory=dict)
@@ -365,6 +404,7 @@ class WeekInput:
             "work_start_hour": self.work_start_hour,
             "work_end_hour": self.work_end_hour,
             "daily_budget_minutes": self.daily_budget_minutes,
+            "supports": [item.to_dict() for item in self.supports],
             "requirements": [item.to_dict() for item in self.requirements],
             "fixed_intervals": [item.to_dict() for item in self.fixed_intervals],
             "legacy_managed_tasks": [item.to_dict() for item in self.legacy],

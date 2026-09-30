@@ -236,18 +236,26 @@ def test_inactive_and_superseded_are_skipped():
     assert "inactive-record" in tags
 
 
-def test_missing_estimate_is_blocking_not_guessed():
+def test_missing_estimate_uses_documented_default_not_guess_silently():
     week = live_week([omn_task("a", due="2026-10-02")])
-    assert week.requirements == []
-    assert any(d.tag == "missing-estimate" and d.blocking
-               for d in week.diagnostics)
+    assert any(d.tag == "default-estimate" for d in week.diagnostics)
+    assert not any(d.blocking for d in week.diagnostics)
+    assert week.requirements[0].required_minutes == 120
 
 
-def test_ambiguous_placeholder_estimate_is_blocking():
+def test_placeholder_estimate_status_falls_back_with_warning():
     week = live_week([omn_task("a", est="2h", est_status="midpoint-placeholder",
                                due="2026-10-02")])
-    assert any(d.tag == "ambiguous-estimate" and d.blocking
-               for d in week.diagnostics)
+    assert any(d.tag == "default-estimate" for d in week.diagnostics)
+    assert not any(d.blocking for d in week.diagnostics)
+    assert week.requirements[0].required_minutes == 120
+
+
+def test_configured_default_estimates_override_fallback():
+    week = live_week(
+        [omn_task("a", due="2026-10-02")],
+        cfg=ComposerConfig(default_est_minutes=45, candidates=1))
+    assert week.requirements[0].required_minutes == 45
 
 
 def test_explicitly_pending_overdue_requirement_is_blocking_not_dropped():
@@ -365,8 +373,8 @@ def test_support_records_have_no_todo_and_are_replaced_on_apply(tmp_path):
     })
     decoded = decode_candidate(week, candidates[0]["blocks"],
                                candidates[0]["supports"])
-    assert decoded["supports"]
-    for record in decoded["supports"]:
+    assert decoded["support_records"]
+    for record in decoded["support_records"]:
         assert record.get("todo") is None
         assert record.get("due") is None
         assert "schedule" in record["tags"] and "composer" in record["tags"]
@@ -452,6 +460,46 @@ def test_carried_task_is_reported_not_deleted():
     assert week.legacy[0].carried is True
     # Carried work is preserved (still a blocking diagnostic, never deleted).
     assert any(d.tag == "legacy-managed-unmatched" for d in week.diagnostics)
+
+
+def test_carried_work_due_next_week_is_deferred_not_blocking():
+    # The omn requirement is due Oct 9 (next week) and is not planned for
+    # this week; the carried block defers to next Monday instead of forcing
+    # the requirement into an already-full week.
+    task = {
+        "uuid": "55555555-5555-5555-5555-555555555501", "status": "pending",
+        "description": "Quinncia sitting", "scheduled": "20260928T050000Z",
+        "est": "4h", "tags": ["managed"],
+        "todo": "- Quinncia [omn:quinncia]",
+    }
+    week = live_week(
+        [omn_task("quinncia", est="4h", due="2026-10-09")], [task])
+    assert all(r.id != "quinncia" for r in week.requirements)
+    assert not week.has_blocking
+    assert week.legacy[0].refs_resolvable is True
+    assert any(d.tag == "legacy-managed-deferred" for d in week.diagnostics)
+
+
+def test_stale_support_block_is_replaceable_not_blocking():
+    task = {
+        "uuid": "55555555-5555-5555-5555-555555555502", "status": "pending",
+        "description": "Eat dinner", "scheduled": "20260926T050000Z",
+        "est": "0.75h", "tags": ["managed", "schedule"],
+    }
+    week = live_week([], [task])
+    assert not week.has_blocking
+    assert any(d.tag == "legacy-support-replaceable" for d in week.diagnostics)
+
+
+def test_stale_support_block_without_schedule_tag_still_blocks():
+    task = {
+        "uuid": "55555555-5555-5555-5555-555555555503", "status": "pending",
+        "description": "Mystery carried task", "scheduled": "20260926T050000Z",
+        "est": "1h", "tags": ["managed"],
+    }
+    week = live_week([], [task])
+    assert any(d.tag == "legacy-managed-unmatched" and d.blocking
+               for d in week.diagnostics)
 
 
 # --------------------------------------------------------------- decode/pins

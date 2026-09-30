@@ -343,6 +343,7 @@ class LegacyTask:
     todo_refs: list
     reconciled: bool
     carried: bool
+    refs_resolvable: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -354,6 +355,7 @@ class LegacyTask:
             "est": self.est,
             "todo_refs": list(self.todo_refs),
             "reconciled": self.reconciled,
+            "refs_resolvable": self.refs_resolvable,
             "carried": self.carried,
         }
 
@@ -454,6 +456,11 @@ class ComposerConfig:
     solver_timeout_ms: int = 15_000
     group_block_slack: int = 2
     seed: int = 11
+    # Zero-LLM operation: a requirement with no meta.est (or a placeholder
+    # est_status) uses this deterministic fallback instead of blocking the
+    # whole plan. Every fallback is surfaced as a diagnostic so the agent or
+    # the user can correct it later.
+    default_est_minutes: int = 120
 
     def validate(self) -> None:
         if self.step <= 0 or MINUTES_PER_DAY % self.step:

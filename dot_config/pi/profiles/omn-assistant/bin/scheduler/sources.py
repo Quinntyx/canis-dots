@@ -186,12 +186,11 @@ def requirements_from_omn(
         due_minutes = parse_iso_minutes(meta.get("due"), week_start, end_of_day=True)
         due_in_week = (due_minutes is not None
                        and 0 < due_minutes <= MINUTES_PER_WEEK)
-        forced = record.get("id") in forced_ids
         if due_minutes is not None and due_minutes <= 0:
             # A historical Canvas feed item is not evidence that the work is
-            # still pending. Only explicit target/current state or a carried
-            # Taskwarrior ref makes an elapsed deadline actionable here.
-            explicitly_pending = (forced or target_this_week
+            # still pending. Only explicit target/current state makes an
+            # elapsed deadline actionable here.
+            explicitly_pending = (target_this_week
                                   or meta.get("active") is True
                                   or str(meta.get("status", "")).lower() == "pending")
             if explicitly_pending:
@@ -205,26 +204,24 @@ def requirements_from_omn(
                     "pretended into the week",
                 ))
             continue
-        if not target_this_week and not due_in_week and not forced:
+        if not target_this_week and not due_in_week:
             continue
 
         est_minutes = parse_est_minutes(meta.get("est"))
-        if est_minutes is None:
-            diagnostics.append(Diagnostic(
-                "missing-estimate", BLOCKING,
-                f"'{record.get('title', '')}' has no estimable meta.est; supply an "
-                f"estimate before planning",
-                [record.get("id")],
-            ))
-            continue
         est_status = str(meta.get("est_status", "")).lower()
-        if any(marker in est_status for marker in AMBIGUOUS_EST_MARKERS):
+        ambiguous = est_minutes is None or any(
+            marker in est_status for marker in AMBIGUOUS_EST_MARKERS)
+        if ambiguous:
+            fallback = config.default_est_minutes
+            est_minutes = fallback if est_minutes is None else est_minutes
             diagnostics.append(Diagnostic(
-                "ambiguous-estimate", BLOCKING,
-                f"'{record.get('title', '')}' has est_status '{meta.get('est_status')}'; "
-                f"confirm the estimate instead of trusting a placeholder",
+                "default-estimate", INFO,
+                f"'{record.get('title', '')}' has no reliable meta.est "
+                f"(est_status {meta.get('est_status') or 'missing'}); using the "
+                f"{fallback}-minute default — refine it when you can",
                 [record.get("id")],
-                assumption="ambiguous estimates are flagged, never silently accepted",
+                assumption="a deterministic default beats blocking an autonomous "
+                "run; the guess is visible and cheap to correct",
             ))
 
         window_start = parse_iso_minutes(meta.get("unlock"), week_start)
@@ -269,12 +266,13 @@ def requirements_from_spec(spec: dict, week_start: date, config: ComposerConfig,
         est_minutes = parse_est_minutes(item.get("est"))
         rid = str(item.get("omn_id") or item.get("id"))
         if est_minutes is None:
+            est_minutes = config.default_est_minutes
             diagnostics.append(Diagnostic(
-                "missing-estimate", BLOCKING,
-                f"spec requirement '{item.get('title', rid)}' has no parseable est",
+                "default-estimate", INFO,
+                f"spec requirement '{item.get('title', rid)}' has no parseable est; "
+                f"using the {config.default_est_minutes}-minute default",
                 [rid],
             ))
-            continue
         window_start = parse_iso_minutes(item.get("available"), week_start)
         if window_start is None:
             window_start = parse_iso_minutes(item.get("unlock"), week_start)
@@ -607,17 +605,26 @@ def fixed_from_tasks(tasks: list, week_start: date, config: ComposerConfig,
 
 
 def legacy_from_tasks(tasks: list, plan_ids: set, week_start: date,
-                      diagnostics: list, *, now: datetime | None = None) -> list:
-    """Reconcile pending managed non-fixed tasks against omn.
+                      diagnostics: list, *, now: datetime | None = None,
+                      active_omn_ids: set | None = None) -> list:
+    """Reconcile pending managed non-fixed tasks against omn and the plan.
 
-    A task carrying ``[omn:<id>]`` refs that all resolve to active omn records
-    is solver-owned (or an absorbed hand-authored block) and may be replaced on
-    apply. Anything else is an unmatched legacy block: a blocking diagnostic,
-    never a silent migration into omn.
+    Carried work does NOT have to complete inside the selected week; it only
+    has to land sometime before its due date. Classification:
+
+    * refs all in the plan -> solver-owned; replaced by the new blocks;
+    * refs resolvable to active omn records but not planned this week
+      -> deferred: apply reschedules the block to next Monday, where the next
+      plan picks it up (deadline-bearing items appear by due date);
+    * a ``+schedule`` support block with no omn refs -> replaceable scaffolding:
+      apply deletes it and the plan recreates fresh support windows;
+    * anything else -> unmatched, a blocking diagnostic. Never silently
+      migrated, deleted, or promoted into omn.
     """
     out: list = []
     today = (now or datetime.now(TZ)).astimezone(TZ).date()
     week_end = week_start + timedelta(days=6)
+    active_omn_ids = active_omn_ids or set()
     for task in tasks:
         if task.get("status") != "pending":
             continue
@@ -627,13 +634,11 @@ def legacy_from_tasks(tasks: list, plan_ids: set, week_start: date,
         refs = _todo_refs(task)
         scheduled = task.get("scheduled")
         day = _task_scheduled_date(task)
-        # A selected-week plan owns blocks in that week plus older pending
-        # blocks that must be carried into it. Future blocks after this week
-        # belong to another plan and are intentionally out of scope.
         if day is not None and day > week_end:
             continue
         carried = day is not None and day < today
-        reconciled = bool(refs) and all(ref in plan_ids for ref in refs)
+        in_plan = bool(refs) and all(ref in plan_ids for ref in refs)
+        resolvable = bool(refs) and all(ref in active_omn_ids for ref in refs)
         entry = LegacyTask(
             uuid=str(task.get("uuid")),
             id=task.get("id"),
@@ -642,15 +647,32 @@ def legacy_from_tasks(tasks: list, plan_ids: set, week_start: date,
             due=task.get("due"),
             est=task.get("est"),
             todo_refs=refs,
-            reconciled=reconciled,
+            reconciled=in_plan,
+            refs_resolvable=resolvable,
             carried=carried,
         )
         out.append(entry)
-        if reconciled:
+        if in_plan:
             diagnostics.append(Diagnostic(
                 "legacy-managed-reconciled", INFO,
-                f"pending managed task '{entry.description[:48]}' reconciles to omn "
-                f"and is superseded by the new plan",
+                f"pending managed task '{entry.description[:48]}' reconciles to "
+                f"plan requirements and is replaced by the new blocks",
+                [entry.uuid],
+            ))
+        elif resolvable:
+            diagnostics.append(Diagnostic(
+                "legacy-managed-deferred", INFO,
+                f"pending managed task '{entry.description[:48]}' references omn "
+                f"work not required this week; apply reschedules it to "
+                f"{(week_start + timedelta(days=7)).isoformat()} — carried work "
+                "lands before its due date, not necessarily inside this week",
+                [entry.uuid],
+            ))
+        elif not refs and "schedule" in tags:
+            diagnostics.append(Diagnostic(
+                "legacy-support-replaceable", INFO,
+                f"support block '{entry.description[:48]}' has no omn refs and is "
+                "recreated from the plan's support windows",
                 [entry.uuid],
             ))
         else:
@@ -762,22 +784,7 @@ def load_live(
     current = (now or datetime.now(TZ)).astimezone(TZ)
     week_end = week_start + timedelta(days=6)
     diagnostics: list = []
-
-    # Pending managed work in or before this week is mandatory input even when
-    # its omn due/target_week would not otherwise select it.
-    forced_ids = set()
-    for task in tasks:
-        if task.get("status") != "pending":
-            continue
-        tags = {str(tag).lower() for tag in (task.get("tags") or [])}
-        if "managed" not in tags or "fixed" in tags:
-            continue
-        scheduled_day = _task_scheduled_date(task)
-        if scheduled_day is None or scheduled_day <= week_end:
-            forced_ids.update(_todo_refs(task))
-
-    requirements = requirements_from_omn(
-        omn, week_start, config, diagnostics, forced_ids=forced_ids)
+    requirements = requirements_from_omn(omn, week_start, config, diagnostics)
 
     # Never generate a live candidate in elapsed time. Tests/specs stay fully
     # deterministic; only direct live ingestion applies the current-time floor.
@@ -795,13 +802,20 @@ def load_live(
             [week_start.isoformat()],
         ))
 
+    # Support windows on elapsed days are gone: the plan never recreates
+    # yesterday's breakfast.
+    supports = [support for support in default_supports(week_start)
+                if (week_start + timedelta(days=support.day)) >= current.date()]
+
     fixed = fixed_from_omn(omn, week_start, config, diagnostics)
     fixed.extend(fixed_from_tasks(tasks, week_start, config, diagnostics))
     plan_ids = {requirement.id for requirement in requirements}
     legacy = legacy_from_tasks(
-        tasks, plan_ids, week_start, diagnostics, now=current)
+        tasks, plan_ids, week_start, diagnostics, now=current,
+        active_omn_ids=active_omn_ids(omn))
     return _assemble(week_start, config, requirements, fixed, legacy, diagnostics,
-                     source="live", metadata={"loaded_at": current.isoformat()})
+                     source="live", metadata={"loaded_at": current.isoformat()},
+                     supports=supports)
 
 
 # ------------------------------------------------------------------ helpers

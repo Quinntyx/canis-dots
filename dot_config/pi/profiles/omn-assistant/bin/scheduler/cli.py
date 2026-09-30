@@ -14,9 +14,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date, timedelta
 
 from .apply import Taskwarrior, apply_candidate
-from .common import ComposerConfig
+from .common import ComposerConfig, minutes_to_hhmm
 from .decode import decode_candidate
 from .model import solve_candidates
 from .sources import load_live, load_spec
@@ -25,7 +26,8 @@ from .sources import load_live, load_spec
 def build_config(args) -> ComposerConfig:
     config = ComposerConfig()
     for name in ("step", "min_block", "max_block", "day_cap", "wake_hour",
-                 "work_start_hour", "work_end_hour", "max_blocks", "candidates"):
+                 "work_start_hour", "work_end_hour", "max_blocks", "candidates",
+                 "default_est_minutes"):
         value = getattr(args, name, None)
         if value is not None:
             setattr(config, name, int(value))
@@ -62,7 +64,8 @@ def command_plan(args) -> int:
                 "soft": candidate["soft"],
                 "fingerprint": decoded["fingerprint"],
                 "records": decoded["records"],
-                "support_records": decoded["supports"],
+                "support_records": decoded["support_records"],
+                "supports": decoded["supports"],
                 "blocks": decoded["blocks"],
                 "unsat_core": [],
                 "diagnostics": candidate["diagnostics"],
@@ -108,7 +111,8 @@ def command_plan(args) -> int:
     if args.out:
         with open(args.out, "w") as handle:
             handle.write(text + "\n")
-    print(text)
+    if not getattr(args, "quiet", False):
+        print(text)
     return 0
 
 
@@ -195,6 +199,10 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common(plan)
     plan.add_argument("--candidates", type=int, default=3)
     plan.add_argument("--out", help="write the plan JSON here")
+    plan.add_argument("--quiet", action="store_true",
+                      help="do not dump the plan JSON to stdout")
+    plan.add_argument("--default-est-minutes", type=int, default=None,
+                      help="fallback estimate for requirements without meta.est")
     plan.add_argument("--timeout-ms", type=int, default=15_000)
     plan.add_argument("--seed", type=int, default=11)
     plan.set_defaults(func=command_plan)
@@ -208,7 +216,68 @@ def build_parser() -> argparse.ArgumentParser:
     apply_parser.add_argument("--yes", action="store_true",
                               help="confirm the write; without it, dry-run")
     apply_parser.set_defaults(func=command_apply)
+
+    show = subparsers.add_parser("show", help="render plan candidates readably")
+    show.add_argument("--plan", required=True, help="plan JSON from `plan`")
+    show.add_argument("--candidate", type=int, default=None,
+                      help="show only this candidate index")
+    show.set_defaults(func=command_show)
     return parser
+
+
+def command_show(args) -> int:
+    """Render a plan's candidates as a readable calendar (no LLM needed)."""
+    with open(args.plan) as handle:
+        plan = json.load(handle)
+    candidates = plan.get("candidates", [])
+    if not candidates:
+        print("plan contains no candidates")
+        return 1
+    indexes = (list(range(len(candidates))) if args.candidate is None
+               else [args.candidate])
+    week_start = date.fromisoformat(plan["week_start"])
+    for index in indexes:
+        if not 0 <= index < len(candidates):
+            print(f"candidate index {index} out of range")
+            return 1
+        candidate = candidates[index]
+        print(f"=== Candidate {index} — {candidate.get('status')} "
+              f"({candidate.get('ladder_profile')}) ===")
+        if candidate.get("status") != "ok":
+            print(f"  not applicable: {candidate.get('note')}")
+            for item in candidate.get("unsat_core", []):
+                print(f"  * {item.get('message')}")
+            continue
+        exact = "" if candidate.get("optimization_exact") else " (APPROXIMATE)"
+        print(f"  fingerprint {candidate.get('fingerprint')}{exact}")
+        by_day = {}
+        records = candidate.get("records", [])
+        for position, block in enumerate(candidate.get("blocks", [])):
+            record = records[position] if position < len(records) else {}
+            by_day.setdefault(block["day"], []).append((
+                block["start"], block["end"], record.get("description"),
+                record.get("location"), record.get("todo"), False))
+        for support in candidate.get("supports", []):
+            if not support.get("placed", True):
+                continue
+            day = (week_start + timedelta(days=int(support["day"]))).isoformat()
+            begin = support["start"] % 1440
+            by_day.setdefault(day, []).append((
+                minutes_to_hhmm(begin),
+                minutes_to_hhmm((begin + support["duration"] - 1) % 1440 + 1
+                                if begin + support["duration"] > 1440
+                                else begin + support["duration"]),
+                support.get("label"), support.get("location"), None, True))
+        for day in sorted(by_day):
+            print(f"  {day} ({date.fromisoformat(day).strftime('%a')})")
+            for start, end, title, location, todo, is_support in sorted(by_day[day]):
+                suffix = "" if not is_support else "  (support)"
+                print(f"    {start}-{end}  {title}  [{location}]{suffix}")
+                for line in (todo or "").strip().splitlines():
+                    if line.strip():
+                        print(f"        {line.strip()}")
+        print()
+    return 0
 
 
 def _legacy_plan(argv) -> int:
@@ -232,7 +301,7 @@ def _legacy_plan(argv) -> int:
 
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    known = {"plan", "apply"}
+    known = {"plan", "apply", "show"}
     if argv and argv[0] not in known and not argv[0].startswith("-"):
         return _legacy_plan(argv)
     parser = build_parser()
@@ -243,7 +312,10 @@ def main(argv=None) -> int:
     if args.command == "apply" and not getattr(args, "plan", None):
         print("error: apply requires --plan", file=sys.stderr)
         return 1
-    if (args.command != "apply" and getattr(args, "spec", None) is None
+    if args.command == "show" and not getattr(args, "plan", None):
+        print("error: show requires --plan", file=sys.stderr)
+        return 1
+    if (args.command == "plan" and getattr(args, "spec", None) is None
             and getattr(args, "week", None) is None):
         print("error: one of --week or --spec is required", file=sys.stderr)
         return 1

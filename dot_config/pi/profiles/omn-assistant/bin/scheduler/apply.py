@@ -70,6 +70,18 @@ class Taskwarrior:
         if code != 0:
             raise RuntimeError(f"task delete {uuid} failed: {err.strip()}")
 
+    def modify_command(self, uuid: str, updates: dict) -> list:
+        command = [self._bin, "rc.confirmation=off", "rc.verbose=nothing",
+                   uuid, "modify"]
+        for key, value in updates.items():
+            command.append(f"{key}:{value}")
+        return command
+
+    def modify(self, uuid: str, updates: dict) -> None:
+        code, _out, err = self._runner(self.modify_command(uuid, updates))
+        if code != 0:
+            raise RuntimeError(f"task modify {uuid} failed: {err.strip()}")
+
     def add_command(self, record: dict) -> list:
         command = [self._bin, "rc.confirmation=off", "rc.verbose=new-uuid",
                    "add", record["description"]]
@@ -108,6 +120,7 @@ class ApplyReport:
     dry_run: bool = False
     deleted: list = field(default_factory=list)
     created: list = field(default_factory=list)
+    deferred: list = field(default_factory=list)
     protected: list = field(default_factory=list)
     verification: list = field(default_factory=list)
     commands: list = field(default_factory=list)
@@ -123,6 +136,7 @@ class ApplyReport:
             "dry_run": self.dry_run,
             "deleted": self.deleted,
             "created": self.created,
+            "deferred": self.deferred,
             "protected": self.protected,
             "verification": self.verification,
             "commands": self.commands,
@@ -281,8 +295,10 @@ def refuse_reason(week: WeekInput, candidate: dict) -> str | None:
                     f"[{diagnostic.tag}] {diagnostic.message}")
     if candidate.get("status") != "ok":
         return f"refusing to apply: candidate status is {candidate.get('status')}"
-    if candidate.get("optimization_exact") is False:
-        return "refusing to apply: optimization status is unknown/approximate"
+    # An approximate candidate still satisfies every hard constraint; only its
+    # soft tuning is incomplete. It is pickable, and `show` labels it
+    # (APPROXIMATE) so the choice is informed. An UNKNOWN status is a real
+    # refusal: hard feasibility itself is unproven.
     validation_error = _candidate_validation_error(week, candidate)
     if validation_error:
         return f"refusing to apply: {validation_error}"
@@ -324,16 +340,25 @@ def apply_candidate(
         report.error = str(exc)
         return report
 
-    owned, protected = _classify_owned(export, plan_ids, week)
+    owned, deferred, stale_support, protected = _classify_owned(export, plan_ids, week)
+    defer_date = (week.week_start + timedelta(days=7)).isoformat()
     created_records = (list(candidate.get("support_records", []))
                        + list(candidate.get("records", [])))
     for record in created_records:
         report.commands.append(" ".join(taskwarrior.add_command(record)))
-    for task in owned:
+    for task in owned + stale_support:
         report.commands.append(" ".join(taskwarrior.delete_command(task["uuid"])))
+    for task in deferred:
+        report.commands.append(" ".join(taskwarrior.modify_command(
+            task["uuid"], {"scheduled": defer_date, "starttime": "", "endtime": ""})))
 
     if dry_run:
-        report.deleted = [task["uuid"] for task in owned]
+        report.deleted = [task["uuid"] for task in owned + stale_support]
+        report.deferred = [{
+            "uuid": task["uuid"],
+            "description": task.get("description"),
+            "scheduled": defer_date,
+        } for task in deferred]
         report.protected = [task["uuid"] for task in protected]
         report.notes.append(
             "dry-run: no Taskwarrior changes made; rerun this apply command with --yes")
@@ -358,7 +383,7 @@ def apply_candidate(
         return report
 
     try:
-        for task in owned:
+        for task in owned + stale_support:
             taskwarrior.delete(task["uuid"])
     except Exception as exc:  # noqa: BLE001
         report.error = (f"replacement blocks were created, but an old block could not "
@@ -366,7 +391,26 @@ def apply_candidate(
         report.notes.append("old work was preserved; inspect duplicates before retrying")
         return report
 
-    report.deleted = [task["uuid"] for task in owned]
+    for task in deferred:
+        try:
+            taskwarrior.modify(task["uuid"], {
+                "scheduled": defer_date, "starttime": "", "endtime": ""})
+        except Exception as exc:  # noqa: BLE001
+            report.notes.append(
+                f"defer failed for {task['uuid']}: {exc} — the carried block "
+                "keeps its old date and stays pending")
+            continue
+        report.deferred.append({
+            "uuid": task["uuid"],
+            "description": task.get("description"),
+            "scheduled": defer_date,
+        })
+    if deferred and len(report.deferred) == len(deferred):
+        report.notes.append(
+            f"deferred {len(deferred)} carried block(s) to {defer_date}; the next "
+            "week's plan picks them up")
+
+    report.deleted = [task["uuid"] for task in owned + stale_support]
     report.protected = [task["uuid"] for task in protected]
     report.applied = True
 
@@ -388,10 +432,17 @@ def apply_candidate(
 
 
 def _classify_owned(export: list, plan_ids: set, week: WeekInput):
-    owned, protected = [], []
-    carried_uuids = {
-        item.uuid for item in week.legacy if item.reconciled and item.carried
-    }
+    """Split pending managed tasks into apply actions.
+
+    owned:   this week's solver-owned blocks, replaced by the new plan.
+    deferred: carried blocks whose omn refs exist but are not required this
+             week — rescheduled to next Monday, never deleted.
+    stale_support: ``+schedule`` blocks with no omn refs — scaffolding the
+             plan recreates, deleted wholesale.
+    protected: everything else (unmanaged, +fixed, other weeks).
+    """
+    owned, deferred, stale_support, protected = [], [], [], []
+    legacy_by_uuid = {item.uuid: item for item in week.legacy}
     week_end = (week.week_start + timedelta(days=6)).isoformat()
     for task in export:
         if task.get("status") != "pending":
@@ -402,18 +453,29 @@ def _classify_owned(export: list, plan_ids: set, week: WeekInput):
             continue
         refs = _todo_refs(task)
         scheduled = _scheduled_date(task)
-        in_week = (scheduled is not None
-                   and week.week_start.isoformat() <= scheduled <= week_end)
-        # +composer denotes ownership, not global scope: applying one week must
-        # never delete composer blocks belonging to another week.
-        if "composer" in tags and (in_week or task.get("uuid") in carried_uuids):
+        in_week = (scheduled is not None and scheduled <= week_end)
+        if not in_week:
+            # Blocks scheduled beyond this week belong to another plan. Older
+            # carried blocks stay in scope: they are owned, deferred, or
+            # refused, exactly like in-week blocks.
+            protected.append(task)
+            continue
+        # +composer denotes ownership, not global scope: applying one week
+        # must never delete composer blocks belonging to another week.
+        if "composer" in tags or (refs and all(ref in plan_ids for ref in refs)):
             owned.append(task)
             continue
-        if refs and all(ref in plan_ids for ref in refs) and (in_week or task.get("uuid") in carried_uuids):
-            owned.append(task)
-        else:
-            protected.append(task)
-    return owned, protected
+        entry = legacy_by_uuid.get(str(task.get("uuid")))
+        if entry is not None and entry.refs_resolvable:
+            deferred.append(task)
+            continue
+        if not refs and "schedule" in tags:
+            stale_support.append(task)
+            continue
+        # Unmatched carried work: the sources emitted the blocking
+        # diagnostic; refuse_reason() stops the apply before any write.
+        protected.append(task)
+    return owned, deferred, stale_support, protected
 
 
 def _verify(taskwarrior: Taskwarrior, created: list) -> list:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from scheduler.apply import apply_candidate
 from scheduler.common import ComposerConfig
@@ -57,6 +58,7 @@ class FakeTaskwarrior:
         self.deleted = []
         self.added = []
         self.delete_args = []
+        self.modify_args = []
         self._counter = 0
 
     def export(self):
@@ -69,6 +71,19 @@ class FakeTaskwarrior:
         self.delete_args.append(uuid)
         self.deleted.append(uuid)
         self.tasks = [t for t in self.tasks if t.get("uuid") != uuid]
+
+    def modify_command(self, uuid, updates):
+        return ["task", "modify", uuid, str(updates)]
+
+    def modify(self, uuid, updates):
+        self.modify_args.append((uuid, dict(updates)))
+        for task in self.tasks:
+            if task.get("uuid") == uuid:
+                for key, value in updates.items():
+                    if value == "":
+                        task.pop(key, None)
+                    else:
+                        task[key] = value
 
     def add_command(self, rec):
         return ["task", "add", rec["description"]]
@@ -99,8 +114,17 @@ def spec_week(tmp_path, spec):
     return load_spec(path, config())
 
 
-def live_week(omn=(), tasks=()):
-    return load_live(WEEK, config(), omn_records=list(omn), task_records=list(tasks))
+def live_week(omn=(), tasks=(), now=None):
+    return load_live(WEEK, config(), omn_records=list(omn),
+                     task_records=list(tasks), now=now)
+
+
+def omn_task(rid, **meta):
+    return {
+        "id": rid, "record": "item", "type": "task",
+        "title": meta.pop("title", rid), "tags": meta.pop("tags", []),
+        "meta": meta,
+    }
 
 
 def test_dry_run_makes_no_changes(tmp_path):
@@ -183,13 +207,22 @@ def test_apply_refuses_blocking_diagnostics(tmp_path):
     assert gateway.added == []
 
 
-def test_apply_refuses_unknown_optimization(tmp_path):
+def test_apply_accepts_approximate_but_rejects_unknown_status(tmp_path):
     week = spec_week(tmp_path, {"requirements": []})
     gateway = FakeTaskwarrior([])
-    report = apply_candidate(week, candidate([record()], optimization_exact=False),
-                             taskwarrior=gateway, dry_run=False, confirmed=True)
-    assert report.refused and "unknown" in report.refused
-    assert gateway.added == []
+    approximate = candidate([record()], optimization_exact=False)
+    report = apply_candidate(week, approximate, taskwarrior=gateway,
+                             dry_run=False, confirmed=True, run_lint=False,
+                             run_gcal=False)
+    assert report.applied  # hard constraints hold; soft tuning was cut short
+
+    unknown = candidate([record()], status="UNKNOWN")
+    gateway2 = FakeTaskwarrior([])
+    report2 = apply_candidate(week, unknown, taskwarrior=gateway2,
+                              dry_run=False, confirmed=True, run_lint=False,
+                              run_gcal=False)
+    assert report2.refused and "UNKNOWN" in report2.refused
+    assert gateway2.added == []
 
 
 def test_apply_refuses_unmatched_legacy(tmp_path):
@@ -221,6 +254,67 @@ def test_calendar_failure_is_reported_not_rollback(tmp_path):
     assert report.gcal["returncode"] == 1
     assert any("not a rollback" in note for note in report.notes)
     assert report.created  # Taskwarrior writes survive the calendar failure
+
+
+def test_apply_defers_carried_work_not_required_this_week(tmp_path):
+    omn_record = {
+        "id": "quinncia", "record": "item", "type": "task",
+        "title": "Quinncia", "tags": [],
+        "meta": {"due": "2026-10-09", "est": "4h"},
+    }
+    carried = {
+        "uuid": "77777777-7777-7777-7777-777777777777", "status": "pending",
+        "description": "Quinncia sitting", "scheduled": "20260928T050000Z",
+        "est": "4h", "tags": ["managed"],
+        "todo": "- Quinncia [omn:quinncia]",
+    }
+    # This week plans requirement `a`; Quinncia (due next week) only defers.
+    week = live_week(
+        [omn_task("a", est="1h", due="2026-10-02"), omn_record], [carried],
+        now=datetime.fromisoformat("2026-09-28T00:05:00-05:00"))
+    plan_record = record()
+    plan_record["location"] = "At home"
+    plan_candidate = {
+        "status": "ok", "optimization_exact": True,
+        "records": [plan_record],
+        "blocks": [{
+            "group": ["a", "At home"], "transport": "no-car", "day": WEEK,
+            "start_minute": 600, "start": "10:00", "end": "11:00",
+            "duration_minutes": 60,
+            "allocations": [{"omn_id": "a", "minutes": 60}],
+        }],
+    }
+    gateway = FakeTaskwarrior([carried])
+    report = apply_candidate(
+        week, plan_candidate, taskwarrior=gateway,
+        dry_run=False, confirmed=True, run_lint=False, run_gcal=False,
+    )
+    assert report.applied
+    assert carried["uuid"] not in gateway.deleted
+    assert report.deferred and report.deferred[0]["uuid"] == carried["uuid"]
+    assert report.deferred[0]["scheduled"] == "2026-10-05"
+    modified = next(t for t in gateway.tasks if t.get("uuid") == carried["uuid"])
+    # The fake stores the modify payload verbatim; real Taskwarrior normalizes
+    # the ISO date to its compact form.
+    assert modified.get("scheduled") == "2026-10-05"
+    assert modified.get("starttime") is None
+
+
+def test_apply_deletes_stale_support_blocks(tmp_path):
+    week = spec_week(tmp_path, {"requirements": []})
+    support = {
+        "uuid": "88888888-8888-8888-8888-888888888888", "status": "pending",
+        "description": "Eat dinner", "scheduled": "20260926T050000Z",
+        "est": "0.75h", "tags": ["managed", "schedule"],
+    }
+    gateway = FakeTaskwarrior([support])
+    report = apply_candidate(
+        week, candidate([record()]), taskwarrior=gateway,
+        dry_run=False, confirmed=True, run_lint=False, run_gcal=False,
+    )
+    assert report.applied
+    assert "88888888-8888-8888-8888-888888888888" in gateway.deleted
+    assert report.deferred == []
 
 
 def test_apply_preserves_composer_blocks_from_other_weeks(tmp_path):

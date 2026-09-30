@@ -53,6 +53,7 @@ LADDER_VARIANTS = [
 ]
 
 MAX_LADDER_PROBES = 10
+PROBE_TIMEOUT_DIVISOR = 4
 
 BUCKET_ORDER = ["timing", "load", "cohesion", "project_free"]
 
@@ -236,7 +237,10 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
         solver.add(_sum([alloc[b][r] for b in members]) <= needs[r])
         # Indivisible requirements (e.g. a single Quinncia sitting) may not be
         # split across blocks: at most one block carries any of its minutes.
-        if requirement.indivisible:
+        # Tiny requirements (30-60 min) are indivisible too — fragmenting a
+        # 30-minute registration into 1-minute slivers across blocks is legal
+        # by the allocation model but useless in practice.
+        if requirement.indivisible or needs[r] <= 60:
             split = _sum([
                 z3.If(alloc[b][r] > 0, 1, 0) for b in members
             ])
@@ -442,13 +446,16 @@ def _build_buckets(week, config, requirements, blocks, used, start, dur, day, al
 # ------------------------------------------------------------------ solving
 
 
-def _probe_bucket(solver, expression, current: int, divisor: int):
+def _probe_bucket(solver, expression, current: int, divisor: int,
+                  probe_timeout_ms: int | None = None):
     """Bounded bisection ladder for one nonnegative bucket.
 
     ``current`` is a known-satisfying value. Each probe tightens the target and
     records either the new best satisfying bound or the first unsatisfiable
     floor. Hard constraints are never touched — only ``expression <= target``
-    is added. Returns ``(locked, probes, exact)``.
+    is added. A probe that cannot converge within ``probe_timeout_ms`` stops
+    the ladder (the result is then approximate). Returns ``(locked, probes,
+    exact)``.
     """
     low, high = int(current), None
     locked = int(current)
@@ -468,6 +475,8 @@ def _probe_bucket(solver, expression, current: int, divisor: int):
         if target >= low:
             break
         probes.append(target)
+        if probe_timeout_ms:
+            solver.set("timeout", probe_timeout_ms)
         solver.push()
         solver.add(expression <= target)
         outcome = solver.check()
@@ -570,8 +579,10 @@ def _diversity_clause(data: ModelData, values: dict):
 def _capacity_diagnostics(week: WeekInput, config: ComposerConfig) -> list:
     """Cheap necessary-condition check: minutes needed vs minutes free.
 
-    Computes, on the minute grid, the flexible-work envelope (work hours,
-    minus every fixed interval) and tests two necessary conditions:
+    Computes, per day, the flexible-work envelope (work hours minus every
+    fixed interval), discounts a conservative transit margin around located
+    fixed events and grid-alignment loss at interval edges, and tests two
+    necessary conditions:
 
     * per requirement: its window contains at least its needed minutes;
     * globally: total need fits total free capacity.
@@ -580,19 +591,41 @@ def _capacity_diagnostics(week: WeekInput, config: ComposerConfig) -> list:
     defers to Z3 — but a failure is a genuine infeasibility that needs no
     solver time to prove, and it names the shortages semantically.
     """
-    free = bytearray(MINUTES_PER_WEEK)
+    usable_by_day: list[int] = [0] * 7
+    usable_minutes = bytearray(MINUTES_PER_WEEK)
+    step = config.step
     for day in range(7):
         base = day * 1440
-        free[base + config.work_start_hour * 60:base + config.work_end_hour * 60] = b"\x01" * (
-            config.work_end_hour - config.work_start_hour) * 60
-    for fixed in week.fixed_intervals:
-        free[max(0, fixed.start):min(MINUTES_PER_WEEK, fixed.end)] = b"\x00" * max(
-            0, min(MINUTES_PER_WEEK, fixed.end) - max(0, fixed.start))
+        day_start = base + config.work_start_hour * 60
+        day_end = base + config.work_end_hour * 60
+        intervals: list[tuple[int, int]] = [(day_start, day_end)]
+        day_fixed = [fixed for fixed in week.fixed_intervals
+                     if fixed.start < day_end and day_start < fixed.end]
+        # Expand located fixed events by the worst-case transit margin; the
+        # block's own location is unknown here, so use the maximum gap.
+        margin = 30
+        for fixed in day_fixed:
+            extra_before = margin if fixed.location else 0
+            extra_after = margin if fixed.location else 0
+            blocked_start = max(0, fixed.start - extra_before)
+            blocked_end = min(MINUTES_PER_WEEK, fixed.end + extra_after)
+            intervals = _subtract_interval(intervals, blocked_start, blocked_end)
+        total = 0
+        for start, end in intervals:
+            # Grid alignment: a block must start on the grid and fit whole.
+            aligned_start = -(-start // step) * step
+            span = end - aligned_start
+            if span <= 0:
+                continue
+            usable = (span // step) * step
+            total += usable
+            usable_minutes[aligned_start:aligned_start + usable] = b"\x01" * usable
+        usable_by_day[day] = total
 
     prefix = [0] * (MINUTES_PER_WEEK + 1)
     running = 0
     for minute in range(MINUTES_PER_WEEK):
-        running += free[minute]
+        running += usable_minutes[minute]
         prefix[minute + 1] = running
 
     out = []
@@ -607,20 +640,35 @@ def _capacity_diagnostics(week: WeekInput, config: ComposerConfig) -> list:
             out.append({
                 "assumption": f"capacity:{requirement.id}",
                 "message": (f"requirement '{requirement.title}' needs {need} "
-                            f"minutes but its window has only {have} free "
-                            "flexible minutes"),
+                            f"minutes but its window has only {have} usable "
+                            "flexible minutes (after transit margins and grid "
+                            "alignment)"),
                 "refs": [requirement.id],
             })
-    total_free = prefix[MINUTES_PER_WEEK]
+    total_free = sum(usable_by_day)
     if total_free < total_need and not out:
         out.append({
             "assumption": "capacity:week",
             "message": (f"the week's requirements total {total_need} minutes "
-                        f"but only {total_free} flexible minutes exist after "
-                        "fixed commitments; move deadline-free work to a "
-                        "later week"),
+                        f"but only {total_free} usable flexible minutes exist "
+                        "after fixed commitments, transit margins, and grid "
+                        "alignment; move deadline-free work to a later week"),
             "refs": [],
         })
+    return out
+
+
+def _subtract_interval(
+        intervals: list[tuple[int, int]], start: int, end: int) -> list[tuple[int, int]]:
+    out = []
+    for a, b in intervals:
+        if b <= start or end <= a:
+            out.append((a, b))
+            continue
+        if a < start:
+            out.append((a, start))
+        if end < b:
+            out.append((end, b))
     return out
 
 
@@ -723,7 +771,9 @@ def _solve_one(data: ModelData, week: WeekInput, config: ComposerConfig,
             soft[name] = {"initial": current, "locked": 0, "probes": [0]}
             continue
         locked, probes, probe_exact = _probe_bucket(
-            solver, expression, current, divisor)
+            solver, expression, current, divisor,
+            probe_timeout_ms=max(2_000, config.solver_timeout_ms
+                                 // PROBE_TIMEOUT_DIVISOR))
         exact = exact and probe_exact
         soft[name] = {"initial": current, "locked": locked, "probes": probes}
         # Keep the best known-satisfying bound active so the final model cannot
@@ -732,6 +782,7 @@ def _solve_one(data: ModelData, week: WeekInput, config: ComposerConfig,
 
     # Re-check so the returned model reflects every locked soft bound; fall
     # back to the last known-good model if the final check is inconclusive.
+    solver.set("timeout", config.solver_timeout_ms)
     final = solver.check()
     model = solver.model() if final == z3.sat else locked_model
     if final != z3.sat:

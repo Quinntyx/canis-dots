@@ -147,7 +147,9 @@ def decode_candidate(week, blocks: list, supports: list | None = None) -> dict:
         })
     return {
         "records": records,
-        "supports": _support_records(week, supports or []),
+        "supports": [support for support in (supports or [])
+                     if support.get("placed", True)],
+        "support_records": _support_records(week, supports or []),
         "blocks": summaries,
         "fingerprint": fingerprint(blocks),
     }

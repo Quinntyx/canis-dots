@@ -57,6 +57,19 @@ def test_apply_requires_plan(tmp_path, capsys):
     assert "--plan" in capsys.readouterr().err
 
 
+def test_show_renders_candidates_without_llm(tmp_path, capsys):
+    spec = write_spec(tmp_path)
+    plan = tmp_path / "plan.json"
+    assert cli.main(["plan", "--spec", str(spec), "--week", WEEK,
+                     "--candidates", "1", "--out", str(plan), "--quiet"]) == 0
+    assert capsys.readouterr().out == ""
+    rc = cli.main(["show", "--plan", str(plan)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Candidate 0" in out and "Eat lunch" in out
+    assert "- A" in out
+
+
 def test_apply_rejects_stale_plan_without_touching_taskwarrior(tmp_path, capsys):
     spec = write_spec(tmp_path)
     plan = tmp_path / "plan.json"

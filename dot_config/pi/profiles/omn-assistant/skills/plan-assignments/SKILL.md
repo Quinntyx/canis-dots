@@ -98,15 +98,55 @@ metadata:
 
    Additional hard/soft machinery: a requirement with `meta.indivisible: true`
    must sit in one block wholesale (used for single-sitting items like a
-   Quinncia recording session). Standing support windows (cook breakfast,
-   breakfast, lunch, afternoon break, dinner) are placed as pushable,
-   shrinkable intervals with their own daily windows and duration bounds;
-   they are decoded into `+managed +schedule +composer` records with no todo,
-   and are dropped (not failed) when a fixed commitment legitimately covers
-   their window, at a soft cost. A minute-grid capacity precheck runs before
-   Z3: when requirements exceed the week's flexible minutes it returns an
-   instant INFEASIBLE whose core names the shortage (per requirement or
-   aggregate), instead of burning solver time or silently dropping work.
+   Quinncia recording session; requirements of 60 minutes or less are treated
+   as indivisible automatically so small errands never fragment). Standing
+   support windows (cook breakfast, breakfast, lunch, afternoon break, dinner)
+   are placed as pushable, shrinkable intervals with their own daily windows
+   and duration bounds; they are decoded into `+managed +schedule +composer`
+   records with no todo, and are dropped (not failed) when a fixed commitment
+   or a deadline-forced week leaves no room, at a soft cost. A minute-grid
+   capacity precheck runs before Z3: it subtracts fixed commitments, transit
+   margins, and grid alignment, and when requirements exceed the usable
+   minutes it returns an instant INFEASIBLE whose core names the shortage
+   (per requirement or aggregate), instead of burning solver time or silently
+   dropping work.
+
+## Carried work and deferral (standing rules)
+
+- Carried work does NOT have to complete inside the selected week. It only
+  has to land sometime before its due date.
+- A requirement enters this week's plan only when its `meta.due` falls in the
+  week, its `meta.target_week` covers the week, or it is explicitly pending
+  with an elapsed due (that last one is a BLOCKING diagnostic — reconcile it).
+- On apply, carried managed blocks are reallocated automatically from their
+  `[omn:<id>]` todo refs: refs planned this week → the old block is replaced
+  by fresh coverage; refs that exist in omn but are not needed this week →
+  the block is DEFERRED (rescheduled to next Monday, time window cleared) so
+  the next week's plan picks it up; `+schedule` support blocks with no refs
+  are deleted and recreated from the plan's support windows.
+- To pull deferred work into a specific week, set its omn `meta.target_week`;
+  to defer, clear it or push it forward. The Taskwarrior block follows the
+  plan, never the reverse.
+
+## Manual (zero-agent) workflow
+
+The composer is fully autonomous; the agent is optional glue.
+
+```sh
+~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py plan \
+  --week <monday> --candidates 3 --out plan.json --quiet
+~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py show \
+  --plan plan.json            # readable calendars; pick one
+~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py apply \
+  --plan plan.json --candidate N          # dry-run preview
+~/.config/pi/profiles/omn-assistant/bin/schedule_composer.py apply \
+  --plan plan.json --candidate N --yes    # write + lint + gcal
+```
+
+Requirements without a reliable `meta.est` use a deterministic 2h default
+(`--default-est-minutes` to change) surfaced as an info diagnostic rather
+than blocking the run. The agent's remaining value: reading mail into omn,
+natural-language omn entry, and reasoning about which candidate to pick.
 4. Reject an `INFEASIBLE` candidate and read its `unsat_core`: it names the
    requirement, fixed interval, or daily cap that made the week impossible.
    Never auto-drop a requirement to manufacture a satisfiable week. A plan with

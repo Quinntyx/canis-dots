@@ -238,9 +238,14 @@ def _candidate_validation_error(week: WeekInput, candidate: dict) -> str | None:
     for rid, requirement in requirements.items():
         # The hard contract is the minimum (meta.min_est); the full est is the
         # target whose shortfall shows up as the candidate's stretch bucket.
+        # A requirement satisfied by completed work (minimum explicitly 0)
+        # needs no fresh minutes; a zero-est requirement still gets its
+        # nominal 10m so the todo bullet exists for the linter.
         minimum = (requirement.minimum_minutes
                    if requirement.minimum_minutes is not None
                    else requirement.required_minutes)
+        if requirement.minimum_minutes == 0:
+            continue
         need = max(min(minimum, requirement.required_minutes), MIN_ALLOC_MINUTES)
         if totals[rid] < need:
             return (f"candidate coverage for {rid} is {totals[rid]}m, "

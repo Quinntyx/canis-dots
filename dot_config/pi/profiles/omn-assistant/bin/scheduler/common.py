@@ -223,6 +223,8 @@ class Requirement:
     transport: str = "no-car"
     travel: str | None = None
     indivisible: bool = False
+    allowed_days: tuple | None = None
+    day_window: tuple | None = None
     source: str = "omn"
 
     @property
@@ -255,6 +257,8 @@ class Requirement:
             "transport": self.transport,
             "travel": self.travel,
             "indivisible": self.indivisible,
+            "allowed_days": list(self.allowed_days) if self.allowed_days else None,
+            "day_window": list(self.day_window) if self.day_window else None,
             "source": self.source,
         }
 
@@ -507,6 +511,10 @@ def transit_minutes(origin: str | None, destination: str | None) -> int:
     if (any("ecss" in item for item in pair)
             and any("activity center" in item for item in pair)):
         return 5
+    if (any("ecss" in item for item in pair)
+            and any("ecsn" in item for item in pair)):
+        # Adjacent buildings; the user walks straight over after CS 3341.
+        return 10
     if _is_campus(first) and _is_campus(second):
         return 10 if _building(first) == _building(second) else 20
     return 30

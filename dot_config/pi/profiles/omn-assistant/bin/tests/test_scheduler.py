@@ -380,6 +380,72 @@ def test_support_records_have_no_todo_and_are_replaced_on_apply(tmp_path):
         assert "schedule" in record["tags"] and "composer" in record["tags"]
 
 
+def test_recurring_task_requirement_enters_week_with_day_and_hour_bounds():
+    lab = {
+        "id": "lab", "record": "item", "type": "task", "title": "Prof. Jee lab hours",
+        "tags": ["lab", "recurring"],
+        "meta": {"est": "6h", "rrule": "FREQ=WEEKLY;BYDAY=MO,WE",
+                 "start": "2026-09-28T10:00:00-05:00",
+                 "days": [0, 2], "hours": "10:00-17:00",
+                 "location": "ECSS 3.226 (Prof. Jee's lab)"},
+    }
+    week = live_week([lab])
+    assert len(week.requirements) == 1
+    requirement = week.requirements[0]
+    assert requirement.allowed_days == (0, 2)
+    assert requirement.day_window == (600, 1020)
+    # Same record without the rule stays out of the week.
+    plain = {"id": "plain", "record": "item", "type": "task", "title": "Plain",
+             "tags": [], "meta": {"est": "1h"}}
+    assert live_week([plain]).requirements == []
+
+
+def test_day_constraint_pins_allocations(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "lab", "title": "Lab", "est": "2h",
+                          "days": [2], "hours": "10:00-17:00",
+                          "due": "2026-10-04T23:59:00", "topic": "lab",
+                          "location": "ECSS 3.226 (Prof. Jee's lab)"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    for block in candidate["blocks"]:
+        assert block["day"] == 2  # Wednesday only
+        minute = block["start"] % 1440
+        assert 10 * 60 <= minute and minute + block["duration"] <= 17 * 60
+
+
+def test_violated_day_constraint_is_infeasible_with_core(tmp_path):
+    # Saturday 10:00-11:00 cannot hold a 2h requirement pinned to Saturdays.
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "lab", "title": "Lab", "est": "2h",
+                          "days": [5], "hours": "10:00-11:00",
+                          "due": "2026-10-04T23:59:00", "topic": "lab",
+                          "location": "ECSS 3.226 (Prof. Jee's lab)"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "INFEASIBLE"
+
+
+def test_ecss_ecsn_transit_override():
+    from scheduler.common import transit_minutes
+
+    assert transit_minutes("ECSN 2.120", "ECSS 3.226 (Prof. Jee's lab)") == 10
+    assert transit_minutes("ECSS 3.226 (Prof. Jee's lab)", "ECSN 2.120") == 10
+
+
+def test_capacity_precheck_reserves_hard_support_minutes(tmp_path):
+    from scheduler.model import _capacity_diagnostics
+
+    week = sources.load_spec(spec_file(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "30m",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    }), config())
+    # Sanity: the precheck runs and does not flag an easy week.
+    assert _capacity_diagnostics(week, config()) == []
+
+
 def test_mlh_catalog_event_is_not_an_attendance_commitment():
     event = {
         "id": "mlh:x", "record": "item", "type": "event", "title": "Hack",

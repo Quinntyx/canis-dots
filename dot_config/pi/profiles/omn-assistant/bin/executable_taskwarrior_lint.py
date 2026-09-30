@@ -132,6 +132,7 @@ def zone_of(location) -> str | None:
 # Legs the user has stated explicitly; they override the generic model.
 STATED_TRANSIT: list[tuple[str, str, int]] = [
     ("ecss", "activity center", 5),  # user: natatorium is ~5 min from ECSS
+    ("ecss", "ecsn", 10),  # adjacent buildings; user walks straight over
 ]
 
 

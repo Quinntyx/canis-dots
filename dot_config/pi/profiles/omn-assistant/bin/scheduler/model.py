@@ -247,6 +247,32 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
             track(split <= 1, f"indivisible:{requirement.id}",
                   f"requirement '{requirement.title}' must sit in one block "
                   f"wholesale ({needs[r]} minutes contiguous)")
+        # Day-of-week and daily time-window constraints for recurring
+        # requirements like the Prof. Jee lab hours (Mon/Wed 10:00-17:00).
+        if requirement.allowed_days:
+            day_ok = z3.And([
+                z3.Implies(
+                    alloc[b][r] > 0,
+                    z3.Or([day[b] == d for d in requirement.allowed_days]),
+                )
+                for b in members
+            ]) if members else z3.BoolVal(True)
+            track(day_ok, f"days:{requirement.id}",
+                  f"requirement '{requirement.title}' may only be worked on "
+                  f"days {list(requirement.allowed_days)}")
+        if requirement.day_window:
+            lo, hi = requirement.day_window
+            hours_ok = z3.And([
+                z3.Implies(
+                    alloc[b][r] > 0,
+                    z3.And(start[b] % 1440 >= lo,
+                           start[b] % 1440 + dur[b] <= hi),
+                )
+                for b in members
+            ]) if members else z3.BoolVal(True)
+            track(hours_ok, f"hours:{requirement.id}",
+                  f"requirement '{requirement.title}' must sit between "
+                  f"{lo // 60:02d}:{lo % 60:02d} and {hi // 60:02d}:{hi % 60:02d}")
 
     # Hard: global and per-day block caps. _assign_blocks may create more
     # symbolic slots than max_blocks to expose a useful coverage/core failure,
@@ -315,6 +341,19 @@ def _build_support_constraints(week, config, blocks, used, start, dur, day, solv
         solver.add(s_start[sid] + s_dur[sid] <= support.latest)
         solver.add(s_start[sid] >= support.day * 1440)
         solver.add(s_start[sid] < (support.day + 1) * 1440)
+        # Placement is HARD against work: the user would rather lose sleep
+        # than skip a meal, so the solver relocates deadline work instead of
+        # dropping meals. Only a fixed commitment genuinely covering the
+        # support's window (an all-day event, a hackathon) may absorb it —
+        # sleep is excluded, it is a modeling artifact, not a commitment.
+        covered = any(
+            fixed.source != "sleep"
+            and fixed.start < support.latest
+            and support.earliest < fixed.end
+            for fixed in week.fixed_intervals
+        )
+        if not covered:
+            solver.add(s_placed[sid])
         # An unplaced support parks on the first grid point at/after its
         # window start with minimum length so it never accidentally
         # constrains anything.
@@ -620,7 +659,15 @@ def _capacity_diagnostics(week: WeekInput, config: ComposerConfig) -> list:
             usable = (span // step) * step
             total += usable
             usable_minutes[aligned_start:aligned_start + usable] = b"\x01" * usable
-        usable_by_day[day] = total
+        # Hard supports (meals/breaks) whose entire window lies inside the
+        # work day reserve their minimum duration; the solver cannot drop
+        # them, so a necessary condition must not count that time as free.
+        total -= sum(
+            support.dur_min for support in week.supports
+            if (config.work_start_hour * 60 <= support.earliest
+                and support.latest <= config.work_end_hour * 60)
+        )
+        usable_by_day[day] = max(0, total)
 
     prefix = [0] * (MINUTES_PER_WEEK + 1)
     running = 0

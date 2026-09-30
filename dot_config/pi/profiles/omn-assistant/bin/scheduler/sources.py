@@ -205,7 +205,25 @@ def requirements_from_omn(
                 ))
             continue
         if not target_this_week and not due_in_week:
-            continue
+            if not meta.get("rrule"):
+                continue
+            # A recurring task (e.g. the standing Prof. Jee lab hours) enters
+            # every week its rule hits. The id stays stable so carried
+            # Taskwarrior refs keep resolving.
+            try:
+                dtstart = _aware(meta.get("start") or f"{week_start.isoformat()}T00:00:00")
+                occurrences = rrule_mod.expand_weekly(
+                    meta["rrule"], dtstart, week_start, week_end)
+            except (rrule_mod.UnsupportedRecurrence, ValueError):
+                diagnostics.append(Diagnostic(
+                    "unsupported-rrule", BLOCKING,
+                    f"task '{record.get('title', '')}' recurrence is not supported",
+                    [record.get("id")],
+                ))
+                continue
+            if not occurrences:
+                continue
+            target_this_week = True
 
         est_minutes = parse_est_minutes(meta.get("est"))
         est_status = str(meta.get("est_status", "")).lower()
@@ -237,6 +255,21 @@ def requirements_from_omn(
         due_local = local_iso_timestamp(meta.get("due"), week_start)
         location = derive_location(record)
 
+        allowed_days = None
+        if meta.get("days"):
+            allowed_days = tuple(int(day) for day in meta["days"])
+        elif meta.get("rrule") and "BYDAY" in str(meta["rrule"]).upper():
+            from .common import WEEKDAY_CODES
+            allowed_days = tuple(sorted(
+                WEEKDAY_CODES.index(code.strip().upper()[:2])
+                for code in str(meta["rrule"]).upper().split("BYDAY=")[1]
+                .split(";")[0].split(",")
+                if code.strip()[:2] in WEEKDAY_CODES))
+        day_window = None
+        if meta.get("hours"):
+            lo_text, _, hi_text = str(meta["hours"]).partition("-")
+            day_window = (hhmm_to_minutes(lo_text), hhmm_to_minutes(hi_text))
+
         out.append(Requirement(
             id=str(record.get("id")),
             title=str(record.get("title") or record.get("id")),
@@ -254,6 +287,8 @@ def requirements_from_omn(
             transport=derive_transport(record),
             travel=derive_travel(record, location),
             indivisible=bool(meta.get("indivisible")),
+            allowed_days=allowed_days,
+            day_window=day_window,
             source="omn",
         ))
     return out
@@ -286,6 +321,12 @@ def requirements_from_spec(spec: dict, week_start: date, config: ComposerConfig,
             ))
         window_end = due_minutes if due_minutes is not None else MINUTES_PER_WEEK
         topic = str(item.get("topic") or derive_topic({"id": rid, "meta": item}))
+        day_window = None
+        if item.get("hours"):
+            lo_text, _, hi_text = str(item["hours"]).partition("-")
+            day_window = (hhmm_to_minutes(lo_text), hhmm_to_minutes(hi_text))
+        allowed_days = (tuple(int(day) for day in item["days"])
+                        if item.get("days") else None)
         out.append(Requirement(
             id=rid,
             title=str(item.get("title") or rid),
@@ -303,6 +344,8 @@ def requirements_from_spec(spec: dict, week_start: date, config: ComposerConfig,
             transport=str(item.get("transport") or "no-car"),
             travel=item.get("travel"),
             indivisible=bool(item.get("indivisible")),
+            allowed_days=allowed_days,
+            day_window=day_window,
             source="spec",
         ))
     return out

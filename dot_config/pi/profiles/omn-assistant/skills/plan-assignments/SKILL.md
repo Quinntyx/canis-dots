@@ -418,6 +418,22 @@ warnings.
   07:15-08:00). Dinner stays 18:00-18:45 by default, shifted as one block when a
   fixed commitment requires.
 - Prefer home/packed food over eating out when choosing lunch locations.
+- Meal/break support windows are HARD in the composer: deadline work is
+  relocated rather than dropping a meal — the user would rather lose sleep
+  than skip one. Only a fixed commitment genuinely covering the window (an
+  all-day event, a hackathon) may absorb a meal.
+
+## Prof. Jee lab hours (standing requirement)
+- The lab lives in omn as `manual:task:jee-lab-hours-weekly`: a recurring task
+  (FREQ=WEEKLY;BYDAY=MO,WE, `meta.days [0,2]`, `meta.hours "10:00-17:00"`,
+  est 6h at ECSS 3.226). The composer expands it into every week the rule
+  hits — no per-week target_week chore needed.
+- It is a HARD requirement: 6 hours may shrink a bit under extreme weeks, but
+  the PyLingual meeting (Wed 11:00-12:00) cannot be missed and counts as one
+  of the six hours.
+- Wednesdays the user comes straight from CS 3341 (ends 09:45, ECSN) — at
+  least the 10:00-11:00 hour precedes the meeting. ECSN↔ECSS is a 10-minute
+  walk (stated transit override in both composer and linter).
 
 ## Side projects and hobbies
 - Record a project the user mentions that is not in omn as a `type:project`

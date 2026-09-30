@@ -225,6 +225,7 @@ class Requirement:
     indivisible: bool = False
     allowed_days: tuple | None = None
     day_window: tuple | None = None
+    minimum_minutes: int | None = None
     source: str = "omn"
 
     @property
@@ -259,6 +260,7 @@ class Requirement:
             "indivisible": self.indivisible,
             "allowed_days": list(self.allowed_days) if self.allowed_days else None,
             "day_window": list(self.day_window) if self.day_window else None,
+            "minimum_minutes": self.minimum_minutes,
             "source": self.source,
         }
 
@@ -376,7 +378,8 @@ class WeekInput:
     day_cap: int = 6
     wake_hour: int = 6
     work_start_hour: int = 10
-    work_end_hour: int = 18
+    work_end_hour: int = 22
+    preferred_end_hour: int = 18
     daily_budget_minutes: int = 8 * 60
     max_blocks: int = 24
     supports: list = field(default_factory=list)
@@ -409,6 +412,7 @@ class WeekInput:
             "wake_hour": self.wake_hour,
             "work_start_hour": self.work_start_hour,
             "work_end_hour": self.work_end_hour,
+            "preferred_end_hour": self.preferred_end_hour,
             "daily_budget_minutes": self.daily_budget_minutes,
             "supports": [item.to_dict() for item in self.supports],
             "requirements": [item.to_dict() for item in self.requirements],
@@ -453,7 +457,8 @@ class ComposerConfig:
     day_cap: int = 6
     wake_hour: int = 6
     work_start_hour: int = 10
-    work_end_hour: int = 18
+    work_end_hour: int = 22
+    preferred_end_hour: int = 18
     daily_budget_minutes: int = 8 * 60
     max_blocks: int = 24
     candidates: int = 3
@@ -479,8 +484,10 @@ class ComposerConfig:
             raise ValueError("max_blocks must be positive")
         if not (0 <= self.wake_hour <= 24):
             raise ValueError("wake_hour must be in [0, 24]")
-        if not (0 <= self.work_start_hour < self.work_end_hour <= 24):
-            raise ValueError("work hours must satisfy 0 <= start < end <= 24")
+        if not (0 <= self.work_start_hour < self.preferred_end_hour
+                <= self.work_end_hour <= 24):
+            raise ValueError(
+                "work hours must satisfy 0 <= start < preferred_end <= end <= 24")
 
 
 def normalize_location(value: str | None) -> str:

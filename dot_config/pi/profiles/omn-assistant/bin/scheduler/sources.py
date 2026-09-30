@@ -156,10 +156,10 @@ def requirements_from_omn(
     config: ComposerConfig,
     diagnostics: list,
     *,
-    forced_ids: set | None = None,
+    completed_credit: dict | None = None,
 ) -> list:
     week_end = week_start + timedelta(days=6)
-    forced_ids = forced_ids or set()
+    completed_credit = completed_credit or {}
     out: list = []
     for record in omn:
         if record.get("type") != "task":
@@ -241,6 +241,25 @@ def requirements_from_omn(
                 assumption="a deterministic default beats blocking an autonomous "
                 "run; the guess is visible and cheap to correct",
             ))
+        # Work already logged complete against this requirement inside the
+        # week counts toward it (e.g. the PyLingual meeting hour credited to
+        # the lab requirement).
+        credit = completed_credit.get(record.get("id"), 0)
+        est_minutes = max(0, est_minutes - credit)
+        minimum_minutes = parse_est_minutes(meta.get("min_est"))
+        if minimum_minutes is not None:
+            minimum_minutes = max(0, minimum_minutes - credit)
+            minimum_minutes = min(minimum_minutes, est_minutes)
+        if est_minutes <= 0:
+            diagnostics.append(Diagnostic(
+                "requirement-satisfied", INFO,
+                f"'{record.get('title', '')}' is already satisfied by "
+                f"{credit} minutes of completed work this week",
+                [record.get("id")],
+            ))
+            continue
+        if minimum_minutes is None:
+            minimum_minutes = est_minutes
 
         window_start = parse_iso_minutes(meta.get("unlock"), week_start)
         if window_start is None:
@@ -269,6 +288,7 @@ def requirements_from_omn(
         if meta.get("hours"):
             lo_text, _, hi_text = str(meta["hours"]).partition("-")
             day_window = (hhmm_to_minutes(lo_text), hhmm_to_minutes(hi_text))
+        est_raw = meta.get("est")
 
         out.append(Requirement(
             id=str(record.get("id")),
@@ -283,12 +303,13 @@ def requirements_from_omn(
             due=meta.get("due"),
             due_local=due_local,
             available=meta.get("unlock") or meta.get("available"),
-            est_raw=meta.get("est"),
+            est_raw=est_raw,
             transport=derive_transport(record),
             travel=derive_travel(record, location),
             indivisible=bool(meta.get("indivisible")),
             allowed_days=allowed_days,
             day_window=day_window,
+            minimum_minutes=minimum_minutes,
             source="omn",
         ))
     return out
@@ -769,6 +790,26 @@ def detect_fixed_collisions(intervals: list, week_start: date,
                 ))
 
 
+def dedupe_derived_fixed(fixed: list) -> list:
+    """Drop +fixed Taskwarrior registrations that duplicate omn events.
+
+    Fixed event tasks are derived registrations of omn occurrences (the
+    plan-assignments Stage-5 model), so when both the omn event and its TW
+    task are in scope they are the same commitment — the omn event wins and
+    the task-derived interval is dropped instead of colliding with it.
+    """
+    omn_fixed = [f for f in fixed if f.source == "omn-event"]
+    out = []
+    for interval in fixed:
+        if interval.source == "task-fixed" and any(
+                interval.start >= other.start - 5
+                and interval.end <= other.end + 5
+                for other in omn_fixed):
+            continue
+        out.append(interval)
+    return out
+
+
 def _assemble(week_start: date, config: ComposerConfig, requirements, fixed,
               legacy, diagnostics, source: str, metadata=None,
               supports=None) -> WeekInput:
@@ -788,6 +829,7 @@ def _assemble(week_start: date, config: ComposerConfig, requirements, fixed,
         wake_hour=config.wake_hour,
         work_start_hour=config.work_start_hour,
         work_end_hour=config.work_end_hour,
+        preferred_end_hour=config.preferred_end_hour,
         daily_budget_minutes=config.daily_budget_minutes,
         max_blocks=config.max_blocks,
         supports=list(supports) if supports is not None else default_supports(week_start),
@@ -834,7 +876,30 @@ def load_live(
     current = (now or datetime.now(TZ)).astimezone(TZ)
     week_end = week_start + timedelta(days=6)
     diagnostics: list = []
-    requirements = requirements_from_omn(omn, week_start, config, diagnostics)
+
+    # Completed managed work with [omn:<id>] refs scheduled inside the week
+    # credits its requirement (e.g. the lab hour served before PyLingual).
+    completed_credit: dict = {}
+    for task in tasks:
+        if task.get("status") != "completed":
+            continue
+        day = _task_scheduled_date(task)
+        if day is None or not (week_start <= day <= week_end):
+            continue
+        minutes = parse_est_minutes(task.get("est"))
+        if minutes is None and task.get("starttime") and task.get("endtime"):
+            try:
+                minutes = (hhmm_to_minutes(task["endtime"])
+                           - hhmm_to_minutes(task["starttime"])) % 1440
+            except ValueError:
+                minutes = None
+        if not minutes:
+            continue
+        for ref in _todo_refs(task):
+            completed_credit[ref] = completed_credit.get(ref, 0) + minutes
+
+    requirements = requirements_from_omn(
+        omn, week_start, config, diagnostics, completed_credit=completed_credit)
 
     # Never generate a live candidate in elapsed time. Tests/specs stay fully
     # deterministic; only direct live ingestion applies the current-time floor.
@@ -853,12 +918,18 @@ def load_live(
         ))
 
     # Support windows on elapsed days are gone: the plan never recreates
-    # yesterday's breakfast.
-    supports = [support for support in default_supports(week_start)
-                if (week_start + timedelta(days=support.day)) >= current.date()]
+    # yesterday's breakfast. Same for a window that has fully elapsed today.
+    now_minutes = current.hour * 60 + current.minute
+    supports = [
+        support for support in default_supports(week_start)
+        if (week_start + timedelta(days=support.day)) >= current.date()
+        and (support.day * 1440 + support.latest) >= (
+            (current.date() - week_start).days * 1440 + now_minutes)
+    ]
 
     fixed = fixed_from_omn(omn, week_start, config, diagnostics)
     fixed.extend(fixed_from_tasks(tasks, week_start, config, diagnostics))
+    fixed = dedupe_derived_fixed(fixed)
     plan_ids = {requirement.id for requirement in requirements}
     legacy = legacy_from_tasks(
         tasks, plan_ids, week_start, diagnostics, now=current,

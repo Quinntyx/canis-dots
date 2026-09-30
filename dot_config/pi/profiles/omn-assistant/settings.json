@@ -43,5 +43,6 @@
   ],
   "enableSkillCommands": true,
   "lastChangelogVersion": "0.84.4",
-  "hideThinkingBlock": true
+  "hideThinkingBlock": true,
+  "tuiMode": "fullscreen"
 }

@@ -1,5 +1,24 @@
 {
   "providers": {
+    "bitdeer": {
+      "baseUrl": "https://api-inference.bitdeer.ai/v1",
+      "api": "openai-completions",
+      "apiKey": "$BITDEER_API_KEY",
+      "compat": {
+        "supportsDeveloperRole": false
+      },
+      "models": [
+        {
+          "id": "zai-org/GLM-5.3-Flash",
+          "name": "GLM-5.3-Flash",
+          "description": "GLM-5.3 Flash", 
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        }
+      ]
+    },
     "featherless": {
       "baseUrl": "https://api.featherless.ai/v1",
       "api": "openai-completions",

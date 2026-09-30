@@ -1,4 +1,0 @@
-{
-  "test_scheduler.py::test_violated_day_constraint_is_infeasible_with_core": true,
-  "test_scheduler.py::test_fixed_intervals_are_excluded": true
-}

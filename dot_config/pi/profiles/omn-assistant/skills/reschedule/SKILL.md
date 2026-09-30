@@ -96,6 +96,23 @@ metadata:
 
 # Guidelines
 
+## Composer-assisted rebuild
+- For a full carry-forward rebuild, prefer the composer over ad-hoc moves:
+  `schedule_composer.py plan --week <monday> --out CANDIDATES.json`, then
+  `schedule_composer.py apply --plan CANDIDATES.json --candidate N --yes`.
+- The composer re-derives the week from `omn export` and the Taskwarrior
+  export, so it re-plans carried `+managed` work against real deadlines instead
+  of sliding blocks one at a time. Apply is dry-run by default and refuses when
+  any diagnostic is blocking, a pending managed task cannot be reconciled, or
+  fixed intervals conflict.
+- A pending managed task with no resolvable `[omn:<id>]` `todo` refs is a
+  BLOCKING carried-work diagnostic. Reconcile it (fix the ref, or cancel it
+  with the user) or leave it in place; never delete it to make apply succeed.
+- On apply the composer matches tasks by UUID, preserves unmanaged and `+fixed`
+  tasks, and replaces only solver-owned `+managed +composer` blocks, then runs
+  the linter and gcal sync. Use the manual ripple steps below when the user asks
+  for a surgical change rather than a rebuild.
+
 ## Flexible, fixed, and unmanaged tasks
 - Move or modify only flexible `+managed` tasks.
 - Treat `+managed +fixed` class, meeting, appointment, and event tasks as

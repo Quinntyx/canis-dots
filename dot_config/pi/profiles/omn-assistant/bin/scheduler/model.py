@@ -43,13 +43,17 @@ from .common import (
 # candidate's soft tuning is reproducible from the plan file alone.
 LADDER_VARIANTS = [
     {"name": "ladder-a", "divisor": 4,
-     "order": ["supports", "timing", "load", "cohesion", "project_free"]},
+     "order": ["supports", "timing", "load", "evening", "stretch",
+               "cohesion", "project_free"]},
     {"name": "ladder-b", "divisor": 2,
-     "order": ["supports", "timing", "cohesion", "load", "project_free"]},
+     "order": ["supports", "timing", "cohesion", "load", "evening",
+               "stretch", "project_free"]},
     {"name": "ladder-c", "divisor": 8,
-     "order": ["supports", "load", "timing", "cohesion", "project_free"]},
+     "order": ["supports", "load", "timing", "evening", "cohesion",
+               "stretch", "project_free"]},
     {"name": "ladder-d", "divisor": 3,
-     "order": ["supports", "timing", "load", "project_free", "cohesion"]},
+     "order": ["supports", "timing", "load", "evening", "project_free",
+               "stretch", "cohesion"]},
 ]
 
 MAX_LADDER_PROBES = 10
@@ -105,8 +109,14 @@ def _assign_blocks(requirements, config: ComposerConfig):
         counts[key] = base
     total_base = sum(counts.values())
     target = max(config.max_blocks, total_base)
+    # Hard supports and fixed commitments fragment each day into work
+    # segments, and a block cannot span a support. A requirement whose work
+    # spreads across many segments needs many blocks, so the per-group slack
+    # scales with the group's total (a 12h assignment spread over a week of
+    # support-bounded segments needs far more than base + 2).
     slack_caps = {
-        key: max(1, len(indexes) + config.group_block_slack)
+        key: max(1, len(indexes) + config.group_block_slack
+                 + min(8, math.ceil(total / 120)))
         for key, indexes in group_items
     }
     remaining = target - total_base
@@ -229,9 +239,14 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
         track(window, f"window:{requirement.id}",
               f"requirement '{requirement.title}' window "
               f"({window_label(week.week_start, requirement.window_start, requirement.window_end)})")
-        coverage = _sum([alloc[b][r] for b in members]) >= needs[r]
+        minimum = requirement.minimum_minutes
+        if minimum is None:
+            minimum = needs[r]
+        minimum = min(minimum, needs[r])
+        coverage = _sum([alloc[b][r] for b in members]) >= minimum
         track(coverage, f"coverage:{requirement.id}",
-              f"requirement '{requirement.title}' needs {needs[r]} minutes")
+              f"requirement '{requirement.title}' needs at least "
+              f"{minimum} minutes (target {needs[r]})")
         # Over-allocation is never useful; pinning the total at the need keeps
         # the waste metric meaningful and the decoded pins exact.
         solver.add(_sum([alloc[b][r] for b in members]) <= needs[r])
@@ -474,11 +489,38 @@ def _build_buckets(week, config, requirements, blocks, used, start, dur, day, al
     ]
     project_free = _sum(project_terms)
 
+    # Evening overflow: minutes of work past the preferred end of day. The
+    # hard cap is work_end_hour (22:00); this soft bucket keeps ordinary weeks
+    # inside 18:00 while letting a squished week spill into the evening
+    # instead of dropping meals or lab hours.
+    preferred = config.preferred_end_hour * 60
+    evening_terms = []
+    for b in indexes:
+        start_mod = start[b] - day[b] * 1440
+        end = start_mod + dur[b]
+        late_start = z3.If(start_mod >= preferred, start_mod, preferred)
+        evening_terms.append(z3.If(
+            z3.And(used[b], end > preferred), end - late_start, 0))
+    evening = _sum(evening_terms)
+
+    # Stretch shortfall: for requirements with an explicit meta.min_est, the
+    # minimum is hard coverage and the gap up to the full est is soft.
+    stretch_terms = []
+    for r, requirement in enumerate(requirements):
+        minimum = getattr(requirement, "minimum_minutes", None)
+        if minimum is not None and minimum < requirement.required_minutes:
+            allocated = _sum([
+                alloc[b][r] for b in indexes if r in blocks[b].req_indexes])
+            stretch_terms.append(requirement.required_minutes - allocated)
+    stretch = _sum(stretch_terms)
+
     return {
         "timing": timing,
         "load": load,
         "cohesion": cohesion,
         "project_free": project_free,
+        "evening": evening,
+        "stretch": stretch,
     }
 
 

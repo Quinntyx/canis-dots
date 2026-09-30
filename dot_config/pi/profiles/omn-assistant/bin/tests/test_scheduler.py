@@ -220,9 +220,10 @@ def omn_task(rid, **meta):
     return base
 
 
-def live_week(omn, tasks=(), cfg=None):
+def live_week(omn, tasks=(), cfg=None, now=None):
     cfg = cfg or config()
-    return sources.load_live(WEEK, cfg, omn_records=omn, task_records=list(tasks))
+    return sources.load_live(WEEK, cfg, omn_records=omn, task_records=list(tasks),
+                             now=now)
 
 
 def test_inactive_and_superseded_are_skipped():
@@ -444,6 +445,89 @@ def test_capacity_precheck_reserves_hard_support_minutes(tmp_path):
     }), config())
     # Sanity: the precheck runs and does not flag an easy week.
     assert _capacity_diagnostics(week, config()) == []
+
+
+def test_evening_overflow_used_when_week_is_squished(tmp_path):
+    # Mon-Fri 10:00-18:00 fully consumed; 4h of work still fits by spilling
+    # into the evenings (hard cap 22:00) instead of failing.
+    fixed = []
+    for offset in range(5):
+        day = (normalize_week_start(WEEK) + timedelta(days=offset)).isoformat()
+        fixed.append({"id": f"f{offset}", "desc": "blocked", "day": day,
+                      "start": "10:00", "end": "18:00"})
+    _week, candidates = solve_spec(tmp_path, {
+        "fixed": fixed,
+        "requirements": [{"omn_id": "a", "title": "A", "est": "4h",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    assert total_alloc(candidate["blocks"], 0) == 240
+    assert any(block["start"] % 1440 + block["duration"] > 18 * 60
+               for block in candidate["blocks"])
+    assert all(block["start"] % 1440 + block["duration"] <= 22 * 60
+               for block in candidate["blocks"])
+
+
+def test_easy_week_stays_inside_preferred_end(tmp_path):
+    _week, candidates = solve_spec(tmp_path, {
+        "requirements": [{"omn_id": "a", "title": "A", "est": "1h",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    for block in candidates[0]["blocks"]:
+        assert block["start"] % 1440 + block["duration"] <= 18 * 60
+
+
+def test_min_est_shrinks_hard_coverage_and_keeps_target_soft(tmp_path):
+    # Only 2h of free capacity exists, the requirement targets 4h but its
+    # meta.min_est is 2h: satisfiable at the minimum, stretch is visible.
+    fixed = []
+    for offset in range(6):
+        day = (normalize_week_start(WEEK) + timedelta(days=offset)).isoformat()
+        fixed.append({"id": f"f{offset}", "desc": "blocked", "day": day,
+                      "start": "10:00", "end": "18:00"})
+    _week, candidates = solve_spec(tmp_path, {
+        "fixed": fixed,
+        "requirements": [{"omn_id": "a", "title": "A", "est": "4h",
+                          "min_est": "2h",
+                          "due": "2026-10-04T23:59:00", "topic": "m",
+                          "location": "home"}],
+    })
+    candidate = candidates[0]
+    assert candidate["status"] == "ok"
+    got = total_alloc(candidate["blocks"], 0)
+    assert got >= 120
+    assert candidate["soft"]["stretch"]["locked"] >= 0
+
+
+def test_completed_work_credits_requirement():
+    done = {
+        "uuid": "cccccccc-cccc-cccc-cccc-cccccccccccc", "status": "completed",
+        "description": "Lab hours", "scheduled": "20260930T050000Z",
+        "starttime": "10:00", "endtime": "11:00", "est": "1h",
+        "tags": ["managed", "composer"],
+        "todo": "- Lab [omn:lab]",
+    }
+    week = live_week(
+        [omn_task("lab", est="6h", min_est="5h", due="2026-10-04")],
+        [done],
+        now=datetime.fromisoformat("2026-09-30T13:30:00-05:00"))
+    requirement = week.requirements[0]
+    # 6h target minus the 1h served = 5h; 5h min_est minus 1h = 4h hard.
+    assert requirement.required_minutes == 300
+    assert requirement.minimum_minutes == 240
+
+
+def test_elapsed_support_windows_today_are_dropped():
+    week = live_week(
+        [omn_task("a", est="1h", due="2026-10-02")],
+        now=datetime.fromisoformat("2026-09-30T13:30:00-05:00"))
+    for support in week.supports:
+        assert support.day >= 2  # nothing on Mon/Tue
+        if support.day == 2:
+            assert support.latest >= 13 * 60 + 30
 
 
 def test_mlh_catalog_event_is_not_an_attendance_commitment():

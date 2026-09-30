@@ -1,14 +1,12 @@
 {
-  "defaultProvider": "antigravity",
-  "defaultModel": "gemini-3.6-flash-medium",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "glm-5.3-flash",
   "defaultThinkingLevel": "low",
   "enabledModels": [
-    "antigravity/gemini-3.6-flash-medium"
+    "opencode-go/glm-5.3-flash"
   ],
   "defaultProjectTrust": "never",
   "hideThinkingBlock": true,
   "quietStartup": true,
-  "packages": [
-    "git:github.com/Quinntyx/pi-antigravity-auth@90c5addbcf61028bc12a661a8be5ffab280b9750"
-  ]
+  "packages": []
 }

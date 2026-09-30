@@ -47,7 +47,8 @@ compatibility: >-
 ## Stage 2: Refresh the Mirror
 
 1. Recognize that refresh is not read-only. The configured cycle downloads IMAP changes, runs
-   `notmuch new`, changes routing tags, invokes the Pi mail router for new inbox messages, and may
+   `notmuch new`, changes routing tags, invokes the Jev mail router
+    (`~/.local/bin/mail-route-jev.py`) for new inbox messages, and may
    expunge local Maildir files that were removed remotely.
 2. Run the configured entrypoint in a tmux pane because reconciliation can exceed 15 seconds:
 
@@ -179,8 +180,8 @@ systemctl --user is-active goimapnotify.service mail-sync.timer mail-sync.servic
 journalctl --user -u mail-sync.service -n 50 --no-pager
 ```
 
-3. Distinguish lock timeout, IMAP or OAMA authentication, mbsync, notmuch indexing, and Pi routing
-   failures. Report the failing layer and exact non-secret error.
+3. Distinguish lock timeout, IMAP or OAMA authentication, mbsync, notmuch indexing, and mail-routing
+   (Jev API) failures. Report the failing layer and exact non-secret error.
 4. Never run `oama access` for diagnosis or print, capture, store, or summarize its bearer token.
 5. Do not read the routing log unless needed for a routing failure. If needed, inspect only its last
    bounded entries and do not expose email content from the log.

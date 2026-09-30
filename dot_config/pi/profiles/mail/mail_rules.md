@@ -39,5 +39,8 @@ do nothing — call no tool and reply with a one-line "ignored" reason.
 - When in doubt between notify and ignore: if it demands the user's
   attention or is from an important person, notify. Otherwise ignore.
 
-This file is the source of truth for routing. Edit it freely; the prompt
-re-reads it on every email.
+This file was the source of truth for routing while the decision ran through an
+LLM agent (pi `mail` profile / Gemini Flash). As of 2026-09-22 routing lives in
+`~/.local/bin/mail-route-jev.py`: these rules were ported there as typed Jev
+questions plus code thresholds. This file is kept only as documentation of the
+original intent; editing it no longer changes routing behaviour.

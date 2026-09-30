@@ -1,20 +1,16 @@
 #!/bin/bash
-# notmuch post-new hook: route each new INBOX message through the pi mail profile.
+# notmuch post-new hook: route each new INBOX message through the Jev mail
+# router (~/.local/bin/mail-route-jev.py, TypeSafe API; was: pi mail profile).
 # Fires after every `notmuch new` (goimapnotify onNewMailPost, fallback timer, aerc check-mail).
 set -u
 
-PROFILE_DIR="$HOME/.config/pi/profiles/mail"
 LOG="$HOME/.local/state/mail-router/route.log"
-PPI="/home/zlare/.npm-global/bin/ppi"
 
-export PATH="/home/zlare/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-# ppi needs PPI_PI_ROOT to find the mail profile when launched from systemd/services
-export PPI_PI_ROOT="${PPI_PI_ROOT:-/home/zlare/.config/pi}"
-# Ensure notify-send (used by the mail profile's mail_notify tool) can reach the user bus
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+# Ensure notify-send (called directly by the mail router) can reach the user bus
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
 mkdir -p "$(dirname "$LOG")"
-cd "$PROFILE_DIR" || exit 1
 # Assign folder tags to newly seen messages (aerc query-map uses these)
 # Synced folders: utdallas INBOX/Sent Items/Archive and gmail INBOX/[Gmail]/Sent Mail/[Gmail]/All Mail.
 notmuch tag +inbox -- "tag:new and path:utdallas/INBOX/**"
@@ -44,9 +40,8 @@ notmuch search --format=text --output=messages "tag:new and (path:utdallas/INBOX
     if ! notmuch tag -new +pending -- "$msgid" 2>/dev/null; then
         continue
     fi
-    echo "[$(date '+%F %T')] $msgid -> pi" >> "$LOG"
     notmuch show --format=raw "$msgid" \
-        | timeout 180 "$PPI" use mail -- @mail_rules.md -p "Route this email" \
+        | timeout 60 /home/zlare/.local/bin/mail-route-jev.py "$msgid" \
         >> "$LOG" 2>&1
     rc=$?
     if [ $rc -eq 0 ]; then

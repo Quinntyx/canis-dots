@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Writes pull request titles and bodies in a problem-first, engineer-to-engineer style. Use when opening or drafting a PR, revising an existing PR description, or asked to "write a PR", "make a PR", or split work into PRs. Distills diffs and commit history into a concise body that leads with the real failure mode, states the mechanism, explicitly calls out limitations and assumptions, hedges unverified claims, and uses the repo's own error vocabulary.
+description: Writes pull request titles and bodies in a problem-first, engineer-to-engineer style. Use when opening or drafting a PR, revising an existing PR description, responding to PR review feedback with follow-up commits or comments, or asked to "write a PR", "make a PR", or split work into PRs. Distills diffs and commit history into a concise body that leads with the real failure mode, states the mechanism, explicitly calls out limitations and assumptions, hedges unverified claims, and uses the repo's own error vocabulary.
 disable-model-invocation: true
 ---
 
@@ -57,6 +57,24 @@ Keep it short. Two to four short paragraphs; bullets only when there are genuine
 - [ ] No PR-process meta-commentary (no "so I kept them in one PR")
 - [ ] Title is a plain descriptive sentence naming the symptom
 - [ ] Concise: 2–4 short paragraphs, bullets only for parallel items
+
+## Follow-up comments after review feedback
+
+When review feedback (from the user or a reviewer) leads to new commits on an open PR,
+always leave a follow-up comment on the PR summarizing them. The commits alone are not
+the response; reviewers read the timeline.
+
+- **Self-contained.** The PR timeline is read without access to any other conversation.
+  State the finding, the change (with commit refs), the verification, and open
+  limitations. Never reference the surrounding discussion: no "follow-up from the
+  review", "as discussed", "it was indeed broken" — open with the defect itself, the
+  same way the PR body opens with the failure mode.
+- **Same style rules as bodies**: problem-first, repo vocabulary, hedged unverified
+  claims, explicit limitations.
+- **Tooling**: on forgejo remotes `fj pr comment` may fail repository resolution; post
+  via the forge API instead — `POST /repos/{owner}/{repo}/issues/<n>/comments` (and
+  `PATCH .../issues/comments/<id>` to edit) with the token from
+  `~/.local/share/forgejo-cli/keys.json`.
 
 ## Worked examples
 

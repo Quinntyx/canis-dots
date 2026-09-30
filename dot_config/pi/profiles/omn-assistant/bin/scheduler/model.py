@@ -332,6 +332,33 @@ def _grouped_blocks(blocks):
     return grouped
 
 
+def _support_unplaceable(support, fixed_intervals) -> bool:
+    """True when no fixed-free segment of the support's window fits it.
+
+    Fixed intervals are expanded by their worst-case transit margin; sleep is
+    excluded (it is a modeling artifact, not a commitment the user can eat
+    around).
+    """
+    segments: list[tuple[int, int]] = [(support.earliest, support.latest)]
+    for fixed in fixed_intervals:
+        if fixed.source == "sleep":
+            continue
+        margin = 30 if fixed.location else 0
+        blocked_start = fixed.start - margin
+        blocked_end = fixed.end + margin
+        nxt = []
+        for a, b in segments:
+            if b <= blocked_start or blocked_end <= a:
+                nxt.append((a, b))
+                continue
+            if a < blocked_start:
+                nxt.append((a, blocked_start))
+            if blocked_end < b:
+                nxt.append((blocked_end, b))
+        segments = nxt
+    return not any(b - a >= support.dur_min for a, b in segments)
+
+
 def _build_support_constraints(week, config, blocks, used, start, dur, day, solver):
     """Place support intervals (meals, cooking, breaks) as pushable windows.
 
@@ -361,13 +388,12 @@ def _build_support_constraints(week, config, blocks, used, start, dur, day, solv
         # dropping meals. Only a fixed commitment genuinely covering the
         # support's window (an all-day event, a hackathon) may absorb it —
         # sleep is excluded, it is a modeling artifact, not a commitment.
-        covered = any(
-            fixed.source != "sleep"
-            and fixed.start < support.latest
-            and support.earliest < fixed.end
-            for fixed in week.fixed_intervals
-        )
-        if not covered:
+        # Placement is HARD against work: the user would rather lose sleep
+        # than skip a meal, so the solver relocates deadline work instead of
+        # dropping meals. Only when fixed commitments (with their transit
+        # margins) genuinely leave no segment that fits the meal does it
+        # become optional — sleep is excluded, it is a modeling artifact.
+        if not _support_unplaceable(support, week.fixed_intervals):
             solver.add(s_placed[sid])
         # An unplaced support parks on the first grid point at/after its
         # window start with minimum length so it never accidentally

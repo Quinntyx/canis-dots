@@ -374,8 +374,9 @@ def requirements_from_spec(spec: dict, week_start: date, config: ComposerConfig,
 
 # Standing support patterns (the user cooks every meal). Windows mirror the
 # linter's Meals policy: breakfast 06:00-08:00, lunch 11:00-14:00 (1h),
-# dinner 17:00-20:00, one hour of cooking before breakfast, and a 1-2h
-# afternoon break. Supports are pushable/shrinkable inside these bounds.
+# dinner 17:00-21:00 (the user would rather eat late than skip a meal), one
+# hour of cooking before breakfast, and a 1-2h afternoon break. Supports are
+# pushable/shrinkable inside these bounds.
 SUPPORT_SPECS = [
     {"kind": "cook-breakfast", "label": "Cook breakfast", "dur_min": 60,
      "dur_max": 60, "clock": (6 * 60, 7 * 60 + 30), "location": "At home"},
@@ -387,7 +388,7 @@ SUPPORT_SPECS = [
     {"kind": "afternoon-break", "label": "Take afternoon break", "dur_min": 60,
      "dur_max": 120, "clock": (14 * 60, 18 * 60), "location": "SU Starbucks"},
     {"kind": "dinner", "label": "Eat dinner", "dur_min": 45, "dur_max": 45,
-     "clock": (17 * 60, 20 * 60), "location": "At home"},
+     "clock": (17 * 60, 21 * 60), "location": "At home"},
 ]
 
 

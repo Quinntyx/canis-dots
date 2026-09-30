@@ -774,6 +774,15 @@ def detect_fixed_collisions(intervals: list, week_start: date,
             if second.start >= first.end:
                 break
             if first.overlaps(second):
+                # Sleep is a default availability assumption, not a
+                # commitment: an overnight/multi-day event (a hackathon)
+                # legitimately spans the sleep window — the user sleeps when
+                # they can. Short fixed events overlapping sleep are still
+                # surfaced as suspicious.
+                if (first.source == "sleep" or second.source == "sleep"):
+                    other = second if first.source == "sleep" else first
+                    if other.end - other.start >= 8 * 60:
+                        continue
                 same_nested_commitment = (
                     first.cohort and first.cohort == second.cohort
                     and first.location == second.location

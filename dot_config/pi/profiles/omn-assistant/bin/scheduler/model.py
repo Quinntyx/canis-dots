@@ -44,16 +44,16 @@ from .common import (
 LADDER_VARIANTS = [
     {"name": "ladder-a", "divisor": 4,
      "order": ["supports", "timing", "load", "evening", "stretch",
-               "cohesion", "project_free"]},
+               "cohesion", "fragmentation", "project_free"]},
     {"name": "ladder-b", "divisor": 2,
-     "order": ["supports", "timing", "cohesion", "load", "evening",
-               "stretch", "project_free"]},
+     "order": ["supports", "timing", "cohesion", "fragmentation", "load",
+               "evening", "stretch", "project_free"]},
     {"name": "ladder-c", "divisor": 8,
      "order": ["supports", "load", "timing", "evening", "cohesion",
-               "stretch", "project_free"]},
+               "fragmentation", "stretch", "project_free"]},
     {"name": "ladder-d", "divisor": 3,
      "order": ["supports", "timing", "load", "evening", "project_free",
-               "stretch", "cohesion"]},
+               "cohesion", "fragmentation", "stretch"]},
 ]
 
 MAX_LADDER_PROBES = 10
@@ -151,6 +151,8 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
     solver.set("timeout", config.solver_timeout_ms)
 
     used, start, dur, day, alloc = {}, {}, {}, {}, {}
+    slot, dslots = {}, {}
+    slots_per_day = 1440 // step
     tracked: dict = {}
     blocks_of_req: dict = {index: [] for index in range(len(requirements))}
 
@@ -165,15 +167,28 @@ def build_model(week: WeekInput, config: ComposerConfig) -> ModelData:
         dur[b] = z3.Int(f"dur_{b}")
         day[b] = z3.Int(f"day_{b}")
         alloc[b] = {r: z3.Int(f"alloc_{b}_{r}") for r in block.req_indexes}
-        solver.add(start[b] >= 0, start[b] <= MINUTES_PER_WEEK - min_block)
-        solver.add(dur[b] >= min_block, dur[b] <= max_block)
-        solver.add(start[b] % step == 0, dur[b] % step == 0)
+        # Bounded slot encoding: the block occupies grid slots [slot, slot+ds).
+        # Unbounded minute arithmetic with modulo is SMT poison; this keeps
+        # every temporal constraint linear over a small finite domain.
+        slot[b] = z3.Int(f"slot_{b}")
+        dslots[b] = z3.Int(f"dslots_{b}")
+        solver.add(slot[b] >= 0)
+        solver.add(slot[b] <= slots_per_day * 7 - 1)
+        solver.add(start[b] == slot[b] * step)
+        solver.add(dslots[b] >= min_block // step)
+        solver.add(dslots[b] <= max_block // step)
+        solver.add(dur[b] == dslots[b] * step)
         solver.add(day[b] >= 0, day[b] <= 6)
-        solver.add(start[b] >= day[b] * 1440, start[b] < (day[b] + 1) * 1440)
+        solver.add(slot[b] >= day[b] * slots_per_day)
+        solver.add(slot[b] + dslots[b] <= (day[b] + 1) * slots_per_day)
         solver.add(z3.Implies(
-            used[b], start[b] % 1440 >= config.work_start_hour * 60))
-        solver.add(z3.Implies(
-            used[b], start[b] % 1440 + dur[b] <= config.work_end_hour * 60))
+            used[b],
+            z3.And(
+                slot[b] >= day[b] * slots_per_day + config.work_start_hour * 60 // step,
+                slot[b] + dslots[b] <= day[b] * slots_per_day
+                + config.work_end_hour * 60 // step,
+            ),
+        ))
         for r, variable in alloc[b].items():
             solver.add(variable >= 0)
             solver.add(variable <= needs[r])
@@ -332,14 +347,25 @@ def _grouped_blocks(blocks):
     return grouped
 
 
-def _support_unplaceable(support, fixed_intervals) -> bool:
+def _support_unplaceable(support, fixed_intervals, supports=None) -> bool:
     """True when no fixed-free segment of the support's window fits it.
 
     Fixed intervals are expanded by their worst-case transit margin; sleep is
     excluded (it is a modeling artifact, not a commitment the user can eat
-    around).
+    around). A support with an ``after`` dependency is tested as a chain: the
+    predecessor's minimum must fit in the same segment too (cooking 60m +
+    breakfast 45m cannot share the 90m between sleep-end and an 08:00 event).
     """
-    segments: list[tuple[int, int]] = [(support.earliest, support.latest)]
+    earliest, latest = support.earliest, support.latest
+    required = support.dur_min
+    if support.after and supports:
+        predecessors = [item for item in supports
+                        if item.day == support.day
+                        and f":{support.after}:" in item.id]
+        if len(predecessors) == 1:
+            earliest = min(earliest, predecessors[0].earliest)
+            required = support.dur_min + predecessors[0].dur_min
+    segments: list[tuple[int, int]] = [(earliest, latest)]
     for fixed in fixed_intervals:
         if fixed.source == "sleep":
             continue
@@ -356,7 +382,7 @@ def _support_unplaceable(support, fixed_intervals) -> bool:
             if blocked_end < b:
                 nxt.append((blocked_end, b))
         segments = nxt
-    return not any(b - a >= support.dur_min for a, b in segments)
+    return not any(b - a >= required for a, b in segments)
 
 
 def _build_support_constraints(week, config, blocks, used, start, dur, day, solver):
@@ -376,13 +402,15 @@ def _build_support_constraints(week, config, blocks, used, start, dur, day, solv
         s_start[sid] = z3.Int(f"sstart_{sid}")
         s_dur[sid] = z3.Int(f"sdur_{sid}")
         s_placed[sid] = z3.Bool(f"splaced_{sid}")
-        solver.add(s_start[sid] % config.step == 0)
-        solver.add(s_dur[sid] >= support.dur_min)
-        solver.add(s_dur[sid] <= support.dur_max)
+        sslot = z3.Int(f"sslot_{sid}")
+        solver.add(s_start[sid] == sslot * config.step)
+        solver.add(sslot >= support.earliest // config.step)
         solver.add(s_start[sid] >= support.earliest)
         solver.add(s_start[sid] + s_dur[sid] <= support.latest)
         solver.add(s_start[sid] >= support.day * 1440)
         solver.add(s_start[sid] < (support.day + 1) * 1440)
+        solver.add(s_dur[sid] >= support.dur_min)
+        solver.add(s_dur[sid] <= support.dur_max)
         # Placement is HARD against work: the user would rather lose sleep
         # than skip a meal, so the solver relocates deadline work instead of
         # dropping meals. Only a fixed commitment genuinely covering the
@@ -392,9 +420,19 @@ def _build_support_constraints(week, config, blocks, used, start, dur, day, solv
         # lose sleep than skip one); the afternoon break is soft-optional —
         # it yields to lab hours and deadline work. Even a hard meal turns
         # optional when fixed commitments (with transit margins) genuinely
-        # leave no segment that fits it — sleep is excluded, it is a modeling
-        # artifact.
-        if support.hard and not _support_unplaceable(support, week.fixed_intervals):
+        # leave no segment that fits it, or when a long commitment (a
+        # hackathon, a drive) has the user away from home — sleep is
+        # excluded, it is a modeling artifact.
+        away = any(
+            fixed.end - fixed.start >= 4 * 60
+            and fixed.start < support.latest
+            and support.earliest < fixed.end
+            for fixed in week.fixed_intervals
+        )
+        if (support.hard
+                and not away
+                and not _support_unplaceable(support, week.fixed_intervals,
+                                             week.supports)):
             solver.add(s_placed[sid])
         # An unplaced support parks on the first grid point at/after its
         # window start with minimum length so it never accidentally
@@ -541,10 +579,26 @@ def _build_buckets(week, config, requirements, blocks, used, start, dur, day, al
             stretch_terms.append(requirement.required_minutes - allocated)
     stretch = _sum(stretch_terms)
 
+    # Fragmentation: extra blocks per requirement beyond its first. Cohesion
+    # is indifferent about WHICH requirement fills a small slot, but slicing
+    # a big assignment into many pieces costs more context than spending an
+    # independent small task there — this weak bucket expresses that.
+    frag_terms = []
+    for r, requirement in enumerate(requirements):
+        members = [b for b in indexes if r in blocks[b].req_indexes]
+        if len(members) <= 1:
+            continue
+        count_r = _sum([
+            z3.If(alloc[b][r] > 0, 1, 0) for b in members
+        ])
+        frag_terms.append(z3.If(count_r > 1, count_r - 1, 0))
+    fragmentation = _sum(frag_terms)
+
     return {
         "timing": timing,
         "load": load,
         "cohesion": cohesion,
+        "fragmentation": fragmentation,
         "project_free": project_free,
         "evening": evening,
         "stretch": stretch,

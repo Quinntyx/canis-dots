@@ -29,6 +29,7 @@
     }
   },
   "packages": [
+    "../../../../docs/src/pi-activity",
     "git:git.quinntyx.dev/quinntyx/pi-pycells",
     "npm:@narumitw/pi-btw",
     "git:git.quinntyx.dev/quinntyx/pi-antigravity-auth",
@@ -43,7 +44,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
     "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
     "git:git.quinntyx.dev/quinntyx/pi-setup-command",
-    "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
     "git:git.quinntyx.dev/quinntyx/pi-idle-time",
@@ -51,7 +51,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-sock",
     "git:github.com/Quinntyx/billion-context-pi@main"
   ],
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "compaction": {
     "reserveTokens": 0
   },

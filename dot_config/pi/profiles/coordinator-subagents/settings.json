@@ -1,0 +1,20 @@
+{
+  "groupToolCalls": true,
+  "theme": "everforest-tui-light",
+  "defaultProvider": "deepseek-router",
+  "defaultModel": "deepseek-v4.1-flash",
+  "defaultThinkingLevel": "medium",
+  "enabledModels": [
+    "deepseek-router/deepseek-v4.1-flash",
+    "deepseek-router/deepseek-v4-pro"
+  ],
+  "packages": [
+    "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
+    "git:git.quinntyx.dev/quinntyx/pi-sock",
+    "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
+    "git:git.quinntyx.dev/quinntyx/pi-block-rm",
+    "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
+    "npm:pi-everforest-tui"
+  ],
+  "hideThinkingBlock": true
+}

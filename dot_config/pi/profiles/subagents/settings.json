@@ -1,13 +1,14 @@
 {
   "groupToolCalls": true,
   "theme": "everforest-tui-light",
-  "defaultProvider": "deepseek-router",
-  "defaultModel": "deepseek-v4.1-flash",
+  "defaultProvider": "bitdeer",
+  "defaultModel": "zai-org/GLM-5.3-Flash",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "deepseek-router/deepseek-v4.1-flash",
     "deepseek-router/deepseek-v4.1-flash-1m",
-    "deepseek-router/deepseek-v4-pro"
+    "deepseek-router/deepseek-v4-pro",
+    "bitdeer/zai-org/GLM-5.3-Flash"
   ],
   "packages": [
     "git:github.com/Quinntyx/pi-ptc-next",
@@ -17,8 +18,9 @@
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
-    "git:git.quinntyx.dev/quinntyx/pi-exit-command"
+    "git:git.quinntyx.dev/quinntyx/pi-exit-command",
+    "git:git.quinntyx.dev/quinntyx/pi-web-access"
   ],
   "lastChangelogVersion": "0.99.1",
-  "hideThinkingBlock": true
+  "hideThinkingBlock": false
 }

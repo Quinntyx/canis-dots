@@ -347,14 +347,17 @@ def plan_task_event(t):
     if day is None:
         return ("skip", t.get("id"), f"unparseable scheduled '{sched}'")
     st, en = t.get("starttime"), t.get("endtime")
-    st, en = t.get("starttime"), t.get("endtime")
     if not (st and en):
         return ("allday", t, day)
     try:
         start = datetime.combine(day, datetime.strptime(st, "%H:%M").time(), TZ)
+        # Blocks may legally end at midnight, written "24:00" or "00:00";
+        # both mean next-day 00:00.
+        if en == "24:00":
+            en = "00:00"
         end = datetime.combine(day, datetime.strptime(en, "%H:%M").time(), TZ)
-        if end < start:  # overnight wrap should not happen in staged work
-            raise ValueError(f"endtime {en} precedes starttime {st}")
+        if end < start:  # end earlier than start -> wraps past midnight
+            end = datetime.combine(day + timedelta(days=1), end.timetz(), TZ)
     except ValueError as ex:
         return ("skip", t.get("id"), str(ex))
     return ("timed", t, start, end)

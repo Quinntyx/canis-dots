@@ -39,7 +39,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-sock",
     "git:git.quinntyx.dev/quinntyx/pi-tool-tree",
     "git:git.quinntyx.dev/quinntyx/pi-idle-time@d25b190082e0fe1b31f42846478eacdd06819927",
-    "git:github.com/Quinntyx/pi-pycells"
+    "git:github.com/Quinntyx/pi-pycells",
+    "git:github.com/Quinntyx/billion-context-pi@main"
   ],
   "enableSkillCommands": true,
   "lastChangelogVersion": "0.84.4",

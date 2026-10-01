@@ -11,9 +11,9 @@
     "bitdeer/zai-org/GLM-5.3-Flash"
   ],
   "packages": [
+    "git:git.quinntyx.dev/quinntyx/pi-activity",
     "git:github.com/Quinntyx/pi-ptc-next",
     "git:git.quinntyx.dev/quinntyx/pi-sock",
-    "/home/zlare/.config/pi/profiles/main/git/git.quinntyx.dev/quinntyx/pi-tool-tree",
     "npm:pi-everforest-tui",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",

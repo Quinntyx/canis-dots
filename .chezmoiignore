@@ -49,6 +49,8 @@ docs/host/forgejo/forgejo/gitea/conf/
 .config/systemd/user/.#*
 **/__pycache__
 **/node_modules
+# Pi regenerates this package cache from the profile's settings.json.
+.config/pi/profiles/main/npm
 .config/pi/git
 .config/pi/profiles/*/sessions
 .config/pi/profiles/*/session-move

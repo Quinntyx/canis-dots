@@ -1,0 +1,25 @@
+#[Backend]
+backend = "auto"         # Backend to use: "auto", "hyprland", "hyprsunset" or "wayland"
+transition_mode = "start_at" # Use fixed local clock times, not sunrise/sunset
+
+#[Smoothing]
+smoothing = true         # Enable smooth transitions during startup and exit
+startup_duration = 0.5   # Duration of smooth startup in seconds (0.1-60 | 0 = instant)
+shutdown_duration = 0.5  # Duration of smooth shutdown in seconds (0.1-60 | 0 = instant)
+adaptive_interval = 1    # Adaptive interval base for smooth transitions (1-1000)ms
+
+#[Time-based config]
+night_temp = 3600        # Color temperature during night (1000-20000) Kelvin
+day_temp = 6500          # Color temperature during day (1000-20000) Kelvin
+night_gamma = 60         # Gamma percentage for night (10-200%)
+day_gamma = 100          # Gamma percentage for day (10-200%)
+update_interval = 10     # Update every 10 seconds for smoother transitions
+
+#[Static config]
+static_temp = 6500       # Color temperature for static mode (1000-20000) Kelvin
+static_gamma = 100       # Gamma percentage for static mode (10-200%)
+
+#[Manual transitions]
+sunset = "23:00:00"      # Warm from 11:00 PM to 11:30 PM
+sunrise = "04:30:00"     # Return to normal from 4:30 AM to 5:00 AM
+transition_duration = 30 # Duration of each transition in minutes

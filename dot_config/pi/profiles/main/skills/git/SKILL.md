@@ -1,7 +1,8 @@
 ---
 name: git
 description: "Use when locating or cloning repositories, choosing git.quinntyx.dev or GitHub,
-  forking repositories, creating or using Git worktrees, or publishing worktree branches."
+  forking repositories, creating or using worktrees, naming or switching branches, working on
+  features, committing and pushing development work, or choosing pull-request targets."
 metadata:
   type: procedure
 ---
@@ -16,8 +17,9 @@ metadata:
   the intended split is clear. Ask when the repository, task split, or base is ambiguous.
 - Git plus the selected host's authenticated CLI: `fj` for Forgejo and `gh` for GitHub.
 - Permission to clone or create worktrees includes publishing newly created branches to `origin`.
-  Honor an explicit local-only request instead; do not publish commits or change visibility
-  otherwise.
+  Honor an explicit local-only request instead. Commits and ordinary pushes on an existing `dev`
+  need no additional user permission; elsewhere require authorization to commit/push task changes.
+  Do not change repository visibility.
 
 ## Output Contract
 
@@ -45,7 +47,8 @@ metadata:
 5. Select the requested operation:
    - Clone: proceed to Stage 2.
    - Fork: proceed to Stage 3.
-   - Locate, list worktrees, or use/create worktrees: proceed to Stage 4.
+   - Locate, list worktrees, switch branches, or prepare feature work: proceed to Stage 4.
+   - Create/use worktrees: proceed to Stage 4.
 
 ## Stage 2: Resolve and clone
 
@@ -115,38 +118,62 @@ metadata:
    - Missing or noncanonical anchor: stop and ask before cloning, moving, or converting anything.
 4. Inspect `git -C "$primary" remote -v`, `git -C "$primary" status --short --branch`, and
    `git -C "$primary" worktree list --porcelain`. Preserve existing dirty work and branch checkouts.
+5. For feature work, if no checkout was supplied, use the selected primary clone as `checkout`.
+   Check the actual current branch with `git -C "$checkout" branch --show-current` and apply
+   Branch and feature policy before editing.
+   - On `main` without explicit instructions to work there: ask whether to use `dev` instead and
+     wait for the answer. If accepted, set `name=dev` and proceed to Stage 5. If the user chooses
+     `main`, keep that checkout and proceed to Stage 6.
+   - Feature work targeting another branch: set `name` to that branch and proceed to Stage 5.
+   - Feature work staying on the authorized current branch: proceed to Stage 6.
    - Locate or list only: report the paths or worktree list, then proceed to Stage 6.
-   - Create/use worktrees: proceed to Stage 5.
+   - Create/use worktrees or switch branches: proceed to Stage 5.
 
 ## Stage 5: Create and publish worktrees
 
 1. Choose one branch/worktree name per task. Set `name` and `target="$container/$name"`.
    Keep the name a single safe path segment; reject traversal and separators. Validate with
    `git check-ref-format --branch "$name"`. Do not invent a task split without enough context.
-2. Set `base` from an explicit instruction, otherwise derive it from the name:
-   - With a hyphen, everything before the LAST hyphen is the base branch.
-   - Without a hyphen, the base is `main`.
-   The primary directory's name `main` is not a guarantee that a branch named `main` exists.
-3. Inspect the target path and local branch with
+2. For newly named feature branches use `feat-` followed by dash-delimited descriptive words.
+   Use one path segment, not slash-delimited names or underscores. Preserve existing branch names;
+   do not rename somebody else's branches to enforce this convention.
+   Set `base` from an explicit instruction. Otherwise, every new feature branch is based on `dev`.
+   If `dev` is absent, stop and ask; do not create it or silently fall back to `main`.
+   Feature-name dashes do not encode the base. For non-feature names, retain the legacy convention:
+   everything before the LAST hyphen is the base; without a hyphen, the base is `main`.
+   Base selection matters only when creating a branch, not when attaching an existing one.
+3. Inspect the target path, registered worktrees, and local branch with
+   `git -C "$primary" worktree list --porcelain` and
    `git -C "$primary" show-ref --verify --quiet "refs/heads/$name"`.
-   - Target or local branch exists: stop creating it. Report the matching registered worktree or
-     existing branch; never force checkout, reset, remove, or recreate it. Reuse a matching worktree
-     only when it belongs to the requested task; then continue at step 9. Otherwise stop.
-   - Neither exists: continue at step 4.
+   - Matching branch already has a correctly named worktree: use that directory and continue at
+     step 9. Never force a duplicate checkout or switch the branch in another worktree.
+   - Target path conflicts or the branch is checked out in a mismatched directory: stop and report
+     the conflict. Do not rename, reset, remove, or repurpose an existing checkout.
+   - Target absent and branch not checked out: continue at step 4, even if the local branch exists.
 4. Refresh origin before deciding whether the remote branch exists:
    `git -C "$primary" fetch origin`. If it fails, stop; do not treat failure as branch absence.
    Query `git -C "$primary" ls-remote --heads --exit-code origin "refs/heads/$name"`.
    - Exact branch exists: continue at step 5.
-   - Exit status 2, meaning no matching ref: continue at step 6.
+   - Exit status 2 and an existing local branch: continue at step 5.
+   - Exit status 2 and no local branch: continue at step 6.
    - Other failure: stop and report it.
-5. Attach to the existing remote branch, fetching its remote-tracking ref explicitly for clones
-   with restricted fetch specifications:
+5. Attach an existing branch in a NEW worktree, never by checkout/switch in an existing directory.
+   If the remote branch exists, fetch its tracking ref explicitly for restricted fetch specs:
    `git -C "$primary" fetch origin "refs/heads/$name:refs/remotes/origin/$name"`.
-   Then run `git -C "$primary" branch --track "$name" "origin/$name"` and
-   `git -C "$primary" worktree add "$target" "$name"`.
-   - Both succeed: continue at step 9; no new remote branch or push is necessary.
-   - Failure: stop and report any local branch left behind; do not delete or force it.
-6. Resolve the new branch base, checking the exact local branch before its origin counterpart:
+   If no local branch exists, run
+   `git -C "$primary" branch --track "$name" "origin/$name"`.
+   Preserve an existing local branch's commits. If its upstream is missing and origin has the
+   branch, run `git -C "$primary" branch --set-upstream-to="origin/$name" "$name"`.
+   Stop and ask before replacing a conflicting upstream.
+   Run `git -C "$primary" worktree add "$target" "$name"` without `-b`.
+   - Success with an existing remote branch: continue at step 9; no new remote branch is necessary.
+   - Success with only a local branch: continue at step 8 to publish it, unless explicitly
+     local-only.
+   - Failure: stop and report partial state; do not delete, force, or switch an existing checkout.
+6. If `name` is `main` or `dev` and neither local nor origin has it, stop and report the missing
+   branch. Do not create it automatically; require an explicit request to create a missing branch.
+   For other new branches, resolve the base, checking the local branch before its origin
+   counterpart:
    `git -C "$primary" show-ref --verify --quiet "refs/heads/$base"`, then
    `git -C "$primary" show-ref --verify --quiet "refs/remotes/origin/$base"`.
    Set `base_ref` to `$base` or `origin/$base`, respectively.
@@ -166,7 +193,8 @@ metadata:
      Retry the push only after addressing the cause; never create another worktree as a workaround.
 9. If more requested worktrees remain, repeat Stage 5 with distinct names and paths. Otherwise
    proceed to Stage 6. Publish all branches before dispatching work, unless explicitly local-only.
-   Do not share one checkout across agents or publish intermediate implementation commits.
+   Do not share one checkout across agents. Publishing a feature branch does not authorize task
+   commits/pushes on it; existing `dev` has the permission exception in Branch and feature policy.
 
 ## Stage 6: Verify and report
 
@@ -180,8 +208,36 @@ metadata:
    Require `origin/$name` as upstream. Report missing tracking honestly for local-only work.
 4. State which checkout subsequent work will use. Shell `cd` in one tool call does not persist
    reliably; use an explicit tool working directory, `git -C`, or `cd` within each command.
-5. Finish with host, absolute paths, branch/base, and publication/tracking status. A locate-only
+5. Check expected branches using `git -C "$primary" branch --list main dev` and
+   `git -C "$primary" branch -r --list origin/main origin/dev`. A remote-only branch counts as
+   existing; creating its local tracking branch for a worktree does not invent a new hosted branch.
+   Report missing `main` or `dev`; never create them just to satisfy this convention.
+6. Finish with host, absolute paths, branch/base, and publication/tracking status. A locate-only
    request has no creation or publication requirements.
+
+# Branch and feature policy
+
+- Feature branches use `feat-<dash-delimited-description>`. The descriptive dashes are not a base
+  branch encoding. Unless explicitly instructed otherwise, every feature branch starts from `dev`
+  and every feature pull request targets `dev`, never the hosting CLI's default branch. Set the PR
+  base explicitly in the CLI/API. An override for the branch base does not imply an override for
+  the PR target, or vice versa. If the required `dev` base/target is missing, stop and ask rather
+  than inventing it or silently targeting `main`. New worktree directory names equal branch names.
+- The user's repositories should have `main` and `dev`. Missing branches can indicate a foreign
+  repository, so report their absence and never create them automatically.
+- Existing `dev` is a high-churn development branch. During requested work, committing task changes
+  and ordinary pushes there are permitted without asking for separate user approval. Respect an
+  explicit no-commit, no-push, or local-only instruction. This does not authorize unrelated
+  changes, secrets, force-push, or bypass failed checks and remote access restrictions.
+- Before feature edits, if the actual checked-out branch is `main`, ask whether the user wants the
+  work on `dev` instead and wait. Do not ask when they explicitly requested work on `main`.
+  If `dev` is missing, explain that and ask for the destination; do not create it as a default fix.
+- Branch switching means creating a new sibling worktree for the destination branch. Never run
+  `git checkout <branch>` or `git switch <branch>` in an existing clone/worktree. Keep its branch
+  and folder association unchanged. If the destination already has a correctly named worktree,
+  use that directory rather than forcing a duplicate checkout or repurposing another directory.
+- Attaching an existing local branch uses `git worktree add` without `-b`; an existing remote-only
+  branch gets a local tracking branch first. Never reset an existing branch to attach it.
 
 # Invariants
 
@@ -198,5 +254,6 @@ metadata:
   configuration or mistake a rewritten GitHub transport for permission to change canonical hosting.
 - Do not migrate repositories, create mirrors, change visibility, or convert existing layouts
   merely to clone or create worktrees. Those are separate operations requiring explicit requests.
-- Do not auto-stash, auto-commit, reset, force-push, delete branches, or remove worktrees. Preserve
+- Do not auto-stash, reset, force-push, delete branches, or remove worktrees. Commit/push task
+  changes only with authorization, except on existing `dev` as permitted above. Preserve unrelated
   pre-existing dirty files. For approved filesystem cleanup use `trash`, never `rm`.

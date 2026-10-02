@@ -29,7 +29,7 @@
     }
   },
   "packages": [
-    "git:git.quinntyx.dev/quinntyx/pi-activity",
+    "git:git.quinntyx.dev/quinntyx/pi-activity@dev",
     "git:git.quinntyx.dev/quinntyx/pi-pycells",
     "npm:@narumitw/pi-btw",
     "git:git.quinntyx.dev/quinntyx/pi-antigravity-auth",

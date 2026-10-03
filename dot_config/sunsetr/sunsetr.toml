@@ -20,6 +20,6 @@ static_temp = 6500       # Color temperature for static mode (1000-20000) Kelvin
 static_gamma = 100       # Gamma percentage for static mode (10-200%)
 
 #[Manual transitions]
-sunset = "23:00:00"      # Warm from 11:00 PM to 11:30 PM
+sunset = "22:30:00"      # Warm from 10:30 PM to 11:00 PM
 sunrise = "04:30:00"     # Return to normal from 4:30 AM to 5:00 AM
 transition_duration = 30 # Duration of each transition in minutes

@@ -77,3 +77,5 @@ The local Pi-compatible opaque key is prepared by `cliproxyapi-prepare-pi`; it c
 If a completed device login was retained in a private staging directory, publish it without another login using `cliproxyapi-auth SLOT --enroll-staged FILE`. The file must belong to that slot under `~/.local/state/cliproxyapi/device-SLOT.*/auths/`; account distinctness and all slot policies are still validated before publication.
 
 Human-readable quota summaries use percentage remaining. For capped accounts, the report separately shows usable headroom before the caps; reserved quota is not spendable. Raw provider utilization remains available in JSON for scheduling and diagnostics.
+
+Team seats are identified by workspace plus authenticated user, not workspace alone. Different seats in the same workspace keep separate quota, cap and efficiency records. Duplicate credential copies for the same seat retain the canonical slot policy when disabled.

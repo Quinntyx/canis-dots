@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 umask 077
+
+quota_user_id() {
+ jq -er '
+  def claims: try (split(".")[1] | gsub("-"; "+") | gsub("_"; "/") | @base64d | fromjson) catch {};
+  . as $d | [$d.id_token, $d.access_token] | map(select(type == "string") | claims) as $claims |
+  ($d.quota_user_id // ($claims | map(.["https://api.openai.com/auth"].chatgpt_user_id) | map(select(type == "string" and length > 0)) | .[0]) //
+   ($claims | map(.sub) | map(select(type == "string" and length > 0)) | .[0]) // ($d.email // "" | ascii_downcase)) | select(length > 0)
+ ' "$1"
+}
+credential_identity() {
+ local account plan user
+ account=$(jq -er '.account_id | select(type == "string" and length > 0)' "$1") || return 1
+ plan=$(jq -r '.plan_type // empty' "$1")
+ if [[ "$plan" == team ]]; then
+  user=$(quota_user_id "$1") || return 1
+  printf '%s\037%s' "$account" "$user"
+ else
+  printf '%s' "$account"
+ fi | sha256sum | cut -d ' ' -f 1
+}
+
 slot=${1:-}
 case "$slot" in 1|2|3) ;; *) echo 'Usage: cliproxyapi-auth 1|2|3 (slot 1 is shared)' >&2; exit 2 ;; esac
 state="$HOME/.local/state/cliproxyapi"
@@ -32,18 +53,20 @@ EOF
  input=${files[0]}
 fi
 jq -e '.type == "codex" and (.account_id | type == "string" and length > 0) and (.plan_type == "plus" or .plan_type == "team")' "$input" >/dev/null || { echo 'Expected a Plus or Team subscription. Credential is staged but NOT enabled.' >&2; exit 1; }
-account=$(jq -r '.account_id' "$input")
+identity=$(credential_identity "$input") || { echo "Cannot identify the authenticated Team seat; staged credential not enabled." >&2; exit 1; }
+seat_user=""
+if [[ $(jq -r '.plan_type' "$input") == team ]]; then seat_user=$(quota_user_id "$input"); fi
 exec 9>"$state/auth-enroll.lock"
 flock 9
 # Prevent duplicate rotation identities and bypass of shared-account caps.
 for existing in "$auths/"*.json; do
  [[ $(jq -r '.type // empty' "$existing") == codex ]] || continue
- [[ $(jq -r '.account_id // empty' "$existing") == "$account" ]] || continue
+ [[ $(credential_identity "$existing" || true) == "$identity" ]] || continue
  other=$(jq -r '.auth_slot // empty' "$existing")
  [[ -z "$other" || "$other" == "$slot" ]] || { echo "This account is already assigned to slot $other. Use a DIFFERENT subscription; staged credential not enabled." >&2; exit 1; }
 done
 for existing in "$auths/"*.json; do
- [[ $(jq -r '.type // empty' "$existing") == codex && $(jq -r '.account_id // empty' "$existing") == "$account" ]] || continue
+ [[ $(jq -r '.type // empty' "$existing") == codex && $(credential_identity "$existing" || true) == "$identity" ]] || continue
  [[ "$existing" == "$auths/codex-plus-$slot.json" ]] && continue
  tmp=$(mktemp "$auths/.disable.XXXXXX")
  jq --arg slot "$slot" '.disabled = true | .superseded_by_slot = $slot | .exclude_burn_metrics = ($slot == "1") | if $slot == "1" then .weekly_cap_percent = 50 | .five_hour_cap_percent = 50 else del(.weekly_cap_percent,.five_hour_cap_percent) end' "$existing" >"$tmp"
@@ -51,9 +74,9 @@ for existing in "$auths/"*.json; do
 done
 tmp=$(mktemp "$auths/.enroll.XXXXXX")
 if [[ "$slot" == 1 ]]; then
- jq --arg slot "$slot" '.websockets = true | .auth_slot = $slot | .disabled = false | .weekly_cap_percent = 50 | .five_hour_cap_percent = 50 | .exclude_burn_metrics = true' "$input" >"$tmp"
+ jq --arg slot "$slot" --arg user "$seat_user" '(if $user != "" then .quota_user_id = $user else . end) | .websockets = true | .auth_slot = $slot | .disabled = false | .weekly_cap_percent = 50 | .five_hour_cap_percent = 50 | .exclude_burn_metrics = true' "$input" >"$tmp"
 else
- jq --arg slot "$slot" '.websockets = true | .auth_slot = $slot | .disabled = false | .exclude_burn_metrics = false | del(.weekly_cap_percent, .five_hour_cap_percent)' "$input" >"$tmp"
+ jq --arg slot "$slot" --arg user "$seat_user" '(if $user != "" then .quota_user_id = $user else . end) | .websockets = true | .auth_slot = $slot | .disabled = false | .exclude_burn_metrics = false | del(.weekly_cap_percent, .five_hour_cap_percent)' "$input" >"$tmp"
 fi
 mv "$tmp" "$auths/codex-plus-$slot.json"
 # Once all three distinct subscription logins are complete, rotate ONLY those three.
@@ -61,7 +84,14 @@ if [[ -f "$auths/codex-plus-1.json" && -f "$auths/codex-plus-2.json" && -f "$aut
  for existing in "$auths/"*.json; do
   [[ $(jq -r '.type // empty' "$existing") == codex ]] || continue
   case "$existing" in "$auths/codex-plus-1.json"|"$auths/codex-plus-2.json"|"$auths/codex-plus-3.json") continue ;; esac
-  tmp=$(mktemp "$auths/.disable.XXXXXX");jq '.disabled = true | .superseded_by_plus_rotation = true | .exclude_burn_metrics = true' "$existing" >"$tmp";mv "$tmp" "$existing"
+  matching_slot=""
+  old_identity=$(credential_identity "$existing" || true)
+  for candidate_slot in 1 2 3; do
+   if [[ -n "$old_identity" && "$old_identity" == $(credential_identity "$auths/codex-plus-$candidate_slot.json") ]]; then matching_slot=$candidate_slot; break; fi
+  done
+  tmp=$(mktemp "$auths/.disable.XXXXXX")
+  jq --arg slot "$matching_slot" '.disabled = true | .superseded_by_plus_rotation = true | .exclude_burn_metrics = ($slot == "" or $slot == "1") | if $slot == "1" then .weekly_cap_percent = 50 | .five_hour_cap_percent = 50 elif $slot != "" then del(.weekly_cap_percent, .five_hour_cap_percent) else . end' "$existing" >"$tmp"
+  mv "$tmp" "$existing"
  done
 fi
 flock -u 9

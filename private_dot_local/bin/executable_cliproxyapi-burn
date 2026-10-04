@@ -1,5 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+quota_user_id() {
+ jq -er '
+  def claims: try (split(".")[1] | gsub("-"; "+") | gsub("_"; "/") | @base64d | fromjson) catch {};
+  . as $d | [$d.id_token, $d.access_token] | map(select(type == "string") | claims) as $claims |
+  ($d.quota_user_id // ($claims | map(.["https://api.openai.com/auth"].chatgpt_user_id) | map(select(type == "string" and length > 0)) | .[0]) //
+   ($claims | map(.sub) | map(select(type == "string" and length > 0)) | .[0]) // ($d.email // "" | ascii_downcase)) | select(length > 0)
+ ' "$1"
+}
+credential_identity() {
+ local account plan user
+ account=$(jq -er '.account_id | select(type == "string" and length > 0)' "$1") || return 1
+ plan=$(jq -r '.plan_type // empty' "$1")
+ if [[ "$plan" == team ]]; then
+  user=$(quota_user_id "$1") || return 1
+  printf '%s\037%s' "$account" "$user"
+ else
+  printf '%s' "$account"
+ fi | sha256sum | cut -d ' ' -f 1
+}
+
 key=$(jq -er '.management_key' "$HOME/.local/share/cliproxyapi/secrets.json")
 data=$(printf 'header = "Authorization: Bearer %s"\n' "$key" | curl --fail --silent --show-error --max-time 10 --config - http://127.0.0.1:8317/v8/management/observability/burn)
 if [[ ${1:-} == --json ]]; then printf '%s\n' "$data"; exit; fi
@@ -16,7 +37,7 @@ printf '\nQuota remaining (percentage of the full limit):\n'
 for slot in 1 2 3; do
  file="$HOME/.local/share/cliproxyapi/auths/codex-plus-$slot.json"
  [[ -f "$file" ]] || continue
- identity="codex:$(jq -er '.account_id' "$file" | tr -d '\n' | sha256sum | cut -d ' ' -f 1)"
+ identity="codex:$(credential_identity "$file")"
  cap5=$(jq -r '.five_hour_cap_percent // 100' "$file")
  capw=$(jq -r '.weekly_cap_percent // 100' "$file")
  printf '%s\n' "$data" | jq -r --arg id "$identity" --arg slot "$slot" --argjson cap5 "$cap5" --argjson capw "$capw" '

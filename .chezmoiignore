@@ -77,3 +77,9 @@ docs/host/forgejo/forgejo/gitea/conf/
 .config/nvim/todo.txt
 .config/nvim/lazy-lock.json
 .config/nvim/lua/knobs.lua
+
+# ---- CLIProxyAPI: credentials, generated config, and build artifacts ----
+.local/share/cliproxyapi/auths/**
+.local/share/cliproxyapi/secrets.json
+.local/state/cliproxyapi/**
+.local/lib/cliproxyapi/**

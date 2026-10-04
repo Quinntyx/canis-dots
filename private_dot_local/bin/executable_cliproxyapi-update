@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+checkout="$HOME/docs/src/CLIProxyAPI/dev"
+origin="https://git.quinntyx.dev/quinntyx/CLIProxyAPI.git"
+[[ -d "$checkout" ]] || { echo "Missing $checkout; clone the forge repo and attach the dev worktree first." >&2; exit 1; }
+[[ $(git -C "$checkout" branch --show-current) == dev ]] || { echo "Expected dev branch." >&2; exit 1; }
+[[ $(git -C "$checkout" config --get remote.origin.url) == "$origin" ]] || { echo "Expected canonical Forgejo origin." >&2; exit 1; }
+[[ -z $(git -C "$checkout" status --porcelain) ]] || { echo "Dev checkout is dirty; commit or reconcile it before updating." >&2; exit 1; }
+git -C "$checkout" fetch origin dev
+git -C "$checkout" merge --ff-only origin/dev
+state="$HOME/.local/state/cliproxyapi"
+mkdir -p "$state" "$HOME/.local/lib/cliproxyapi"
+tmp=$(mktemp -d "$state/build.XXXXXX")
+trap 'trash "$tmp"' EXIT
+cd "$checkout"
+revision=$(git rev-parse --short HEAD)
+go build -trimpath -ldflags "-X main.Version=dev-$revision -X main.Commit=$revision -X main.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o "$tmp/cli-proxy-api" ./cmd/server
+install -m 700 "$tmp/cli-proxy-api" "$HOME/.local/lib/cliproxyapi/cli-proxy-api"
+printf 'Installed dev-%s
+' "$revision"
+if systemctl --user is-active --quiet cliproxyapi.service; then
+  systemctl --user restart cliproxyapi.service
+fi

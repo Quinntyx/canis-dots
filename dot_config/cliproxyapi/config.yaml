@@ -1,0 +1,14 @@
+# Private keys are added by the launcher to an untracked runtime copy.
+# Restart cliproxyapi.service after changing this configuration.
+config-version: 8
+server:
+  host: "127.0.0.1"
+  port: 8317
+  discovery:
+    enabled: false
+oauth:
+  auth-dir: "~/.local/share/cliproxyapi/auths"
+routing:
+  strategy: "reset-pressure"
+  # Sticky sessions override balancing; keep off for pressure-based selection.
+  session-affinity: false

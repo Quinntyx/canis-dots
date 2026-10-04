@@ -1,0 +1,17 @@
+[Unit]
+Description=CLIProxyAPI dev (reset-pressure account routing)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/cliproxyapi
+WorkingDirectory=%h/.local/share/cliproxyapi
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

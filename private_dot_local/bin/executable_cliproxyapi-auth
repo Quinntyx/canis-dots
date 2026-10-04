@@ -8,9 +8,16 @@ auths="$HOME/.local/share/cliproxyapi/auths"
 binary="$HOME/.local/lib/cliproxyapi/cli-proxy-api"
 mkdir -p "$state" "$auths"
 chmod 700 "$state" "$auths"
-stage=$(mktemp -d "$state/device-$slot.XXXXXX")
-mkdir -m 700 "$stage/auths"
-cat >"$stage/config.yaml" <<EOF
+shopt -s nullglob
+if [[ $# == 3 && "$2" == --enroll-staged ]]; then
+ input=$(realpath -e -- "$3")
+ case "$input" in "$(realpath -e "$state")"/device-"$slot".*/auths/*.json) ;; *) echo 'Staged credential must belong to this slot in the private device staging directory.' >&2; exit 2 ;; esac
+ stage=$(dirname "$(dirname "$input")")
+else
+ [[ $# == 1 ]] || { echo 'Usage: cliproxyapi-auth 1|2|3 [--enroll-staged FILE]' >&2; exit 2; }
+ stage=$(mktemp -d "$state/device-$slot.XXXXXX")
+ mkdir -m 700 "$stage/auths"
+ cat >"$stage/config.yaml" <<EOF
 config-version: 8
 server:
   host: "127.0.0.1"
@@ -18,13 +25,13 @@ server:
 oauth:
   auth-dir: "$stage/auths"
 EOF
-printf 'PLUS LOGIN %s%s\n' "$slot" "$([[ "$slot" == 1 ]] && printf ' — SHARED: 50%% weekly + 50%% 5h, excluded from both metrics' || true)"
-"$binary" --config "$stage/config.yaml" --codex-device-login --no-browser
-shopt -s nullglob
-files=("$stage/auths/"*.json)
-[[ ${#files[@]} == 1 ]] || { echo 'Login did not create exactly one credential; staging directory retained.' >&2; exit 1; }
-input=${files[0]}
-jq -e '.type == "codex" and (.account_id | type == "string" and length > 0) and .plan_type == "plus"' "$input" >/dev/null || { echo 'Expected a Plus subscription. Credential is staged but NOT enabled.' >&2; exit 1; }
+ printf 'CODEX LOGIN %s%s\n' "$slot" "$([[ "$slot" == 1 ]] && printf ' — SHARED: 50%% weekly + 50%% 5h, excluded from both metrics' || true)"
+ "$binary" --config "$stage/config.yaml" --codex-device-login --no-browser
+ files=("$stage/auths/"*.json)
+ [[ ${#files[@]} == 1 ]] || { echo 'Login did not create exactly one credential; staging directory retained.' >&2; exit 1; }
+ input=${files[0]}
+fi
+jq -e '.type == "codex" and (.account_id | type == "string" and length > 0) and (.plan_type == "plus" or .plan_type == "team")' "$input" >/dev/null || { echo 'Expected a Plus or Team subscription. Credential is staged but NOT enabled.' >&2; exit 1; }
 account=$(jq -r '.account_id' "$input")
 exec 9>"$state/auth-enroll.lock"
 flock 9
@@ -49,7 +56,7 @@ else
  jq --arg slot "$slot" '.websockets = true | .auth_slot = $slot | .disabled = false | .exclude_burn_metrics = false | del(.weekly_cap_percent, .five_hour_cap_percent)' "$input" >"$tmp"
 fi
 mv "$tmp" "$auths/codex-plus-$slot.json"
-# Once all three distinct Plus logins are complete, rotate ONLY those three subscriptions.
+# Once all three distinct subscription logins are complete, rotate ONLY those three.
 if [[ -f "$auths/codex-plus-1.json" && -f "$auths/codex-plus-2.json" && -f "$auths/codex-plus-3.json" ]]; then
  for existing in "$auths/"*.json; do
   [[ $(jq -r '.type // empty' "$existing") == codex ]] || continue

@@ -11,3 +11,20 @@ printf '%s\n' "$data" | jq -r '
   "Output TPS: \(.output_tps); active burn-equivalent TPS: \(.active_token_tps)",
   "Forced account: \(.forced_auth // "none")"
 '
+
+printf '\nQuota remaining (percentage of the full limit):\n'
+for slot in 1 2 3; do
+ file="$HOME/.local/share/cliproxyapi/auths/codex-plus-$slot.json"
+ [[ -f "$file" ]] || continue
+ identity="codex:$(jq -er '.account_id' "$file" | tr -d '\n' | sha256sum | cut -d ' ' -f 1)"
+ cap5=$(jq -r '.five_hour_cap_percent // 100' "$file")
+ capw=$(jq -r '.weekly_cap_percent // 100' "$file")
+ printf '%s\n' "$data" | jq -r --arg id "$identity" --arg slot "$slot" --argjson cap5 "$cap5" --argjson capw "$capw" '
+  def pct: (tostring) + "%";
+  def remaining($w): if ($w.used_percent | type) != "number" then "N/A" else ([100 - $w.used_percent, 0] | max | pct) end;
+  def usable($w;$cap): if ($w.used_percent | type) != "number" then "N/A" else ([$cap - $w.used_percent, 0] | max | pct) end;
+  .accounts[$id].windows as $w |
+  "Slot \($slot): 5h \(remaining($w.five_hour)), weekly \(remaining($w.weekly))" +
+  (if $cap5 < 100 or $capw < 100 then "; usable before caps: 5h \(usable($w.five_hour;$cap5)), weekly \(usable($w.weekly;$capw))" else "" end)
+ '
+done

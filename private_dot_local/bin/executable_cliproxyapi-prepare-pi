@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+node --input-type=module <<'JS'
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {createHmac,randomBytes} from 'node:crypto';
+const file=path.join(os.homedir(),'.local/share/cliproxyapi/secrets.json');
+const secrets=JSON.parse(fs.readFileSync(file,'utf8'));
+let prepared=false;
+try { prepared=JSON.parse(Buffer.from(secrets.client_key.split('.')[1],'base64url'))['https://api.openai.com/auth']?.chatgpt_account_id === 'cliproxyapi-local'; } catch {}
+if (!prepared) {
+  const header=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');
+  const payload=Buffer.from(JSON.stringify({'https://api.openai.com/auth':{chatgpt_account_id:'cliproxyapi-local'},nonce:randomBytes(32).toString('hex'),iss:'cliproxyapi-local'})).toString('base64url');
+  const body=header+'.'+payload;
+  const signature=createHmac('sha256',secrets.client_key).update(body).digest('base64url');
+  const backup=file+'.before-pi';
+  if (!fs.existsSync(backup)) fs.writeFileSync(backup,JSON.stringify(secrets,null,2)+'\n',{mode:0o600,flag:'wx'});
+  secrets.client_key=body+'.'+signature;
+  const temp=file+'.'+randomBytes(8).toString('hex')+'.tmp';
+  fs.writeFileSync(temp,JSON.stringify(secrets,null,2)+'\n',{mode:0o600,flag:'wx'});
+  fs.renameSync(temp,file);
+}
+console.log(prepared?'Local Pi key already prepared.':'Prepared private local Pi-compatible proxy key; restart cliproxyapi.service.');
+JS

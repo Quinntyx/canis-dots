@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+key=$(jq -er '.management_key' "$HOME/.local/share/cliproxyapi/secrets.json")
+data=$(printf 'header = "Authorization: Bearer %s"\n' "$key" | curl --fail --silent --show-error --max-time 10 --config - http://127.0.0.1:8317/v8/management/observability/burn)
+if [[ ${1:-} == --json ]]; then printf '%s\n' "$data"; exit; fi
+printf '%s\n' "$data" | jq -r '
+  def pct: if . == null then "N/A" else ((. * 100 | round) / 100 | tostring) + "%" end;
+  "Inefficiency: \(.inefficiency_percent | pct)",
+  "Total waste:  \(.total_waste_percent | pct)",
+  "Active weeks: \(.active_weeks); completed weeks: \(.completed_weeks); estimated: \(.estimated_weeks)",
+  "Output TPS: \(.output_tps); active burn-equivalent TPS: \(.active_token_tps)",
+  "Forced account: \(.forced_auth // "none")"
+'

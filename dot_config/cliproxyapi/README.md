@@ -52,3 +52,24 @@ systemctl --user restart cliproxyapi.service  # regenerate runtime config
 Chezmoi manages the secret-free config, service, and scripts. Commit/push source
 changes before applying. The launcher assembles an owner-only runtime YAML with
 the private local keys. To stop: `systemctl --user disable --now cliproxyapi.service`.
+
+
+## Pi, burn scheduling and the three Plus slots
+
+Pi main defaults to `cliproxyapi/gpt-5.5`, via the native Codex WebSocket client with `websocket-cached`. The proxy model provider lives in shared `~/.config/pi/agent/models.json`; API keys are read with `!cliproxyapi-key`, never embedded in the new provider configuration. Existing Pi sessions keep their selected model until `/model cliproxyapi/gpt-5.5` (reload model configuration first if necessary); new main-profile sessions use the proxy by default.
+
+`cliproxyapi-burn` shows weekly inefficiency, total waste, counts, output TPS and active burn-equivalent TPS. Add `--json` for full windows/history/projections. State stays private at `~/.local/state/cliproxyapi/burn.json`; it is not tracked by chezmoi. Both metrics start N/A until a weekly period is completed. Only new sessions use normal reset pressure; existing session/model bindings remain sticky unless a burn deadline or availability/cap forces a turn-boundary change.
+
+Authenticate distinct Plus subscriptions with device codes:
+
+```sh
+cliproxyapi-auth 1  # SHARED: 50% weekly and 50% five-hour caps; excluded from BOTH metrics
+cliproxyapi-auth 2  # personal Plus
+cliproxyapi-auth 3  # personal Plus
+```
+
+Log in to the correct DIFFERENT account for each code, using separate browser profiles/private windows. The helper authenticates into a private staging directory, validates a Plus plan, adds WebSocket/cap policy before publishing the credential, and disables duplicate copies so shared caps cannot be bypassed. It rejects using the same subscription for different slots. Once all three slots exist, old Codex credentials outside this rotation are disabled and excluded from the tallies; they are not deleted.
+
+Shared caps use total provider-reported utilization. New requests stop when either reaches 50%; unknown/stale quota or a failed selected-account preflight check fails closed. Already accepted requests and another user's activity can overshoot a threshold; this cannot reserve an exact provider-side token budget. Quota polling continues while you are idle to observe actual weekly resets. Missing/stale data is reported as estimated, not reconstructed as precise history.
+
+The local Pi-compatible opaque key is prepared by `cliproxyapi-prepare-pi`; it contains the account claim Pi requires, but only the proxy authenticates it. Real subscription tokens/account IDs replace it upstream. The previous private key remains in an untracked local backup. Use `cliproxyapi-update` to rebuild the committed dev branch and restart the service.

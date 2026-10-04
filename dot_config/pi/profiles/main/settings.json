@@ -2,8 +2,8 @@
   "groupToolCalls": true,
   "lastChangelogVersion": "0.99.1",
   "theme": "everforest-tui-light",
-  "defaultProvider": "deepseek-router",
-  "defaultModel": "deepseek-v4.1-flash",
+  "defaultProvider": "cliproxyapi",
+  "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
@@ -52,7 +52,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-sock",
     "git:github.com/Quinntyx/billion-context-pi@main"
   ],
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "extensions": [
     "-builtin:mcp"
   ],
@@ -63,5 +63,6 @@
   "tuiMode": "fullscreen",
   "fullscreenScrollbar": "hidden",
   "toolActivityParam": true,
-  "toolBackground": "outlines"
+  "toolBackground": "outlines",
+  "transport": "websocket-cached"
 }

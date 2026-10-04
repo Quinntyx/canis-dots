@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+slot=${1:-}
+case "$slot" in 1|2|3) ;; *) echo 'Usage: cliproxyapi-auth 1|2|3 (slot 1 is shared)' >&2; exit 2 ;; esac
+state="$HOME/.local/state/cliproxyapi"
+auths="$HOME/.local/share/cliproxyapi/auths"
+binary="$HOME/.local/lib/cliproxyapi/cli-proxy-api"
+mkdir -p "$state" "$auths"
+chmod 700 "$state" "$auths"
+stage=$(mktemp -d "$state/device-$slot.XXXXXX")
+mkdir -m 700 "$stage/auths"
+cat >"$stage/config.yaml" <<EOF
+config-version: 8
+server:
+  host: "127.0.0.1"
+  port: 8317
+oauth:
+  auth-dir: "$stage/auths"
+EOF
+printf 'PLUS LOGIN %s%s\n' "$slot" "$([[ "$slot" == 1 ]] && printf ' — SHARED: 50%% weekly + 50%% 5h, excluded from both metrics' || true)"
+"$binary" --config "$stage/config.yaml" --codex-device-login --no-browser
+shopt -s nullglob
+files=("$stage/auths/"*.json)
+[[ ${#files[@]} == 1 ]] || { echo 'Login did not create exactly one credential; staging directory retained.' >&2; exit 1; }
+input=${files[0]}
+jq -e '.type == "codex" and (.account_id | type == "string" and length > 0) and .plan_type == "plus"' "$input" >/dev/null || { echo 'Expected a Plus subscription. Credential is staged but NOT enabled.' >&2; exit 1; }
+account=$(jq -r '.account_id' "$input")
+exec 9>"$state/auth-enroll.lock"
+flock 9
+# Prevent duplicate rotation identities and bypass of shared-account caps.
+for existing in "$auths/"*.json; do
+ [[ $(jq -r '.type // empty' "$existing") == codex ]] || continue
+ [[ $(jq -r '.account_id // empty' "$existing") == "$account" ]] || continue
+ other=$(jq -r '.auth_slot // empty' "$existing")
+ [[ -z "$other" || "$other" == "$slot" ]] || { echo "This account is already assigned to slot $other. Use a DIFFERENT subscription; staged credential not enabled." >&2; exit 1; }
+done
+for existing in "$auths/"*.json; do
+ [[ $(jq -r '.type // empty' "$existing") == codex && $(jq -r '.account_id // empty' "$existing") == "$account" ]] || continue
+ [[ "$existing" == "$auths/codex-plus-$slot.json" ]] && continue
+ tmp=$(mktemp "$auths/.disable.XXXXXX")
+ jq --arg slot "$slot" '.disabled = true | .superseded_by_slot = $slot | .exclude_burn_metrics = ($slot == "1") | if $slot == "1" then .weekly_cap_percent = 50 | .five_hour_cap_percent = 50 else del(.weekly_cap_percent,.five_hour_cap_percent) end' "$existing" >"$tmp"
+ mv "$tmp" "$existing"
+done
+tmp=$(mktemp "$auths/.enroll.XXXXXX")
+if [[ "$slot" == 1 ]]; then
+ jq --arg slot "$slot" '.websockets = true | .auth_slot = $slot | .disabled = false | .weekly_cap_percent = 50 | .five_hour_cap_percent = 50 | .exclude_burn_metrics = true' "$input" >"$tmp"
+else
+ jq --arg slot "$slot" '.websockets = true | .auth_slot = $slot | .disabled = false | .exclude_burn_metrics = false | del(.weekly_cap_percent, .five_hour_cap_percent)' "$input" >"$tmp"
+fi
+mv "$tmp" "$auths/codex-plus-$slot.json"
+# Once all three distinct Plus logins are complete, rotate ONLY those three subscriptions.
+if [[ -f "$auths/codex-plus-1.json" && -f "$auths/codex-plus-2.json" && -f "$auths/codex-plus-3.json" ]]; then
+ for existing in "$auths/"*.json; do
+  [[ $(jq -r '.type // empty' "$existing") == codex ]] || continue
+  case "$existing" in "$auths/codex-plus-1.json"|"$auths/codex-plus-2.json"|"$auths/codex-plus-3.json") continue ;; esac
+  tmp=$(mktemp "$auths/.disable.XXXXXX");jq '.disabled = true | .superseded_by_plus_rotation = true | .exclude_burn_metrics = true' "$existing" >"$tmp";mv "$tmp" "$existing"
+ done
+fi
+flock -u 9
+trash "$stage"
+printf 'Slot %s ready. WebSockets enabled; proxy detects credentials automatically.\n' "$slot"

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+jq -er '.client_key | select(type == "string" and length >= 32)' "$HOME/.local/share/cliproxyapi/secrets.json"

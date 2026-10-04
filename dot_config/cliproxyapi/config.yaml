@@ -1,5 +1,4 @@
-# Private keys are added by the launcher to an untracked runtime copy.
-# Restart cliproxyapi.service after changing this configuration.
+# Private API keys are injected into an untracked runtime copy by cliproxyapi.
 config-version: 8
 server:
   host: "127.0.0.1"
@@ -10,5 +9,15 @@ oauth:
   auth-dir: "~/.local/share/cliproxyapi/auths"
 routing:
   strategy: "reset-pressure"
-  # Sticky sessions override balancing; keep off for pressure-based selection.
-  session-affinity: false
+  session-affinity: true
+  session-affinity-ttl: "168h"
+  session-affinity-subagents: false
+  burn-deadline:
+    enabled: true
+    threshold: 0.75
+    poll-interval: "1m"
+    max-observation-age: "2m"
+    state-file: "~/.local/state/cliproxyapi/burn.json"
+observability:
+  usage:
+    usage-statistics-enabled: true

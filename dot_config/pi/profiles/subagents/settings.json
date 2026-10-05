@@ -8,7 +8,8 @@
     "deepseek-router/deepseek-v4.1-flash",
     "deepseek-router/deepseek-v4.1-flash-1m",
     "deepseek-router/deepseek-v4-pro",
-    "bitdeer/zai-org/GLM-5.3-Flash"
+    "bitdeer/zai-org/GLM-5.3-Flash",
+    "cliproxyapi/gpt-6.1-sol"
   ],
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",
@@ -23,5 +24,6 @@
     "git:github.com/Quinntyx/billion-context-pi@main"
   ],
   "lastChangelogVersion": "0.99.1",
-  "hideThinkingBlock": false
+  "hideThinkingBlock": false,
+  "transport": "websocket-cached"
 }

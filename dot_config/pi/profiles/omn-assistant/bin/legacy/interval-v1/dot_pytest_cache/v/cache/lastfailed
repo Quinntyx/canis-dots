@@ -1,0 +1,3 @@
+{
+  "tests/test_scheduler.py::test_one_block_covers_many_requirements": true
+}

@@ -209,7 +209,8 @@ class Context:
     def clock(value) -> time | None:
         if not value:
             return None
-        return datetime.strptime(value, "%H:%M").time()
+        # Taskwarrior/native history may retain an exclusive day-end 24:00.
+        return time(0, 0) if value == "24:00" else datetime.strptime(value, "%H:%M").time()
 
     def datetimes(self, t: dict) -> tuple[datetime, datetime] | None:
         sched = parse_tw_date(t.get("scheduled"))
@@ -623,6 +624,8 @@ class TodoCoverage(Policy):
         for t in referenced_tasks:
             refs = list(dict.fromkeys(todo_refs(t)))
             referenced_any = True
+            if "travel" in t.get("tags", []):
+                continue  # destination traceability is not assignment-work credit
             span = ctx.duration(t)
             if span is None:
                 span = ctx.est_of(t) or timedelta(0)
@@ -661,6 +664,29 @@ class TodoCoverage(Policy):
             rid = record.get("id")
             if rid in self.IN_CLASS_IDS:
                 continue
+            event_id = record.get("meta", {}).get("in_class_assessment_for")
+            if event_id:
+                event = next((r for r in ctx.omn if r.get("id") == event_id), {})
+                event_meta = event.get("meta", {})
+                span = event_times(event)
+                try:
+                    deadline = datetime.fromisoformat(record["meta"]["due"]).astimezone(TZ)
+                except (KeyError, TypeError, ValueError):
+                    deadline = None
+                # A link alone never hides a missing exam. Require its exact
+                # authoritative fixed attendance block in actual Taskwarrior.
+                if (event.get("type") == "event" and event_meta.get("active", True)
+                        and not event_meta.get("cancelled") and not event_meta.get("rrule")
+                        and span and span[0] < span[1] and deadline == span[1]
+                        and any(t.get("status") in ("pending", "completed")
+                                and "fixed" in t.get("tags", [])
+                                and (event_id in todo_refs(t) or (
+                                    not todo_refs(t)
+                                    and t.get("description", "").strip().casefold()
+                                        == f"Attend {event.get('title', '')}".strip().casefold()
+                                    and t.get("location") == event_meta.get("location")))
+                                and ctx.datetimes(t) == span for t in ctx.tasks)):
+                    continue
             est_hours = est_map.get(rid, 0.0) or _omn_est_hours(record)
             on_time = [(hours, t) for (day, hours, t)
                        in scheduled_credit.get(rid, []) if day <= due]
@@ -1590,8 +1616,8 @@ class RecurrenceArtifactsCovered(Policy):
             carried = [
                 t for t in ctx.tasks
                 if t.get("status") == "pending"
-                and carry_start <= (parse_tw_date(t.get("scheduled"))
-                                    or date.min) <= carry_end
+                and (scheduled := parse_tw_date(t.get("scheduled"))) is not None
+                and carry_start <= scheduled.date() <= carry_end
             ]
             sessions = [
                 t for t in ctx.week_tasks(["pending", "completed"]) + carried

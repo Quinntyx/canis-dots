@@ -73,5 +73,86 @@ class TodoAttributionTests(unittest.TestCase):
         self.assertEqual(warning.severity, "ERROR")
 
 
+class NativePublicationLintTests(unittest.TestCase):
+    @staticmethod
+    def context():
+        ctx = object.__new__(linter.Context)
+        ctx.week_monday = date(2026, 9, 28)
+        ctx.week_sunday = date(2026, 10, 4)
+        ctx.now = datetime(2026, 10, 2, 13, tzinfo=linter.TZ)
+        ctx.tasks = []
+        ctx.omn = []
+        return ctx
+
+    def test_exclusive_24_hour_end_is_next_midnight(self):
+        ctx = self.context()
+        task = {"scheduled": "20261002T050000Z", "starttime": "20:00", "endtime": "24:00"}
+        begin, end = ctx.datetimes(task)
+        self.assertEqual(end.date(), date(2026, 10, 3))
+        self.assertEqual(end - begin, timedelta(hours=4))
+
+    def test_recurrence_carried_date_comparison(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            artifact = Path(folder) / "recurrence.txt"
+            artifact.write_text("At least 1 session per calendar week")
+            ctx = self.context()
+            ctx.omn = [{"id": "practice", "title": "Practice piano", "meta": {},
+                        "artifacts": {"rrule": artifact.as_uri()}}]
+            ctx.tasks = [{"status": "pending", "scheduled": "20261007T050000Z",
+                          "description": "Practice piano"}]
+            self.assertEqual(linter.RecurrenceArtifactsCovered().check(ctx), [])
+
+    def assessment_context(self):
+        ctx = self.context()
+        ctx.omn = [
+            {"id": "assessment", "type": "task", "title": "Common Exam",
+             "meta": {"due": "2026-10-02T23:00:00Z", "in_class_assessment_for": "exam"}},
+            {"id": "exam", "type": "event", "title": "Exam",
+             "meta": {"start": "2026-10-02T16:00:00-05:00", "end": "2026-10-02T18:00:00-05:00"}},
+        ]
+        ctx.tasks = [{"status": "pending", "tags": ["fixed"], "description": "Attend Exam",
+                      "scheduled": "20261002T050000Z", "starttime": "16:00", "endtime": "18:00",
+                      "todo": "- Attend Exam [omn:exam]", "est": "2h"}]
+        return ctx
+
+    def test_assessment_covered_by_actual_exact_fixed_exam(self):
+        self.assertEqual(linter.TodoCoverage().check(self.assessment_context()), [])
+
+    def test_link_never_hides_unfixed_or_wrong_time_exam(self):
+        for change in ({"tags": []}, {"endtime": "17:45"}):
+            with self.subTest(change=change):
+                ctx = self.assessment_context()
+                ctx.tasks[0].update(change)
+                warnings = linter.TodoCoverage().check(ctx)
+                self.assertTrue(any(w.severity == "ERROR" and w.refs == ["assessment"] for w in warnings))
+
+    def test_travel_references_never_satisfy_homework(self):
+        ctx = self.context()
+        ctx.omn = [{"id": "hw", "type": "task", "title": "Homework", "meta": {"due": "2026-10-04", "est": "6h"}}]
+        ctx.tasks = [{"status": "pending", "tags": ["managed", "travel"], "description": "Drive home",
+                      "scheduled": "20261004T050000Z", "starttime": "17:00", "endtime": "22:00",
+                      "todo": "- Homework @300m [omn:hw]", "est": "5h"}]
+        warnings = linter.TodoCoverage().check(ctx)
+        self.assertTrue(any(w.severity == "ERROR" and w.refs == ["hw"] for w in warnings))
+
+    def test_legacy_registration_needs_exact_title_location_and_interval(self):
+        ctx = self.assessment_context()
+        ctx.omn[1]["meta"]["location"] = "ECSW 1.315"
+        ctx.tasks[0]["location"] = "ECSW 1.315"
+        ctx.tasks[0].pop("todo")
+        ctx.tasks.append({"status": "pending", "description": "Other work",
+                          "scheduled": "20261002T050000Z", "starttime": "09:00", "endtime": "10:00",
+                          "todo": "- Other work [omn:other]"})
+        self.assertEqual(linter.TodoCoverage().check(ctx), [])
+        for changes in ({"location": "Wrong room"}, {"description": "Attend another exam"}):
+            with self.subTest(changes=changes):
+                original = dict(ctx.tasks[0])
+                ctx.tasks[0].update(changes)
+                warnings = linter.TodoCoverage().check(ctx)
+                self.assertTrue(any(w.severity == "ERROR" and w.refs == ["assessment"] for w in warnings))
+                ctx.tasks[0] = original
+
+
 if __name__ == "__main__":
     unittest.main()

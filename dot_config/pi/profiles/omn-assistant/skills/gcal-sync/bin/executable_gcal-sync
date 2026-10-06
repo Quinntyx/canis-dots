@@ -452,14 +452,16 @@ def event_body(task, start, end):
         start_bounds = {"dateTime": rfc3339(start), "timeZone": TIMEZONE_NAME}
         end_bounds = {"dateTime": rfc3339(end), "timeZone": TIMEZONE_NAME}
 
-    # gray for completed, red for fixed, sage green for unscheduled previews,
-    # default otherwise
+    # gray for completed, red for fixed, yellow for travel, sage green for
+    # unscheduled previews, default otherwise
     if done:
         color = "8"
     elif is_preview:
         color = "2"
     elif "fixed" in t.get("tags", []):
         color = "11"
+    elif "travel" in t.get("tags", []):
+        color = "5"
     else:
         color = None
 

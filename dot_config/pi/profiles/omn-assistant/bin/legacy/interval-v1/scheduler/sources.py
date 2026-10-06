@@ -475,16 +475,6 @@ def fixed_from_omn(omn: list, week_start: date, config: ComposerConfig,
             # MLH ingestion is a catalog of opportunities, not a declaration
             # that the user will attend every event in the season.
             continue
-        if meta.get("attending") is False:
-            # An explicit attending:false is a declination regardless of
-            # source; a declined commitment must never occupy the grid.
-            diagnostics.append(Diagnostic(
-                "declined-event", INFO,
-                f"skipping declined event '{record.get('title', record.get('id'))}' "
-                f"(attending is false)",
-                [record.get("id")],
-            ))
-            continue
         if meta.get("active") is False:
             diagnostics.append(Diagnostic(
                 "inactive-event", INFO,

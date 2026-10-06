@@ -1,0 +1,19 @@
+{
+  "tests/test_schedule_composer.py::ComposerTests": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_assignment_coverage_precedes_project_coverage": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_deadline_is_hard_and_shortfall_is_soft": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_fifteen_minute_model_enforces_half_hour_block": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_fixed_event_cannot_be_overlapped": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_fixed_event_end_rounds_up": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_fuzz_weights_returns_integers": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_non_weekend_due_forbids_assignment_weekend": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_same_topic_requirements_compose_one_block": true,
+  "tests/test_schedule_composer.py::ComposerTests::test_weekend_due_uses_weekend_only_when_weekdays_cannot_fit": true,
+  "tests/test_scheduler.py::test_overdue_requirement_is_blocking_not_dropped": true,
+  "tests/test_scheduler.py::test_one_block_covers_many_requirements": true,
+  "tests/test_grid_integration.py::test_schema_roundtrip_keeps_new_policies_and_exact_buffer_endpoints": true,
+  "tests/test_scheduler.py::test_missing_estimate_uses_documented_default_not_guess_silently": true,
+  "tests/test_scheduler.py::test_placeholder_estimate_status_falls_back_with_warning": true,
+  "tests/test_scheduler.py::test_carried_work_due_next_week_is_deferred_not_blocking": true,
+  "tests/test_scheduler.py::test_stale_support_block_is_replaceable_not_blocking": true
+}

@@ -226,16 +226,10 @@ def test_apply_accepts_approximate_but_rejects_unknown_status(tmp_path):
 
 
 def test_apply_refuses_unmatched_legacy(tmp_path):
-    from datetime import datetime, timedelta, timezone
-    # Anchor to next Monday so the week never elapses as wall time moves on.
-    today = datetime.now(timezone(timedelta(hours=-5))).date()
-    week_start = today + timedelta(days=(7 - today.weekday()) % 7 or 7)
-    stamp = week_start.strftime("%Y%m%dT050000Z")
     task = {"uuid": "55555555-5555-5555-5555-555555555555", "id": 9,
             "status": "pending", "description": "orphan", "tags": ["managed"],
-            "est": "1h", "scheduled": stamp}
-    week = load_live(week_start.isoformat(), config(), omn_records=[],
-                     task_records=[task])
+            "est": "1h", "scheduled": "20260928T050000Z"}
+    week = live_week(tasks=[task])
     gateway = FakeTaskwarrior([task])
     report = apply_candidate(week, candidate([record()]), taskwarrior=gateway,
                              dry_run=False, confirmed=True)

@@ -30,7 +30,7 @@
   },
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity@dev",
-    "git:git.quinntyx.dev/quinntyx/pi-pycells",
+    "git:git.quinntyx.dev/quinntyx/pi-pycells@feat-recursive-subagents",
     "npm:@narumitw/pi-btw",
     "git:git.quinntyx.dev/quinntyx/pi-antigravity-auth",
     "npm:pi-everforest-tui",

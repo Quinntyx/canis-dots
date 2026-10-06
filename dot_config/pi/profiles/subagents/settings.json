@@ -14,7 +14,7 @@
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",
     {
-      "source": "git:git.quinntyx.dev/quinntyx/pi-pycells@feat-recursive-subagents",
+      "source": "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
       "skills": [
         "!skills/pi-subagents/**"
       ]

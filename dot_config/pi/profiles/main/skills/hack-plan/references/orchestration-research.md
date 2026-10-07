@@ -1,3 +1,36 @@
+# Current workflow policy: subsystem trees and CI
+
+The October 7, 2026 user refinements supersede earlier policy recommendations
+in these notes. Current SKILL.md is authoritative: queue 3C initial Build items
+with submit_all; isolate exploratory subsystem implementations in worktrees;
+use five scoped, loose intermediate review/repair cycles and five stricter final
+cycles; mechanically merge same-depth nodes with exact-tip CI gates; delegate
+repairs only for textual merge conflicts or semantic test failures. Keep all
+local worktrees and remote branches until the complete accepted workflow is
+published and green. Per-file design prescriptions, invented task quotas and
+maintained 3C ready-frontier targeting are not the current policy.
+
+For N=3C builders, N-1 binary merge nodes yield 6C-1 base worktrees. Extra review
+or repair worktrees are acceptable. Non-power-of-two cohorts sometimes require
+more than one orphan carry overall; carries occur at distinct levels only after
+the remaining frontier is quiescent. Ordinary equal-depth reductions resume
+after each carry. This preserves tree reduction rather than a rolling accumulator.
+
+Forgejo Actions runs on separate runners. Verify repository Actions enablement,
+runner availability, push triggers on temporary branches and test discovery
+before fan-out. Gate every candidate by current required jobs at its exact SHA;
+missing, skipped, cancelled or pending checks never count as green. Workflow
+lookup uses .forgejo/workflows first and .github/workflows only as a fallback.
+
+- https://forgejo.org/docs/latest/user/actions/overview/
+- https://forgejo.org/docs/latest/user/actions/quick-start/
+- https://forgejo.org/docs/latest/user/actions/reference/
+
+# Historical research (superseded policy recommendations)
+
+The following original research remains as source background. Its old scheduling
+and ownership recommendations must not override the current skill or user policy.
+
 # Orchestration research
 
 Reviewed 2026-10-05. These sources inform delivery policy, not Pi runtime APIs.

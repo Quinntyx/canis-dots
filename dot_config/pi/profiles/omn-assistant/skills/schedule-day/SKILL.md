@@ -369,3 +369,21 @@ metadata:
 - Tag generated lunch and afternoon-break actions with `+schedule` so reruns can
   replace them safely.
 - Never represent downtime gaps as Taskwarrior tasks.
+
+## Preference layers (route_scheduler contract)
+
+- The classified preference rulebook lives at
+  `~/.config/pi/profiles/omn-assistant/bin/route_scheduler/PREFS.md`; the
+  machine truth the solver reads is `prefs.toml` in the same directory. Read
+  PREFS.md before any scheduling pass; keep it and prefs.toml in sync when
+  preferences change.
+- HARD rules are CP-SAT constraints (never violated; crush valve for meals is
+  the only sanctioned exception and must be disclosed).
+- SOFT rules are fuzzed objective weights — the solver produces many cheap
+  candidates (reduced phase budgets in prefs.toml `[solver]`), not one
+  long-optimized schedule.
+- PREF rules are agent-side: use them to stage blocks and to pick among
+  candidates; disclose per-candidate compromises and any `crush=true` flags
+  before pushing the pick to gcal.
+- Never hand-edit solver output in Taskwarrior — change constraints/prefs and
+  rerun instead.

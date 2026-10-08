@@ -19,8 +19,12 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
 - Events are matched one-to-one to tasks through the `taskUuid` extended
   property. Each run reconciles the window: tasks without an event are
   inserted, changed tasks are patched in place (Taskwarrior wins every field,
-  including any manual Google-side edit), events whose task is gone or that
-  carry no `taskUuid` are deleted. A clean rerun performs zero writes.
+  including any manual Google-side edit), events whose task was deleted are
+  recolored in place (✗ prefix, grape) as a visible user cancellation — this
+  is data-driven (the deleted record still exists in Taskwarrior), so every
+  sync run does it, and the on-exit hook only fires a plain sync for
+  promptness; events with no `taskUuid`, a duplicate uuid, or a purged task
+  (no record left at all) are deleted. A clean rerun performs zero writes.
 - The export includes completed tasks, so items finished earlier in the week
   survive later runs as gray, check-marked events until the window rolls over.
 - Two task forms are synced: timed tasks (`starttime`+`endtime`) become timed
@@ -33,8 +37,20 @@ current Monday-through-Sunday week from Taskwarrior into the dedicated
 - Never touch any calendar other than `managed`, and never write calendar state
   back into Taskwarrior or omn.
 - An on-exit hook at `~/.task/hooks/on-exit-gcal-sync` re-syncs automatically
-  whenever the user completes a `+managed` task; do not add a second manual
-  sync after such completions.
+  whenever the user completes a `+managed` task or deletes a task; do not add
+  a second manual sync after such completions.
+
+## Deletion semantics (user-set contract, 2026-10-07)
+
+- `task delete` — the USER's operation (done by them, or by the agent at
+  their explicit request). The deleted record stays in Taskwarrior, so any
+  sync run recolors the event purple (✗ grape) as a visible cancellation.
+- `agent-task-del` (`~/.config/pi/profiles/omn-assistant/bin/agent-task-del`)
+  — the AGENT's cleanup operation (undoing its own mistakes, dropping solver
+  debris): delete (hooks off) + purge, so the task is gone entirely — no
+  deleted record, no marker — and the helper's plain sync removes the event.
+- Never convert one into the other: an agent cleanup must not leave a deleted
+  record behind, and a user cancellation must not be purged.
 
 ## Authorization
 

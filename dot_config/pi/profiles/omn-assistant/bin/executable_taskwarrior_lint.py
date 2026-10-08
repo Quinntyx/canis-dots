@@ -172,6 +172,7 @@ class Context:
         self.tasks = run_task_export()
         self.pending = [t for t in self.tasks if t.get("status") == "pending"]
         self.completed = [t for t in self.tasks if t.get("status") == "completed"]
+        self.deleted = run_deleted_task_export()
         self.omn = run_omn_export()
         self.now = datetime.now(TZ)
 
@@ -273,6 +274,18 @@ def run_task_export() -> list[dict]:
     )
     if out.returncode != 0:
         raise SystemExit(f"task export failed: {out.stderr.strip()}")
+    return json.loads(out.stdout)
+
+
+def run_deleted_task_export() -> list[dict]:
+    """Deleted tasks: a deletion is a user decision, and policies must tell
+    'the user removed this occurrence' apart from 'it was never scheduled'."""
+    out = subprocess.run(
+        ["task", "rc.verbose=nothing", "status:deleted", "export"],
+        capture_output=True, text=True,
+    )
+    if out.returncode != 0:
+        raise SystemExit(f"task export (deleted) failed: {out.stderr.strip()}")
     return json.loads(out.stdout)
 
 
@@ -779,6 +792,27 @@ class ClassesScheduled(Policy):
                 if t.get("status") in ("pending", "completed")
                 and "class" in t.get("tags", []) and ctx.in_week(t)
             ]
+            # Deleted tasks matching a lecture occurrence mean the user
+            # deliberately removed it (e.g. clearing a past class): not an
+            # error, not even a warning. Only a truly never-scheduled
+            # occurrence is an error.
+            deleted_classes = [
+                t for t in ctx.deleted
+                if "class" in t.get("tags", [])
+                and t.get("scheduled") and t.get("starttime")
+            ]
+
+            def user_deleted(day, start) -> bool:
+                core = record["title"].lower().replace("lecture", "").strip()
+                for t in deleted_classes:
+                    if parse_tw_date(t.get("scheduled")).date() != day:
+                        continue
+                    if t.get("starttime") != start.strftime("%H:%M"):
+                        continue
+                    if core and core in t.get("description", "").lower():
+                        return True
+                return False
+
             for record in ctx.lectures():
                 times = event_times(record)
                 if not times:
@@ -799,7 +833,15 @@ class ClassesScheduled(Policy):
                          if t.get("starttime") == start.strftime("%H:%M")),
                         None)
                     if hit is None:
-                        past = day < ctx.now.date()
+                        if user_deleted(day, start):
+                            continue  # user deleted it on purpose; stay silent
+                        # Past means the whole occurrence is over (date AND
+                        # start time) — a same-day lecture already delivered is
+                        # also past. Deleting a past occurrence is normal
+                        # housekeeping, not a missing schedule.
+                        past = (day < ctx.now.date()
+                                or (day == ctx.now.date()
+                                    and ctx.now.time() >= start.time()))
                         out.append(Warning(
                             self.id, "INFO" if past else "ERROR",
                             f"lecture '{record['title']}' on {day} "

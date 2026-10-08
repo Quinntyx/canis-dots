@@ -53,7 +53,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-sock",
     "git:github.com/Quinntyx/billion-context-pi@main"
   ],
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "extensions": [
     "-builtin:mcp"
   ],

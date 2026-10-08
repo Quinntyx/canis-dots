@@ -10,7 +10,7 @@ set -g fish_greeting
 # agents) and run spawned subagents under the dedicated `subagents` profile
 # (managed with ppi). Unset PI_SUBAGENTS_MAX_CONCURRENT to disable subagents;
 # unset PI_CODING_SUBAGENT_DIR to let subagents share your config.
-set -gx PI_SUBAGENTS_MAX_CONCURRENT 8
+set -gx PI_SUBAGENTS_MAX_CONCURRENT 24
 set -gx PI_CODING_SUBAGENT_DIR $HOME/.config/pi/profiles/subagents
 
 # ==========================================

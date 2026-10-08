@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Taskwarrior on-exit hook: after a +managed task is marked done, re-sync
-the 'managed' Google Calendar so its event turns gray in place.
+"""Taskwarrior on-exit hook: keep the 'managed' Google Calendar in step after
+interactive task commands. Two triggers:
+
+- a +managed task is marked done -> its event turns gray in place;
+- a task is deleted (`task delete` / `task del`) -> its event is recolored
+  in place (✗ prefix, grape) instead of being removed. The recolor itself is
+  data-driven: any sync run finds status:deleted tasks in the export and
+  marks their events, so this hook just fires a plain sync for promptness.
+  Agent-side cleanups PURGE (never delete), leaving no record and no marker.
 
 Taskwarrior 3.x feeds each modified task as one JSON object per stdin line in
-its post-modification state. A sync is triggered whenever any of those tasks
-carries the +managed tag and is now status:completed. The sync runs detached
-so `task` never blocks on the network.
+its post-modification state. The sync runs detached so `task` never blocks on
+the network.
 """
 
 import json
@@ -37,11 +43,14 @@ def main():
             t = json.loads(line)
         except ValueError:
             continue
-        if (
-            isinstance(t, dict)
-            and t.get("status") == "completed"
+        if not isinstance(t, dict):
+            continue
+        done_managed = (
+            t.get("status") == "completed"
             and "managed" in (t.get("tags") or [])
-        ):
+        )
+        deleted = t.get("status") == "deleted"
+        if done_managed or deleted:
             triggered.append(t.get("uuid", "?"))
 
     if not triggered:
@@ -55,7 +64,7 @@ def main():
             [SYNC], stdout=devnull, stderr=devnull,
             start_new_session=True,
         )
-    log(f"triggered gcal-sync ({len(triggered)} completed managed task(s): "
+    log(f"triggered gcal-sync ({len(triggered)} task(s): "
         f"{', '.join(u[:8] for u in triggered)})")
 
 

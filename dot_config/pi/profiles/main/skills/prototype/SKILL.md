@@ -1,8 +1,12 @@
 ---
-name: hack-plan
-description: "Use when planning or swarm-building prototypes, demos, or hackathon projects."
+name: prototype
+description: >-
+  Use when the user asks to prototype a project from scratch quickly, build a
+  working proof of concept, prioritize a first usable version, or coordinate
+  exploratory subsystem worktrees with CI-gated parallel implementation.
 metadata:
   type: procedure
+
 ---
 
 # Contract

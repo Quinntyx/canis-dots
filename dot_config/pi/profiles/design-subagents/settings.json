@@ -24,7 +24,5 @@
   "lastChangelogVersion": "1.0.4",
   "hideThinkingBlock": false,
   "transport": "websocket-cached",
-  "extensions": [
-    "../main/extensions/pi-subagents-runtime.ts"
-  ]
+  "extensions": []
 }

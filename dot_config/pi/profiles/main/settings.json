@@ -1,6 +1,6 @@
 {
   "groupToolCalls": true,
-  "lastChangelogVersion": "0.99.1",
+  "lastChangelogVersion": "1.0.4",
   "theme": "everforest-tui-light",
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-5.5",
@@ -29,6 +29,7 @@
     }
   },
   "packages": [
+    "git:git.quinntyx.dev/quinntyx/pi-subagents@dev",
     "git:git.quinntyx.dev/quinntyx/pi-activity@dev",
     "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
     "npm:@narumitw/pi-btw",
@@ -52,7 +53,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-sock",
     "git:github.com/Quinntyx/billion-context-pi@main"
   ],
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "extensions": [
     "-builtin:mcp"
   ],

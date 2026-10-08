@@ -1,6 +1,16 @@
 {
   "delegate": false,
   "compress": {
-    "nudgeGrowthTokens": 50000
+    "nudgeGrowthTokens": 50000,
+    "providers": {
+      "bitdeer": {
+        "models": {
+          "zai-org/GLM-5.3-Flash": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000
+          }
+        }
+      }
+    }
   }
 }

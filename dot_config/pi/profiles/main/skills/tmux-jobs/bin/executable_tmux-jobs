@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -28,10 +29,53 @@ class Jobs:
         self.origin = origin or os.environ.get("TMUX_PANE", "")
         if not self.origin.startswith("%") or not self.origin[1:].isdigit():
             raise JobError("An originating pane ID is required")
-        self.session = self.tmux(
-            "display-message", "-p", "-t", self.origin, "#{session_id}"
-        ).strip()
+        text = self.tmux(
+            "display-message", "-p", "-t", self.origin,
+            "#{pane_id}\t#{session_id}\t#{window_id}\t#{session_name}\t#{window_name}",
+        ).rstrip("\n")
+        fields = text.split("\t", 4)
+        if len(fields) != 5 or fields[0] != self.origin:
+            raise JobError("Originating Pi pane no longer exists")
+        _, self.session, self.owner_window, session_name, window_name = fields
         self.owner = self.origin
+        agent_name = self.session_name() or window_name
+        self.display_name = self.readable(f"{session_name}/{agent_name}", 120)
+
+    @staticmethod
+    def readable(value, limit=80):
+        # Names are labels, not executable tmux formats or terminal control sequences.
+        value = " ".join("".join(c for c in value if c.isprintable()).split())
+        return value.replace("#", "_")[:limit] or "Pi"
+
+    @staticmethod
+    def session_name():
+        filename = os.environ.get("PI_SESSION_FILE")
+        if not filename:
+            return None
+        name = None
+        try:
+            with open(filename, "rb") as stream:
+                for line in stream:
+                    if b'"session_info"' not in line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except (ValueError, UnicodeDecodeError):
+                        continue
+                    if isinstance(entry, dict) and entry.get("type") == "session_info":
+                        value = entry.get("name")
+                        name = value if isinstance(value, str) and value.strip() else None
+        except OSError:
+            pass
+        return name
+
+    @classmethod
+    def for_session(cls, socket, session):
+        if not session.startswith("$") or not session[1:].isdigit():
+            raise JobError("A session ID is required for lifecycle cleanup")
+        jobs = cls.__new__(cls)
+        jobs.socket, jobs.session = socket, session
+        return jobs
 
     def tmux(self, *args):
         # tmux parses trailing semicolons even in an argv vector; preserve them literally.
@@ -55,7 +99,7 @@ class Jobs:
             raise JobError("Unsafe runtime lock directory")
         root.chmod(0o700)
         key = hashlib.sha256(
-            f"{self.socket}\0{self.session}\0{self.owner}".encode()
+            f"{self.socket}\0{self.session}".encode()
         ).hexdigest()
         flags = os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW
         fd = os.open(root / key, flags, 0o600)
@@ -72,6 +116,109 @@ class Jobs:
             yield
         finally:
             os.close(fd)
+
+    def install_reaper(self):
+        # Local hook arrays shadow global arrays. Preserve currently inherited entries first.
+        lines = self.tmux("show-hooks", "-t", self.session, "window-unlinked").splitlines()
+        if not lines:
+            inherited = [line for line in
+                         self.tmux("show-hooks", "-g", "window-unlinked").splitlines()
+                         if " " in line]
+            for line in inherited:
+                hook, command = line.split(" ", 1)
+                self.tmux("set-hook", "-t", self.session, hook, command)
+            lines = inherited
+        hooks = dict(line.split(" ", 1) for line in lines if " " in line)
+        saved = self.tmux("show-option", "-qv", "-t", self.session,
+                          "@pi_jobs_gc_index").strip()
+        previous = self.tmux("show-option", "-qv", "-t", self.session,
+                             "@pi_jobs_gc_command").strip()
+        own_hook = f"window-unlinked[{saved}]"
+        if saved.isdigit() and hooks.get(own_hook) == previous:
+            hook = own_hook
+        else:
+            for index in range(1000000, 1000064):
+                hook = f"window-unlinked[{index}]"
+                if hook not in hooks:
+                    break
+            else:
+                raise JobError("No free lifecycle hook slot; existing hooks were not replaced")
+        argv = [sys.executable, str(Path(__file__).resolve()), "_reap",
+                "--socket", self.socket, "--session", self.session]
+        # run-shell expands tmux formats even inside shell quotes. Escape literal hashes.
+        command = "run-shell -b " + shlex.quote(shlex.join(argv).replace("#", "##"))
+        self.tmux("set-hook", "-t", self.session, hook, command)
+        installed = dict(line.split(" ", 1) for line in
+                         self.tmux("show-hooks", "-t", self.session,
+                                   "window-unlinked").splitlines() if " " in line)[hook]
+        self.tmux("set-option", "-t", self.session, "@pi_jobs_gc_index",
+                  hook.partition("[")[2].rstrip("]"))
+        self.tmux("set-option", "-t", self.session, "@pi_jobs_gc_command", installed)
+        # Recheck after installation so closure during setup cannot create an orphan.
+        actual = self.tmux("display-message", "-p", "-t", self.origin,
+                           "#{window_id}").strip()
+        if actual != self.owner_window:
+            raise JobError("The originating Pi window changed during setup")
+
+    def refresh_workspace(self):
+        for number, (window, _, _) in enumerate(self.windows(), 1):
+            self.tmux("set-option", "-w", "-t", window,
+                      "@pi_jobs_owner_window", self.owner_window)
+            self.tmux("rename-window", "-t", window, self.window_name(number))
+            for pane, _, _, _, owner in self.panes(window):
+                if owner == self.owner:
+                    label = self.tmux("show-option", "-pqv", "-t", pane, "@pi_jobs_label")
+                    self.title(pane, label.strip() or "job")
+            self.borders(window)
+
+    def window_name(self, number):
+        return f"pi-jobs: {self.display_name} [{self.owner[1:]}-{number}]"
+
+    def borders(self, window):
+        self.tmux("set-option", "-w", "-t", window, "pane-border-status", "top")
+        self.tmux("set-option", "-w", "-t", window,
+                  "pane-border-format", "#{@pi_jobs_title}")
+
+    def title(self, pane, label):
+        label = self.readable(label)
+        title = f"pi-jobs: {self.display_name} / {label}"
+        self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_label", label)
+        self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_title", title)
+        self.tmux("select-pane", "-t", pane, "-T", title)
+
+    def reap(self):
+        # The origin may already be gone. Use only the recorded socket and stable session ID.
+        with self.locked():
+            try:
+                sessions = self.tmux("list-sessions", "-F", "#{session_id}").splitlines()
+            except JobError:
+                if not Path(self.socket).exists():
+                    return
+                raise
+            if self.session not in sessions:
+                return
+            text = self.tmux(
+                "list-windows", "-t", self.session, "-F",
+                "#{window_id}\t#{@pi_jobs_owner}\t#{@pi_jobs_owner_window}",
+            )
+            windows = [line.split("\t") for line in text.splitlines()]
+            live = {window for window, _, _ in windows}
+            text = self.tmux("list-panes", "-s", "-t", self.session, "-F",
+                             "#{pane_id}\t#{window_id}")
+            origins = dict(line.split("\t") for line in text.splitlines())
+            for window, owner, owner_window in windows:
+                if not owner.startswith("%") or not owner[1:].isdigit():
+                    continue
+                # Upgrade pre-lifecycle windows without deriving ownership from their names.
+                if not owner_window and owner in origins:
+                    owner_window = origins[owner]
+                    self.tmux("set-option", "-w", "-t", window,
+                              "@pi_jobs_owner_window", owner_window)
+                if owner_window in live:
+                    continue
+                for pane, _, _, _, pane_owner in self.panes(window):
+                    if pane_owner == owner:
+                        self.tmux("kill-pane", "-t", pane)
 
     def windows(self):
         text = self.tmux(
@@ -136,19 +283,22 @@ class Jobs:
                 self.tmux("set-option", "-w", "-t", window, "@pi_jobs_axis",
                           "v" if axis == "h" else "h")
                 return window, pane, False
-        name = f"pi-jobs-{self.owner[1:]}-{len(self.windows()) + 1}"
+        name = self.window_name(len(self.windows()) + 1)
         text = self.tmux(
             "new-window", "-d", "-t", f"{self.session}:", "-n", name,
             "-c", cwd, "-P", "-F", "#{window_id}\t#{pane_id}",
             "/usr/bin/sleep", "30",
         ).strip()
         window, pane = text.split("\t")
+        self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_pane_owner", self.owner)
         for option, value in [
-            ("@pi_jobs_owner", self.owner), ("@pi_jobs_axis", "h"),
+            ("@pi_jobs_owner", self.owner), ("@pi_jobs_owner_window", self.owner_window),
+            ("@pi_jobs_axis", "h"),
             ("automatic-rename", "off"), ("remain-on-exit", "on"),
             ("synchronize-panes", "off"),
         ]:
             self.tmux("set-option", "-w", "-t", window, option, value)
+        self.borders(window)
         return window, pane, True
 
     def start(self, command, cwd, label, min_width, min_height, max_panes):
@@ -158,6 +308,8 @@ class Jobs:
         identity = [cwd, label] if label else [cwd, command]
         key = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
         with self.locked():
+            self.install_reaper()
+            self.refresh_workspace()
             pane = None
             for window, _, _ in self.windows():
                 for candidate, _, _, candidate_key, owner in self.panes(window):
@@ -182,6 +334,7 @@ class Jobs:
             self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_pane_owner", self.owner)
             self.tmux("set-option", "-p", "-t", pane, "remain-on-exit", "on")
             self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_key", key)
+            self.title(pane, label or Path(command[0]).name)
             token = uuid.uuid4().hex
             self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_run", token)
             # Force direct exec even for a one-element argument vector. Never use default-shell.
@@ -259,8 +412,14 @@ def main():
         if action == "capture":
             sub.add_argument("--lines", type=positive, default=200)
     subs.add_parser("cleanup", help="Explicitly remove only completed owned panes")
+    reaper = subs.add_parser("_reap", help=argparse.SUPPRESS)
+    reaper.add_argument("--socket", required=True)
+    reaper.add_argument("--session", required=True)
     args = parser.parse_args()
     try:
+        if args.action == "_reap":
+            Jobs.for_session(args.socket, args.session).reap()
+            return 0
         jobs = Jobs(args.origin)
         if args.action == "run":
             command = args.command
@@ -270,6 +429,7 @@ def main():
                 raise JobError("A command argument vector is required after --")
             result = jobs.start(command, args.cwd, args.label,
                                 args.min_width, args.min_height, args.max_panes)
+            jobs.reap()
         elif args.action == "status":
             result = jobs.status(args.pane, args.run)
         elif args.action == "wait":
@@ -281,6 +441,8 @@ def main():
         print(json.dumps(result))
         return 0
     except (JobError, OSError, ValueError) as exc:
+        if args.action == "_reap":
+            return 2
         print(json.dumps({"error": str(exc)}), file=sys.stderr)
         return 2
 

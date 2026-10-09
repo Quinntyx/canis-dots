@@ -4,7 +4,7 @@ description: "Use when running commands expected to exceed 10–15 seconds, inte
   parallel terminal jobs, or starting, monitoring, capturing, or rerunning jobs in tmux."
 metadata:
   type: procedure
-compatibility: "Linux, Python 3, tmux with empty panes and respawn-pane; an existing tmux session."
+compatibility: "Linux, Python 3, recent tmux with indexed hooks; an existing tmux session."
 ---
 
 # Contract
@@ -14,6 +14,7 @@ compatibility: "Linux, Python 3, tmux with empty panes and respawn-pane; an exis
 - A command argument vector, an absolute working directory, and an existing tmux session.
 - `TMUX` and `TMUX_PANE` identifying the agent's original connection and pane.
 - Optional stable job label when command arguments change but the job should retain its slot.
+- Optional `PI_SESSION_FILE` from Pi's shell tool; its latest session name supplies readable labels.
 - User authorization for the command's side effects; this skill does not grant extra permission.
 - Python 3, tmux, `/usr/bin/env`, and `/usr/bin/sleep`; only Python's standard library is used.
 
@@ -22,10 +23,14 @@ compatibility: "Linux, Python 3, tmux with empty panes and respawn-pane; an exis
 - Visible command output in detached, dedicated job windows within the original session.
 - A JSON result containing session, window, pane, run token, state, exit code, and signal.
 - Stable pane IDs and geometry across reruns of the same job, without stealing user focus.
-- Completed processes exit normally; their inert panes retain output until reuse or explicit
-  cleanup.
-- No output redirection to files, completion-channel waits, blocked input prompts, or global tmux
-  edits.
+- Completed processes exit normally; their inert panes retain output until reuse, explicit cleanup,
+  or closure of the owning Pi window. Owner closure also removes still-running owned job panes.
+- Window names and persistent pane-border labels identify the spawning tmux and Pi sessions.
+- One indexed, background `window-unlinked` hook per original tmux session handles owner closure.
+  Existing local or currently inherited global hook entries are preserved; global hooks are not
+  edited.
+- No output redirection to files, completion-channel waits, or blocked input prompts. Global tmux
+  defaults and hook arrays are not edited.
 - Runtime locks reside in the system temporary directory, never in the skill or configuration tree.
 
 # Entrypoint
@@ -73,19 +78,27 @@ compatibility: "Linux, Python 3, tmux with empty panes and respawn-pane; an exis
 
 1. Invoke `bin/tmux-jobs capture --pane` with `--run` to read terminal output. `--lines` defaults
    to 200 and is capped at 2,000. Output remains visible in the pane; it is not redirected to a
-  file.
+   file.
 2. Report the command outcome, relevant output, and the handle when follow-up is needed.
 3. If a rerun is needed, return to Stage 2 with the same directory and job identity. Otherwise
-   finish
+  finish
    without closing the pane or window. No keypress is required after completion.
 4. Only when workspace cleanup is requested, invoke `bin/tmux-jobs cleanup` with the original
    origin. It removes completed owned panes and skips running ones, then finish with its result.
 
 # Workspace and Geometry
 
-- The helper creates detached windows named `pi-jobs-<origin>-<number>` in the original session.
-- Window ownership is stored in tmux options, not inferred from names. Other agents and user windows
-  are not reused, split, renamed, or closed. No session or window index is used as a stable handle.
+- Detached window names include `pi-jobs`, the spawning tmux session and Pi session name, and a
+  disambiguating origin ID and overflow number. Without readable Pi metadata, the origin window's
+  name is used. Only session-name entries from `PI_SESSION_FILE` are used; transcripts are not
+  copied.
+- Pane titles and persistent top-border labels include the same owner name and the job label or
+  executable name. Command title changes do not replace the persistent border label.
+- Starting or rerunning a job refreshes existing owned window and pane labels, so session renames
+  become visible without moving panes. Existing pre-lifecycle windows are upgraded in place.
+- Ownership is stored in tmux options, never inferred from names. Allocation and manual cleanup are
+  scoped to the caller; automatic lifecycle cleanup considers all marked workspaces in that session.
+  Unmarked panes and windows are not reused, split, renamed, or closed. Stable handles are IDs.
 - An exited matching job is respawned in place; allocation happens only for a new job identity.
 - Allocation prefers alternating left/right (`-h`) and top/bottom (`-v`) splits of the largest
   eligible pane. If the preferred axis cannot fit, the other axis is checked before making a window.
@@ -99,8 +112,9 @@ compatibility: "Linux, Python 3, tmux with empty panes and respawn-pane; an exis
 - Only that newly created placeholder is replaced with `respawn-pane -k`; existing job processes are
   never force-respawned. An interrupted setup leaves at most a bounded placeholder, not a stuck
   shell.
-- Concurrent starts are serialized with a bounded runtime lock. A busy job is never overwritten.
-  Missing panes are errors, not grounds for indefinite waiting.
+- Starts, captures, and cleanup share a bounded per-session runtime lock. Hook cleanup waits for
+  allocation to finish, so owner closure during setup cannot strand a newly allocated job.
+  A busy job is never overwritten. Missing panes are errors, not grounds for indefinite waiting.
 
 # Safety and Lifecycle
 
@@ -115,5 +129,20 @@ compatibility: "Linux, Python 3, tmux with empty panes and respawn-pane; an exis
 - Captured terminal scrollback may include earlier runs. The token verifies the current run's
   identity, not each output line's provenance. Capture relevant output before reuse; terminal
   scrollback is finite and is not an archival or complete log for verbose commands.
-- Do not automatically clean up after each command: preserving inert panes is necessary for stable
-  rerun locations. Cleanup is explicit and intentionally retires those locations.
+- Do not clean up after each command: preserving inert panes is necessary for stable rerun
+  locations.
+  Explicit cleanup retires completed slots; automatic cleanup happens when their owning window
+  leaves
+  the original tmux session, whether explicitly closed or removed after its last process exits.
+- Closing the owner removes active and completed panes carrying its ownership marker. Foreign panes
+  added to a jobs window survive; another agent's live workspace and unrelated windows survive.
+  Closing one pane while its owning window still exists does not trigger window-lifetime cleanup.
+- The hook uses the original socket and stable session ID, not a client focus or session name.
+  Session renames do not break cleanup. There is no polling daemon or command-completion signal.
+- The hook runs silently in the background, without input prompts or terminal-output redirection.
+  Its internal `_reap` command does not require the vanished origin pane. Do not invoke or modify it
+  as an alternative to the public monitoring and explicit-cleanup operations.
+- A new start also reaps orphaned marked workspaces left by older helper versions. Existing hook
+  entries are not replaced; when creating the local hook array, current global entries are copied
+  because tmux local arrays otherwise shadow them. Later global changes are not automatically
+  copied.

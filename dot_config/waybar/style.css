@@ -99,6 +99,8 @@ window#waybar {
 
 #custom-reaper-route {
     padding: 0 3px;
+    /* Keep icon ink inside its advance width; the non-Propo font overhangs. */
+    font-family: "FiraCode Nerd Font Propo";
 }
 
 #custom-power:hover,

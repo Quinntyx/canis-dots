@@ -57,12 +57,14 @@ metadata:
 
 1. Set effective C from requested concurrency and real pool capacity. Share C across Build,
    IntermediateReview and FinalReview; metadata tracks feature scope, depth, lineage and cycles.
+   Require positive power-of-two C and initial builder count N; default C=16 and N=2C=32.
+   Unsupported counts require a supported choice or lightweight delegation, not silent padding.
 2. Break work into coherent subsystems/features, not file slices. Each builder receives the
    overall request, its subsystem objective, acceptance criteria, worktree and CI duties. Let
    it discover and implement its design, interfaces and cross-file changes independently.
-3. Prepare 3C useful initial Build items and queue them with build.submit_all. Do not try to
-   predict or maintain '3C ready-or-running': subsequent reviews, repairs and merges grow the
-   pool naturally while live admission stays C. If the project cannot support useful 3C work,
+3. Prepare 2C useful initial Build items and queue them with build.submit_all. Do not try to
+   predict or maintain '2C ready-or-running': subsequent reviews, repairs and merges grow the
+   pool naturally while live admission stays C. If the project cannot support useful 2C work,
    say so before launch instead of manufacturing busywork or duplicating the entire prototype.
 4. Give each builder a separate branch/worktree from the green baseline. Meaningfully different
    alternatives can be useful, but partition by subsystem to avoid accidental whole-app replicas.
@@ -104,13 +106,11 @@ metadata:
 4. A mechanical merge with green CI advances without an extra intermediate reviewer. Its depth
    is d+1 for two parents at depth d. Put it only in that bucket; never immediately feed AB
    into a depth-zero pool to absorb C while other depth-zero builders remain outstanding.
-5. Merge independent equal-depth pairs in parallel. When all build/review/CI/repair/merge work
-   that can release further nodes is quiescent and no equal-depth pair remains, carry the
-   lowest-depth orphan into the nearest higher-depth node and continue reducing. Use at most
-   one orphan carry per level; non-power-of-two sizes can need carries at multiple levels.
-6. Cross-depth carries use the identical mechanical merge, CI and repair/review gates. Keep
-   every original and intermediate branch/worktree. When one validated root remains and all
-   accepted contributors are accounted for, proceed to Stage 6.
+5. Merge independent equal-depth pairs in parallel. Power-of-two builder cohorts have no merge
+   orphans. Wait for an unmatched sibling's review, CI or repair; never join different depths.
+   A blocked contributor blocks full integration: retain its state rather than dropping it.
+6. Keep every original and intermediate branch/worktree. Proceed to Stage 6 only with one
+   validated root containing all N original contributors at depth log2(N), and no pending merges.
 
 ## Stage 6: Strict final review and delivery
 
@@ -129,8 +129,8 @@ metadata:
 
 ## Stage 7: Retain then clean
 
-1. Large fan-out is intentional and permitted. N=3C builders plus N-1 distinct merge worktrees
-   produces 2N-1 = 6C-1 worktrees/branches, before repair/review extras. Disk use is acceptable:
+1. Large fan-out is intentional and permitted. N=2C builders plus N-1 distinct merge worktrees
+   produces 2N-1 = 4C-1 worktrees/branches, before repair/review extras. Disk use is acceptable:
    do not lower concurrency, avoid worktrees or prematurely delete nodes because it looks large.
 2. Use sccache for Rust and comparable cache approaches when other compilers show overhead.
    Address contention at the cache/resource layer rather than throttling the orchestration.
@@ -148,7 +148,7 @@ metadata:
 
 - Worktree ownership replaces exhaustive file ownership. Subsystem briefs state what to achieve,
   not which files to edit or which parent-designed interfaces/classes to reproduce.
-- Submit 3C initial Build items once via submit_all; don't maintain a speculative ready frontier.
+- Submit 2C initial Build items once via submit_all; don't maintain a speculative ready frontier.
 - Review a feature loosely before merging; review the final prototype strictly after reduction.
 - Pure git merge plus green CI is the default. Dispatch repair agents on observed failure only.
 - Do not form a rolling accumulator or repeatedly send early branches through unrelated agents.

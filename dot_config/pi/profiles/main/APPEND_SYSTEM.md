@@ -64,40 +64,6 @@ If the user says "I want to do X", they mean that they want to do it, not that t
 
 Only write code if the user says "Please do," "Do it", "Build it", etc.
 
-## Tmux Policy and Long-Running Commands
-
-The Pi instance will be run inside of `tmux`. Therefore, long-running shell commands should be run in a `tmux` pane, especially commands that may require the user's interaction.
-
-Any command that is projected to take more than 10 to 15 seconds to complete (eg. tasks like compiling code in larger projects, for example) should be run via `tmux`.
-
-When running a command via tmux, follow this method:
-```bash
-channel="job-done-$$"
-
-tmux split-window "
-    your-command
-    rc=\$?
-
-    tmux wait-for -S '$channel'
-
-    printf '\nPress any key to close...'
-    read -rsn1
-
-    exit \$rc
-"
-
-tmux wait-for "$channel"
-```
-
-DO NOT pipe the output of the command to a file, as the purpose of this is to display or make interactible the progress of the long-running command to a user.
-
-Once the `wait-for` signal returns, you can capture the content of the pane to get the command output, and then dismiss it by sending a keypress.
-
-If there are multiple long-running commands that can be run in parallel, assign them different signal channels and then run them in separate panels to run them in parallel.
-
-When interacting with tmux, use tmux **pane IDs**, not pane indices, because the user may also be using tmux. As a result, pane indices should be treated as unstable.
-
-
 ## Intermediate Prose
 
 When outputing prose between tool calls (henceforth referred to as "intermediate prose"), follow these guidelines:

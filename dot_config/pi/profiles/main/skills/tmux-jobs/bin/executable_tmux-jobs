@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""Run visible jobs in stable, explicitly targeted tmux panes."""
+
+import argparse
+import contextlib
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+
+
+class JobError(Exception):
+    pass
+
+
+class Jobs:
+    def __init__(self, origin=None):
+        connection = os.environ.get("TMUX", "")
+        if not connection:
+            raise JobError("Run inside tmux; TMUX is not set")
+        self.socket = connection.rsplit(",", 2)[0]
+        self.origin = origin or os.environ.get("TMUX_PANE", "")
+        if not self.origin.startswith("%") or not self.origin[1:].isdigit():
+            raise JobError("An originating pane ID is required")
+        self.session = self.tmux(
+            "display-message", "-p", "-t", self.origin, "#{session_id}"
+        ).strip()
+        self.owner = self.origin
+
+    def tmux(self, *args):
+        # tmux parses trailing semicolons even in an argv vector; preserve them literally.
+        args = [arg[:-1] + r"\;" if arg.endswith(";") else arg for arg in args]
+        try:
+            result = subprocess.run(
+                ["tmux", "-S", self.socket, *args], capture_output=True,
+                text=True, timeout=5, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise JobError(f"tmux unavailable: {exc}") from exc
+        if result.returncode:
+            raise JobError(result.stderr.strip() or "tmux command failed")
+        return result.stdout
+
+    @contextlib.contextmanager
+    def locked(self):
+        root = Path(tempfile.gettempdir()) / f"pi-tmux-jobs-{os.getuid()}"
+        root.mkdir(mode=0o700, exist_ok=True)
+        if root.is_symlink() or root.stat().st_uid != os.getuid():
+            raise JobError("Unsafe runtime lock directory")
+        root.chmod(0o700)
+        key = hashlib.sha256(
+            f"{self.socket}\0{self.session}\0{self.owner}".encode()
+        ).hexdigest()
+        flags = os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW
+        fd = os.open(root / key, flags, 0o600)
+        deadline = time.monotonic() + 5
+        try:
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline:
+                        raise JobError("Job workspace busy; retry later")
+                    time.sleep(0.05)
+            yield
+        finally:
+            os.close(fd)
+
+    def windows(self):
+        text = self.tmux(
+            "list-windows", "-t", self.session, "-F",
+            "#{window_id}\t#{@pi_jobs_owner}\t#{@pi_jobs_axis}",
+        )
+        return [line.split("\t") for line in text.splitlines()
+                if line.split("\t")[1] == self.owner]
+
+    def panes(self, window):
+        text = self.tmux(
+            "list-panes", "-t", window, "-F",
+            "#{pane_id}\t#{pane_width}\t#{pane_height}\t#{@pi_jobs_key}\t"
+            "#{@pi_jobs_pane_owner}",
+        )
+        return [line.split("\t") for line in text.splitlines()]
+
+    def status(self, pane, run=None):
+        if not pane.startswith("%") or not pane[1:].isdigit():
+            raise JobError("Use a pane ID, not an index")
+        text = self.tmux(
+            "display-message", "-p", "-t", pane,
+            "#{pane_id}\t#{window_id}\t#{session_id}\t#{@pi_jobs_pane_owner}\t"
+            "#{@pi_jobs_run}\t#{pane_dead}\t#{pane_dead_status}\t"
+            "#{pane_dead_signal}\t#{pane_width}\t#{pane_height}\t#{pane_pid}",
+        ).rstrip("\n")
+        fields = text.split("\t")
+        if len(fields) != 11 or fields[0] != pane:
+            raise JobError("Pane no longer exists")
+        if fields[2] != self.session or fields[3] != self.owner:
+            raise JobError("Pane is not owned by this job workspace")
+        if run is not None and fields[4] != run:
+            raise JobError("Pane has a different run; refusing stale monitoring")
+        dead = fields[5] == "1"
+        empty = fields[10] in ("", "0")
+        return {
+            "session": fields[2], "window": fields[1], "pane": pane,
+            "run": fields[4], "state": "done" if dead else "empty" if empty else "running",
+            "exit_code": int(fields[6]) if dead and fields[6] else None,
+            "signal": fields[7] or None,
+            "width": int(fields[8]), "height": int(fields[9]),
+        }
+
+    def allocate(self, cwd, min_width, min_height, max_panes):
+        for window, _, preferred in self.windows():
+            panes = self.panes(window)
+            if len(panes) >= max_panes:
+                continue
+            for axis in [preferred or "h", "v" if preferred != "v" else "h"]:
+                eligible = [p for p in panes if p[4] == self.owner and (
+                    int(p[1]) >= min_width * 2 + 1 and int(p[2]) >= min_height
+                    if axis == "h" else
+                    int(p[2]) >= min_height * 2 + 1 and int(p[1]) >= min_width
+                )]
+                if not eligible:
+                    continue
+                target = max(eligible, key=lambda p: int(p[1]) * int(p[2]))[0]
+                pane = self.tmux(
+                    "split-window", "-d", f"-{axis}", "-t", target,
+                    "-c", cwd, "-P", "-F", "#{pane_id}", "",
+                ).strip()
+                self.tmux("set-option", "-w", "-t", window, "@pi_jobs_axis",
+                          "v" if axis == "h" else "h")
+                return window, pane, False
+        name = f"pi-jobs-{self.owner[1:]}-{len(self.windows()) + 1}"
+        text = self.tmux(
+            "new-window", "-d", "-t", f"{self.session}:", "-n", name,
+            "-c", cwd, "-P", "-F", "#{window_id}\t#{pane_id}",
+            "/usr/bin/sleep", "30",
+        ).strip()
+        window, pane = text.split("\t")
+        for option, value in [
+            ("@pi_jobs_owner", self.owner), ("@pi_jobs_axis", "h"),
+            ("automatic-rename", "off"), ("remain-on-exit", "on"),
+            ("synchronize-panes", "off"),
+        ]:
+            self.tmux("set-option", "-w", "-t", window, option, value)
+        return window, pane, True
+
+    def start(self, command, cwd, label, min_width, min_height, max_panes):
+        cwd = str(Path(cwd).expanduser().resolve(strict=True))
+        if not Path(cwd).is_dir():
+            raise JobError("Working directory is not a directory")
+        identity = [cwd, label] if label else [cwd, command]
+        key = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
+        with self.locked():
+            pane = None
+            for window, _, _ in self.windows():
+                for candidate, _, _, candidate_key, owner in self.panes(window):
+                    if owner == self.owner and candidate_key == key:
+                        current = self.status(candidate)
+                        if current["state"] == "running":
+                            raise JobError(
+                                f"Job already running in {candidate}; do not overwrite it"
+                            )
+                        pane = candidate
+                        break
+                if pane:
+                    break
+            reused = pane is not None
+            bootstrap = False
+            if pane is None:
+                window, pane, bootstrap = self.allocate(
+                    cwd, min_width, min_height, max_panes
+                )
+            # New windows use our bounded placeholder; split panes are genuinely empty.
+            # In both cases retention is configured before the actual command can exit.
+            self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_pane_owner", self.owner)
+            self.tmux("set-option", "-p", "-t", pane, "remain-on-exit", "on")
+            self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_key", key)
+            token = uuid.uuid4().hex
+            self.tmux("set-option", "-p", "-t", pane, "@pi_jobs_run", token)
+            # Force direct exec even for a one-element argument vector. Never use default-shell.
+            flags = ["-k"] if bootstrap else []
+            self.tmux("respawn-pane", *flags, "-t", pane, "-c", cwd,
+                      "/usr/bin/env", "--", *command)
+            result = self.status(pane, token)
+            result["reused"] = reused
+            return result
+
+    def wait(self, pane, run, seconds):
+        deadline = time.monotonic() + seconds
+        while True:
+            result = self.status(pane, run)
+            if result["state"] != "running" or time.monotonic() >= deadline:
+                return result
+            time.sleep(min(0.2, max(0, deadline - time.monotonic())))
+
+    def capture(self, pane, run, lines):
+        # Serialize with reruns so the checked token still identifies the captured output.
+        with self.locked():
+            result = self.status(pane, run)
+            result["output"] = self.tmux(
+                "capture-pane", "-p", "-t", pane, "-S", f"-{lines}"
+            )
+            return result
+
+    def cleanup(self):
+        removed, active = [], []
+        with self.locked():
+            for window, _, _ in self.windows():
+                for pane, _, _, _, owner in self.panes(window):
+                    if owner != self.owner:
+                        continue
+                    state = self.status(pane)["state"]
+                    if state == "running":
+                        active.append(pane)
+                    else:
+                        self.tmux("kill-pane", "-t", pane)
+                        removed.append(pane)
+        return {"removed": removed, "still_running": active}
+
+
+def positive(value):
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("Must be positive")
+    return number
+
+
+def bounded_seconds(value):
+    number = float(value)
+    if not 0 <= number <= 60:
+        raise argparse.ArgumentTypeError("Wait duration must be between 0 and 60 seconds")
+    return number
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--origin", help="Originating agent pane ID; defaults to TMUX_PANE")
+    subs = parser.add_subparsers(dest="action", required=True)
+    run_parser = subs.add_parser("run", help="Start or rerun a job without blocking")
+    run_parser.add_argument("--cwd", default=os.getcwd())
+    run_parser.add_argument("--label", help="Stable slot label, scoped to the working directory")
+    run_parser.add_argument("--min-width", type=positive, default=80)
+    run_parser.add_argument("--min-height", type=positive, default=15)
+    run_parser.add_argument("--max-panes", type=positive, default=4)
+    run_parser.add_argument("command", nargs=argparse.REMAINDER)
+    for action in ["status", "wait", "capture"]:
+        sub = subs.add_parser(action)
+        sub.add_argument("--pane", required=True)
+        sub.add_argument("--run", required=True, help="Token returned by run")
+        if action == "wait":
+            sub.add_argument("--seconds", type=bounded_seconds, default=10)
+        if action == "capture":
+            sub.add_argument("--lines", type=positive, default=200)
+    subs.add_parser("cleanup", help="Explicitly remove only completed owned panes")
+    args = parser.parse_args()
+    try:
+        jobs = Jobs(args.origin)
+        if args.action == "run":
+            command = args.command
+            if command[:1] == ["--"]:
+                command = command[1:]
+            if not command:
+                raise JobError("A command argument vector is required after --")
+            result = jobs.start(command, args.cwd, args.label,
+                                args.min_width, args.min_height, args.max_panes)
+        elif args.action == "status":
+            result = jobs.status(args.pane, args.run)
+        elif args.action == "wait":
+            result = jobs.wait(args.pane, args.run, args.seconds)
+        elif args.action == "capture":
+            result = jobs.capture(args.pane, args.run, min(args.lines, 2000))
+        else:
+            result = jobs.cleanup()
+        print(json.dumps(result))
+        return 0
+    except (JobError, OSError, ValueError) as exc:
+        print(json.dumps({"error": str(exc)}), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

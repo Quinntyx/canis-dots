@@ -41,9 +41,10 @@ metadata:
 2. Do not turn a location-only request into a clone, or a worktree request into a forge migration.
 3. Check `command -v git` and the CLI needed for the selected host. If missing, stop and report the
    prerequisite; do not install software or silently substitute unauthenticated cloning.
-4. Run network operations that may exceed 10–15 seconds in a visible tmux pane. Use a distinct
-   `tmux wait-for` completion channel, capture output after completion, and address panes by ID.
-   Preserve the command's exit status; do not redirect progress to a file.
+4. Run network operations that may exceed 10–15 seconds in detached, dedicated tmux job windows.
+   Retain exited panes, use their native completion state with bounded monitoring, and reuse the same
+   pane for reruns. Target pane IDs, never split the active user pane, and preserve the exit status.
+   Do not redirect progress to a file. The `tmux-jobs` skill supplies the reusable job helper.
 5. Select the requested operation:
    - Clone: proceed to Stage 2.
    - Fork: proceed to Stage 3.

@@ -29,7 +29,6 @@ window#waybar {
 #scratchpad,
 #window,
 #mpd,
-#custom-reaper-route,
 #pulseaudio,
 #cpu,
 #memory,
@@ -84,7 +83,8 @@ window#waybar {
     padding: 0 7px;
 }
 
-#custom-power {
+#custom-power,
+#custom-reaper-route {
     background: rgba(255, 244, 191, 0.96);
     color: #2e2a1d;
     padding: 0 4px 0 2px;
@@ -97,22 +97,9 @@ window#waybar {
     font-weight: 700;
 }
 
-#custom-power:hover {
-    background: rgba(242, 183, 5, 0.85);
-}
-
-#custom-reaper-route.headphones {
-    background: rgba(242, 183, 5, 0.85);
-    font-weight: 700;
-}
-
-#custom-reaper-route.other,
-#custom-reaper-route.error {
-    color: #8b3a2e;
-}
-
+#custom-power:hover,
 #custom-reaper-route:hover {
-    background: rgba(242, 183, 5, 0.35);
+    background: rgba(242, 183, 5, 0.85);
 }
 
 #custom-mpris.playing {

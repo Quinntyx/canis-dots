@@ -1,0 +1,13 @@
+[Unit]
+Description=Forward Tailscale CLIProxyAPI connections to the private loopback server
+ConditionHost=araveia
+Requires=cliproxyapi.service
+After=cliproxyapi.service
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:8317
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

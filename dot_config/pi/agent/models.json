@@ -235,7 +235,7 @@
       ]
     },
     "cliproxyapi": {
-      "baseUrl": "http://127.0.0.1:8317/backend-api",
+      "baseUrl": "http://araveia.tail985727.ts.net:8317/backend-api",
       "api": "openai-codex-responses",
       "apiKey": "!\"$HOME/.local/bin/cliproxyapi-key\"",
       "models": [

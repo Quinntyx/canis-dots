@@ -79,3 +79,21 @@ If a completed device login was retained in a private staging directory, publish
 Human-readable quota summaries use percentage remaining. For capped accounts, the report separately shows usable headroom before the caps; reserved quota is not spendable. Raw provider utilization remains available in JSON for scheduling and diagnostics.
 
 Team seats are identified by workspace plus authenticated user, not workspace alone. Different seats in the same workspace keep separate quota, cap and efficiency records. Duplicate credential copies for the same seat retain the canonical slot policy when disabled.
+
+
+## Connecting from other Tailscale machines
+
+All Pi profiles use `http://araveia.tail985727.ts.net:8317/backend-api`,
+including on araveia itself. The user socket `cliproxyapi-tailscale.socket`
+listens only on araveia's Tailscale IP (100.110.255.43), forwarding to the
+loopback-only CLIProxyAPI server. No LAN/public listener or Funnel is enabled.
+The gateway units have `ConditionHost=araveia` and are enabled only on araveia.
+Tailscale encrypts the traffic; the HTTP URL does not imply public cleartext.
+
+Other machines must be in the tailnet and allowed to connect by its ACLs.
+Syncing chezmoi does NOT sync credentials. Securely provision just the existing
+`client_key` in `~/.local/share/cliproxyapi/secrets.json` (directory mode 700,
+file mode 600) on each client. The `cliproxyapi-key` helper reads that field.
+Never copy OAuth account files or the private `management_key` to clients.
+The footer uses `/v1/quota/remaining` with the same client key as inference;
+it never sends the management key to a remote machine.

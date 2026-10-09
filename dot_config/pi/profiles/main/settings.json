@@ -1,6 +1,6 @@
 {
   "groupToolCalls": true,
-  "lastChangelogVersion": "1.0.4",
+  "lastChangelogVersion": "1.1.0",
   "theme": "everforest-tui-light",
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-5.5",
@@ -38,7 +38,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-session-move",
     "git:git.quinntyx.dev/quinntyx/pi-web-access",
     "npm:pi-permissions",
-    "npm:pi-mcp-adapter",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
@@ -54,9 +53,7 @@
     "git:github.com/Quinntyx/billion-context-pi@main"
   ],
   "hideThinkingBlock": true,
-  "extensions": [
-    "-builtin:mcp"
-  ],
+  "extensions": [],
   "compaction": {
     "reserveTokens": 0
   },

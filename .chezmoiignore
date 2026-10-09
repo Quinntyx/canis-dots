@@ -57,6 +57,10 @@ docs/host/forgejo/forgejo/gitea/conf/
 .config/pi/profiles/*/session-store
 .config/pi/profiles/*/tmux-client-*.log
 .config/pi/profiles/*/models-store.json
+# Native MCP credentials and runtime logs stay machine-local.
+.config/pi/profiles/*/mcp-auth.json
+.config/pi/profiles/*/mcp.log
+.config/pi/profiles/*/mcp.log.1
 # These profiles contain real repository checkouts; other profile git paths are managed symlinks.
 .config/pi/profiles/daily_assistant/git
 .config/pi/profiles/subagents/git

@@ -1,0 +1,20 @@
+{{- $browser := or (lookPath "google-chrome-stable") (lookPath "google-chrome") (lookPath "chromium") -}}
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+{{- if $browser }}
+        "--executable-path",
+        {{ $browser | toJson }},
+{{- end }}
+        "--no-usage-statistics",
+        "--no-performance-crux"
+      ],
+      "exposure": "deferred",
+      "description": "Inspect and automate a browser with Chrome DevTools: screenshots, console, network, and performance debugging."
+    }
+  }
+}

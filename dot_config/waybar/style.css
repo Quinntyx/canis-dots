@@ -101,13 +101,9 @@ window#waybar {
     background: rgba(242, 183, 5, 0.85);
 }
 
-#custom-reaper-route.mix {
+#custom-reaper-route.headphones {
     background: rgba(242, 183, 5, 0.85);
     font-weight: 700;
-}
-
-#custom-reaper-route.stopped {
-    color: #6b6553;
 }
 
 #custom-reaper-route.other,

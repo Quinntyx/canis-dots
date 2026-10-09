@@ -24,9 +24,10 @@
     "git:git.quinntyx.dev/quinntyx/pi-web-access",
     "git:github.com/Quinntyx/billion-context-pi@main",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
-    "npm:pi-tool-display"
+    "npm:pi-tool-display",
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
   ],
-  "lastChangelogVersion": "1.0.4",
+  "lastChangelogVersion": "1.1.0",
   "hideThinkingBlock": false,
   "transport": "websocket-cached",
   "extensions": [],

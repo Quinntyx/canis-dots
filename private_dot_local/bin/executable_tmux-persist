@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Named-session tmux-resurrect snapshots, with exact Pi/nvim restoration."""
+import argparse
+import base64
+import contextlib
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+HOME = Path.home()
+STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "tmux"
+PLUGIN = HOME / ".local/share/tmux/plugins/tmux-resurrect"
+PI_ENV = ("PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "PPI_PI_DIR", "PPI_PROFILE", "PPI_PROFILE_DIR")
+NVIM_ENV = ("NVIM_APPNAME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME")
+SOCKET = os.environ.get("TMUX", "").split(",")[0]
+
+
+def tmux(*args, check=True):
+    prefix = ["tmux"] + (["-S", SOCKET] if SOCKET else [])
+    result = subprocess.run(prefix + list(args), capture_output=True, text=True, timeout=5)
+    if check and result.returncode:
+        raise RuntimeError(result.stderr.strip() or "tmux command failed")
+    return result.stdout.rstrip("\n")
+
+
+def option(name):
+    return tmux("show-option", "-g", "-v", name, check=False)
+
+
+def process_info(pid):
+    try:
+        stat = Path(f"/proc/{int(pid)}/stat").read_text()
+        parts = stat[stat.rfind(")") + 2:].split()
+        return {"parent": int(parts[1]), "group": int(parts[2]), "foreground": int(parts[5]), "start": parts[19]}
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def active_process(data, pane_pid):
+    """Reject stale metadata, PID reuse, unrelated/background processes."""
+    info = process_info(data.get("pid", 0))
+    if not info or info["start"] != data.get("start"):
+        return False
+    if info["foreground"] > 0 and info["group"] != info["foreground"]:
+        return False
+    pid = int(data["pid"])
+    for _ in range(100):
+        if pid == int(pane_pid):
+            return True
+        parent = process_info(pid)
+        if not parent or parent["parent"] <= 1:
+            return False
+        pid = parent["parent"]
+    return False
+
+
+def encode(data):
+    return base64.urlsafe_b64encode(json.dumps(data, separators=(",", ":")).encode()).decode()
+
+
+def rewrite_snapshot(text, panes):
+    """Filter numeric names; rebase groups whose original is disposable."""
+    rows = [line.split("\t") for line in text.splitlines() if line]
+    groups = {}
+    for row in rows:
+        if row[0] == "grouped_session":
+            groups.setdefault(row[2], [row[2]]).append(row[1])
+    replacements = {}
+    aliases = {}
+    for original, members in groups.items():
+        kept = [name for name in members if not name.isascii() or not name.isdecimal()]
+        if kept:
+            canonical = original if original in kept else kept[0]
+            replacements[original] = canonical
+            for name in kept:
+                aliases[name] = canonical
+    named = set()
+    output = []
+    for row in rows:
+        kind = row[0]
+        if kind == "state":
+            continue
+        if kind == "grouped_session":
+            name = row[1]
+            if name not in aliases or name == aliases[name]:
+                continue
+            row[2] = aliases[name]
+        elif kind in ("pane", "window"):
+            # Lookup metadata under the live name before rebasing a group.
+            original = row[1]
+            row[1] = replacements.get(original, original)
+            if row[1].isascii() and row[1].isdecimal():
+                continue
+            if kind == "pane":
+                data = panes.get((original, row[2], row[5]))
+                # Clear every original command, including resurrect's defaults.
+                # Only our validated Pi/nvim payloads may be executed.
+                row[9], row[10] = "shell", ":"
+                if data:
+                    row[9] = "tmux-persist"
+                    row[10] = ":tmux-persist resume " + encode(data)
+        else:
+            continue
+        named.add(row[1])
+        output.append(row)
+    if named:
+        state = next((row for row in rows if row[0] == "state"), ["state", "", ""])
+        candidate = replacements.get(state[1], state[1]) if len(state) > 1 else ""
+        current = candidate if candidate in named else sorted(named)[0]
+        previous = state[2] if len(state) > 2 and state[2] in named else current
+        output.append(["state", current, previous])
+    return "".join("\t".join(row) + "\n" for row in output)
+
+
+def pane_metadata():
+    # JSON options cannot contain literal tabs or newlines.
+    fmt = "\t".join(("#{session_name}", "#{window_index}", "#{pane_index}", "#{pane_pid}", "#{@pi-resurrect}", "#{@nvim-resurrect}"))
+    result = {}
+    for line in tmux("list-panes", "-a", "-F", fmt).splitlines():
+        row = line.split("\t")
+        if len(row) != 6:
+            continue
+        for raw in row[4:]:
+            try:
+                data = json.loads(raw)
+                if data.get("version") != 1 or data.get("kind") not in ("pi", "nvim"):
+                    continue
+                if active_process(data, row[3]) and Path(data["sessionFile"]).is_file():
+                    result[tuple(row[:3])] = data
+                    break  # A nested nvim tool must not displace its owning Pi.
+            except (ValueError, KeyError, TypeError, OSError):
+                continue
+    return result
+
+
+def filter_file(path):
+    path = Path(path)
+    # Rewrite before resurrect updates its `last` symlink. Runtime files never
+    # enter chezmoi; umask protects session paths and launch metadata.
+    value = rewrite_snapshot(path.read_text(), pane_metadata())
+    temporary = path.with_name(path.name + ".filtered")
+    temporary.write_text(value)
+    temporary.chmod(0o600)
+    temporary.replace(path)
+
+
+@contextlib.contextmanager
+def lock():
+    STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
+    identity = SOCKET or tmux("display-message", "-p", "#{socket_path}", check=False) or "default"
+    suffix = hashlib.sha256(identity.encode()).hexdigest()[:12]
+    with (STATE / f"persist-{suffix}.lock").open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        yield
+
+
+def server_pid():
+    return tmux("display-message", "-p", "#{pid}", check=False)
+
+
+def ready(pid):
+    return bool(pid) and option("@tmux-persist-ready") == pid
+
+
+def snapshot():
+    directory = option("@resurrect-dir")
+    return Path(os.path.expandvars(os.path.expanduser(directory))) / "last" if directory else None
+
+
+def resurrect(action):
+    script = PLUGIN / "scripts" / f"{action}.sh"
+    if not script.is_file():
+        raise RuntimeError(f"Missing tmux-resurrect: {script}; run chezmoi apply")
+    result = subprocess.run(["bash", str(script), "quiet"], timeout=60)
+    if result.returncode:
+        raise RuntimeError(f"tmux-resurrect {action} failed ({result.returncode})")
+
+
+def restore_snapshot():
+    saved = snapshot()
+    if saved and saved.is_file() and any(line.startswith("pane\t") for line in saved.read_text().splitlines()):
+        resurrect("restore")
+
+
+def startup():
+    # run-shell -b may start before tmux has created its first session.
+    for _ in range(50):
+        if tmux("list-sessions", check=False):
+            break
+        time.sleep(0.1)
+    else:
+        return
+    with lock():
+        pid = server_pid()
+        if ready(pid):  # Re-sourcing config must not resurrect closed sessions.
+            return
+        restore_snapshot()
+        tmux("set-option", "-g", "@tmux-persist-ready", pid)
+
+
+def save(manual=False):
+    if not tmux("list-sessions", check=False):
+        return  # Never start a tmux server just to save.
+    with lock():
+        pid = server_pid()
+        if not ready(pid):
+            return  # Never overwrite the last snapshot while restore is pending.
+        resurrect("save")
+        if manual:
+            tmux("display-message", "Named tmux sessions saved (Pi/nvim only)", check=False)
+
+
+def restore():
+    with lock():
+        restore_snapshot()
+        pid = server_pid()
+        if pid:
+            tmux("set-option", "-g", "@tmux-persist-ready", pid)
+
+
+def resume(payload):
+    data = json.loads(base64.urlsafe_b64decode(payload))
+    kind = data.get("kind")
+    if data.get("version") != 1 or kind not in ("pi", "nvim"):
+        raise RuntimeError("Unsupported saved process (only Pi and nvim are restored)")
+    path = Path(data["sessionFile"])
+    if not path.is_absolute() or not path.is_file():
+        raise RuntimeError(f"Saved {kind} session is missing: {path}")
+    env = os.environ.copy()
+    keys = PI_ENV if kind == "pi" else NVIM_ENV
+    for key in keys:
+        env.pop(key, None)
+    for key, value in data.get("environment", {}).items():
+        if key in keys and isinstance(value, str):
+            env[key] = value
+    if kind == "pi":
+        # Use the exact installed Pi executable, with --session rather than
+        # --continue. Node's absolute path also survives login-shell PATH changes.
+        argv = [data["executable"], data["entrypoint"], "--session", str(path)]
+    else:
+        env.pop("NVIM", None)
+        env.pop("NVIM_LISTEN_ADDRESS", None)
+        argv = [data.get("executable") or shutil.which("nvim") or "nvim", "-S", str(path)]
+    os.chdir(data["cwd"])
+    os.execvpe(argv[0], argv, env)
+
+
+def main():
+    os.umask(0o077)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("startup", "save", "restore", "filter", "resume"))
+    parser.add_argument("value", nargs="?")
+    parser.add_argument("--manual", action="store_true")
+    args = parser.parse_args()
+    try:
+        if args.action == "filter":
+            filter_file(args.value)
+        elif args.action == "resume":
+            resume(args.value)
+        elif args.action == "save":
+            save(args.manual)
+        else:
+            globals()[args.action]()
+    except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"tmux-persist: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

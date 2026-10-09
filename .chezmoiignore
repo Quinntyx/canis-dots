@@ -87,3 +87,16 @@ docs/host/forgejo/forgejo/gitea/conf/
 .local/share/cliproxyapi/secrets.json
 .local/state/cliproxyapi/**
 .local/lib/cliproxyapi/**
+
+# ---- tmux snapshots and Pi-generated package/session state ----
+.local/state/tmux
+.config/pi/profiles/*/npm
+.pi/agent/auth.json
+.pi/agent/antigravity-accounts.json
+.pi/agent/deepseek-router.json
+.pi/agent/git
+.pi/agent/npm
+.pi/agent/sessions
+.pi/agent/session-move
+.pi/agent/session-store
+.pi/agent/models-store.json

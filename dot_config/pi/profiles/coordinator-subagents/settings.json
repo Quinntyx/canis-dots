@@ -14,7 +14,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
-    "npm:pi-everforest-tui"
+    "npm:pi-everforest-tui",
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
   ],
   "hideThinkingBlock": true,
   "tuiMode": "fullscreen",

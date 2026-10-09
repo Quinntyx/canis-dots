@@ -8,7 +8,9 @@
   "defaultProjectTrust": "never",
   "hideThinkingBlock": true,
   "quietStartup": true,
-  "packages": [],
+  "packages": [
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+  ],
   "tuiMode": "fullscreen",
   "fullscreenExitOutput": "resume-hint"
 }

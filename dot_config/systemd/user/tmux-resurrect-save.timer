@@ -1,0 +1,10 @@
+[Unit]
+Description=Save named tmux sessions every minute (independent of status line)
+
+[Timer]
+OnStartupSec=1min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

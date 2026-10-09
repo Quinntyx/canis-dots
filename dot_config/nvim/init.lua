@@ -6,3 +6,6 @@ require("setup-updates")
 
 -- Data Lifecycle: Stage setup-final-fixes...
 require("setup-final-fixes")
+
+-- Persist this pane's editor layout for named-session tmux restoration.
+require("tmux-persistence")

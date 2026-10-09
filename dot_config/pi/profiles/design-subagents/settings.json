@@ -21,7 +21,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",
     "git:git.quinntyx.dev/quinntyx/pi-ui-forge",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
-    "npm:pi-tool-display"
+    "npm:pi-tool-display",
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
   ],
   "lastChangelogVersion": "1.0.4",
   "hideThinkingBlock": false,

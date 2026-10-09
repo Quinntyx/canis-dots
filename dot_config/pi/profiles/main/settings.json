@@ -50,7 +50,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-idle-time",
     "git:git.quinntyx.dev/quinntyx/pi-tps",
     "git:git.quinntyx.dev/quinntyx/pi-sock",
-    "git:github.com/Quinntyx/billion-context-pi@main"
+    "git:github.com/Quinntyx/billion-context-pi@main",
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
   ],
   "hideThinkingBlock": true,
   "extensions": [],

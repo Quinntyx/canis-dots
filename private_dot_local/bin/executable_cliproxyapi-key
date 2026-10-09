@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-jq -er '.client_key | select(type == "string" and length >= 32)' "$HOME/.local/share/cliproxyapi/secrets.json"
+# Public format-only placeholder for Pi's Codex client, NOT an access credential.
+# Tailnet inference is unauthenticated; this never reads secrets.json.
+printf '%s\n' eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiY2xpcHJveHlhcGktdGFpbG5ldCJ9fQ.tailnet-no-auth

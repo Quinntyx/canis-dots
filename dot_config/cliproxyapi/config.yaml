@@ -1,7 +1,8 @@
-# Private API keys are injected into an untracked runtime copy by cliproxyapi.
+# Tailnet-only inference has no API key. The private management key is injected
+# into an untracked runtime copy by cliproxyapi.
 config-version: 8
 server:
-  host: "127.0.0.1"
+  host: "100.110.255.43"
   port: 8317
   discovery:
     enabled: false

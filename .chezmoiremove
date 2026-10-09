@@ -1,1 +1,4 @@
 .config/pi/profiles/main/extensions/pi-subagents-runtime.ts
+.config/systemd/user/cliproxyapi-tailscale.socket
+.config/systemd/user/cliproxyapi-tailscale.service
+.config/systemd/user/sockets.target.wants/cliproxyapi-tailscale.socket

@@ -4,40 +4,59 @@ Canonical source: https://git.quinntyx.dev/quinntyx/CLIProxyAPI
 Server-side GitHub mirror: https://github.com/Quinntyx/CLIProxyAPI
 Development checkout: ~/docs/src/CLIProxyAPI/dev
 
-The user service listens at http://127.0.0.1:8317. OpenAI-compatible base URL:
-http://127.0.0.1:8317/v1. The default strategy is reset-pressure; see
-~/docs/src/CLIProxyAPI/dev/docs/reset-pressure-routing.md for the routing details.
-Session affinity is disabled so sticky sessions do not override quota balancing.
+## Tailnet-only access, no inference API key
 
-## Private state (never version controlled)
+CLIProxyAPI binds directly and exclusively to `100.110.255.43:8317`, araveia's
+Tailscale IPv4 address. It does NOT listen on loopback, LAN, wildcard IPv4/IPv6,
+or a public IP. There is no socket-proxy gateway or Funnel. If this address is
+unavailable, startup fails rather than falling back to a broader listener.
+The user service has `ConditionHost=araveia`; client machines must not run it.
+
+All Pi profiles use `http://araveia.tail985727.ts.net:8317/backend-api`, including
+on araveia itself. Other OpenAI-compatible clients use
+`http://araveia.tail985727.ts.net:8317/v1`.
+
+Inference and read-only `/v1/quota/remaining` need NO API key. Access is controlled
+by Tailscale membership, grants/ACLs and the operating system's network controls.
+Any permitted tailnet peer can spend the pooled subscriptions' quota. Tailscale
+encrypts traffic between machines; this HTTP address does not expose a public
+cleartext listener. Binding an IP is not per-user authorization or a replacement
+for restrictive Tailscale grants/ACLs. ACL policy has not been broadened.
+
+Pi's Codex client still expects a JWT-shaped value containing an account claim.
+The shared `models.json` therefore contains a PUBLIC, unsigned format-only
+placeholder. It is not a credential and provides no authorization. Real provider
+credentials/account IDs replace it upstream. `cliproxyapi-key` prints the same
+public placeholder for compatibility and never reads secrets. Client machines
+need only synced configuration and permitted Tailscale access, not secrets.json
+or any OAuth credentials.
+
+Management endpoints and the management UI remain password-protected at
+`http://araveia.tail985727.ts.net:8317/management.html`. Management is enabled over
+the tailnet so server-local tooling can reach the direct Tailscale listener.
+Its private management key is NOT synced to clients. Read it on araveia only:
+`jq -r .management_key ~/.local/share/cliproxyapi/secrets.json`.
+
+## Private server state (never version controlled)
 
 - ~/.local/share/cliproxyapi/auths/: provider OAuth credentials, owner-only
-- ~/.local/share/cliproxyapi/secrets.json: generated client_key and management_key
-- ~/.local/state/cliproxyapi/: generated configuration and build artifacts
+- ~/.local/share/cliproxyapi/secrets.json: private management_key; legacy client_key is unused
+- ~/.local/state/cliproxyapi/: generated configuration, quota history and build artifacts
 - ~/.local/lib/cliproxyapi/: compiled development binary
 
-On a new machine, create the auth directory with mode 700. Generate local keys:
+On a fresh SERVER installation, create the auth directory with mode 700 and a
+management key. Do not overwrite existing private state:
 
 ```sh
 install -d -m 700 ~/.local/share/cliproxyapi/auths
-(umask 077; jq -n --arg client_key "$(openssl rand -hex 32)" \
-  --arg management_key "$(openssl rand -hex 32)" \
-  '{client_key:$client_key, management_key:$management_key}' \
-  > ~/.local/share/cliproxyapi/secrets.json)
+(umask 077; set -o noclobber; jq -n --arg management_key "$(openssl rand -hex 32)" \
+  '{management_key:$management_key}' > ~/.local/share/cliproxyapi/secrets.json)
 ```
 
 Build with `cliproxyapi-update` after preparing the canonical dev worktree.
-Add accounts interactively (repeat for each account):
-`cliproxyapi --codex-login` or `cliproxyapi --codex-device-login`.
-The initial setup imports the two distinct existing Codex accounts without
-changing their source credential files. Imported token copies refresh independently;
-if another client rotates a refresh token, re-login that account here if needed.
-
-Read your client key locally with:
-`jq -r .client_key ~/.local/share/cliproxyapi/secrets.json`
-Use it as the Bearer/API key in clients. Do not put the literal key in tracked config.
-For the management UI at http://127.0.0.1:8317/management.html, use
-`jq -r .management_key ~/.local/share/cliproxyapi/secrets.json`.
+Chezmoi manages the secret-free config, service and helpers. Commit/push before
+applying. The launcher assembles owner-only runtime YAML with empty inference
+keys and the private management key. It no longer requires a client_key.
 
 ## Operations
 
@@ -46,21 +65,26 @@ systemctl --user enable --now cliproxyapi.service
 systemctl --user status cliproxyapi.service
 journalctl --user -u cliproxyapi.service -n 50
 cliproxyapi-update                   # fetch dev, build, install, restart if running
-systemctl --user restart cliproxyapi.service  # regenerate runtime config
+systemctl --user restart cliproxyapi.service
 ```
 
-Chezmoi manages the secret-free config, service, and scripts. Commit/push source
-changes before applying. The launcher assembles an owner-only runtime YAML with
-the private local keys. To stop: `systemctl --user disable --now cliproxyapi.service`.
+To stop: `systemctl --user disable --now cliproxyapi.service`.
+Pi uses the native Codex client with `websocket-cached`; model defaults live in
+profile settings. After syncing or updating, use `/reload` and select a
+CLIProxyAPI model if needed. The quota footer uses the read-only tailnet endpoint;
+it never reads or sends the management key for this connection.
 
+## Burn scheduling and the three subscription slots
 
-## Pi, burn scheduling and the three subscription slots
+`cliproxyapi-burn` (on araveia) shows weekly inefficiency, total waste, counts,
+output TPS and active burn-equivalent TPS. Add `--json` for windows/history and
+projections. Private history at `~/.local/state/cliproxyapi/burn.json` is not
+tracked. Metrics start N/A until a weekly period completes. Only new sessions use
+normal reset pressure; session/model bindings remain sticky unless a burn
+deadline or availability/cap forces a turn-boundary change. See
+`~/docs/src/CLIProxyAPI/dev/docs/reset-pressure-routing.md`.
 
-Pi main defaults to `cliproxyapi/gpt-5.5`, via the native Codex WebSocket client with `websocket-cached`. The proxy model provider lives in shared `~/.config/pi/agent/models.json`; API keys are read with `!cliproxyapi-key`, never embedded in the new provider configuration. Existing Pi sessions keep their selected model until `/model cliproxyapi/gpt-5.5` (reload model configuration first if necessary); new main-profile sessions use the proxy by default.
-
-`cliproxyapi-burn` shows weekly inefficiency, total waste, counts, output TPS and active burn-equivalent TPS. Add `--json` for full windows/history/projections. State stays private at `~/.local/state/cliproxyapi/burn.json`; it is not tracked by chezmoi. Both metrics start N/A until a weekly period is completed. Only new sessions use normal reset pressure; existing session/model bindings remain sticky unless a burn deadline or availability/cap forces a turn-boundary change.
-
-Authenticate distinct Plus or Team subscriptions with device codes:
+Authenticate distinct Plus or Team subscriptions using device codes on araveia:
 
 ```sh
 cliproxyapi-auth 1  # SHARED: 50% weekly and 50% five-hour caps; excluded from BOTH metrics
@@ -68,32 +92,22 @@ cliproxyapi-auth 2  # unrestricted Plus or Team
 cliproxyapi-auth 3  # unrestricted Plus or Team
 ```
 
-Log in to the correct DIFFERENT account for each code, using separate browser profiles/private windows. The helper authenticates into a private staging directory, validates a Plus or Team plan, adds WebSocket/cap policy before publishing the credential, and disables duplicate copies so shared caps cannot be bypassed. It rejects using the same subscription for different slots. Once all three slots exist, old Codex credentials outside this rotation are disabled and excluded from the tallies; they are not deleted.
+Log into DIFFERENT accounts using separate browser profiles/private windows.
+The helper stages authentication privately, validates Plus/Team, adds WebSocket
+and cap policy before publication, and disables duplicate copies. It rejects
+one subscription in multiple slots. Once all three exist, old credentials outside
+this rotation are disabled and excluded from tallies, not deleted.
 
-Shared caps use total provider-reported utilization. New requests stop when either reaches 50%; unknown/stale quota or a failed selected-account preflight check fails closed. Already accepted requests and another user's activity can overshoot a threshold; this cannot reserve an exact provider-side token budget. Quota polling continues while you are idle to observe actual weekly resets. Missing/stale data is reported as estimated, not reconstructed as precise history.
+Shared caps use total provider-reported utilization. New requests stop when
+either cap reaches 50%; unknown/stale quota or failed selected-account preflight
+fails closed. In-flight requests and other users can overshoot a threshold.
+Quota polling observes actual weekly resets even while idle; stale/missing data
+is estimated, not silently recorded as exact history. Team seats are identified
+by workspace AND authenticated user, keeping their caps and tallies distinct.
 
-The local Pi-compatible opaque key is prepared by `cliproxyapi-prepare-pi`; it contains the account claim Pi requires, but only the proxy authenticates it. Real subscription tokens/account IDs replace it upstream. The previous private key remains in an untracked local backup. Use `cliproxyapi-update` to rebuild the committed dev branch and restart the service.
-
-If a completed device login was retained in a private staging directory, publish it without another login using `cliproxyapi-auth SLOT --enroll-staged FILE`. The file must belong to that slot under `~/.local/state/cliproxyapi/device-SLOT.*/auths/`; account distinctness and all slot policies are still validated before publication.
-
-Human-readable quota summaries use percentage remaining. For capped accounts, the report separately shows usable headroom before the caps; reserved quota is not spendable. Raw provider utilization remains available in JSON for scheduling and diagnostics.
-
-Team seats are identified by workspace plus authenticated user, not workspace alone. Different seats in the same workspace keep separate quota, cap and efficiency records. Duplicate credential copies for the same seat retain the canonical slot policy when disabled.
-
-
-## Connecting from other Tailscale machines
-
-All Pi profiles use `http://araveia.tail985727.ts.net:8317/backend-api`,
-including on araveia itself. The user socket `cliproxyapi-tailscale.socket`
-listens only on araveia's Tailscale IP (100.110.255.43), forwarding to the
-loopback-only CLIProxyAPI server. No LAN/public listener or Funnel is enabled.
-The gateway units have `ConditionHost=araveia` and are enabled only on araveia.
-Tailscale encrypts the traffic; the HTTP URL does not imply public cleartext.
-
-Other machines must be in the tailnet and allowed to connect by its ACLs.
-Syncing chezmoi does NOT sync credentials. Securely provision just the existing
-`client_key` in `~/.local/share/cliproxyapi/secrets.json` (directory mode 700,
-file mode 600) on each client. The `cliproxyapi-key` helper reads that field.
-Never copy OAuth account files or the private `management_key` to clients.
-The footer uses `/v1/quota/remaining` with the same client key as inference;
-it never sends the management key to a remote machine.
+Resume a completed staged device login without reauthenticating with
+`cliproxyapi-auth SLOT --enroll-staged FILE`. FILE must belong to that slot under
+`~/.local/state/cliproxyapi/device-SLOT.*/auths/`; all slot policies still apply.
+Reports show remaining percentages, with cap-adjusted usable headroom separately.
+Provider OAuth copies refresh independently; if another client rotates a refresh
+token, reauthenticate that subscription here when needed.

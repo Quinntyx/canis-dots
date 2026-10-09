@@ -237,7 +237,7 @@
     "cliproxyapi": {
       "baseUrl": "http://araveia.tail985727.ts.net:8317/backend-api",
       "api": "openai-codex-responses",
-      "apiKey": "!\"$HOME/.local/bin/cliproxyapi-key\"",
+      "apiKey": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiY2xpcHJveHlhcGktdGFpbG5ldCJ9fQ.tailnet-no-auth",
       "models": [
         {
           "id": "gpt-5.5",

@@ -1,5 +1,6 @@
 [Unit]
-Description=CLIProxyAPI dev (reset-pressure account routing)
+Description=CLIProxyAPI dev (tailnet-only reset-pressure routing)
+ConditionHost=araveia
 Wants=network-online.target
 After=network-online.target
 

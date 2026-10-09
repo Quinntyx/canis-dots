@@ -7,7 +7,6 @@ state="$HOME/.local/state/cliproxyapi"
 binary="$HOME/.local/lib/cliproxyapi/cli-proxy-api"
 [[ -x "$binary" ]] || { echo "Build the dev branch with cliproxyapi-update first." >&2; exit 1; }
 [[ -r "$secrets" ]] || { echo "Missing private $secrets (see ~/.config/cliproxyapi/README.md)." >&2; exit 1; }
-jq -e '.client_key | type == "string" and length >= 32' "$secrets" >/dev/null
 jq -e '.management_key | type == "string" and length >= 32' "$secrets" >/dev/null
 mkdir -p "$state"
 chmod 700 "$state"
@@ -16,13 +15,13 @@ trap 'if [[ -n "${tmp:-}" && -f "$tmp" ]]; then trash "$tmp"; fi' EXIT
 cat "$config" > "$tmp"
 printf '
 access:
-  api-keys: [%s]
+  api-keys: []
 management:
-  allow-remote: false
+  allow-remote: true
   disable-auto-update-panel: true
   secret-key: %s
 ' \
-  "$(jq -c '.client_key' "$secrets")" "$(jq -c '.management_key' "$secrets")" >> "$tmp"
+  "$(jq -c '.management_key' "$secrets")" >> "$tmp"
 mv "$tmp" "$state/config.yaml"
 tmp=''
 exec "$binary" --config "$state/config.yaml" "$@"

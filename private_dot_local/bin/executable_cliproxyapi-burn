@@ -22,7 +22,7 @@ credential_identity() {
 }
 
 key=$(jq -er '.management_key' "$HOME/.local/share/cliproxyapi/secrets.json")
-data=$(printf 'header = "Authorization: Bearer %s"\n' "$key" | curl --fail --silent --show-error --max-time 10 --config - http://127.0.0.1:8317/v8/management/observability/burn)
+data=$(printf 'header = "Authorization: Bearer %s"\n' "$key" | curl --fail --silent --show-error --max-time 10 --config - http://araveia.tail985727.ts.net:8317/v8/management/observability/burn)
 if [[ ${1:-} == --json ]]; then printf '%s\n' "$data"; exit; fi
 printf '%s\n' "$data" | jq -r '
   def pct: if . == null then "N/A" else ((. * 100 | round) / 100 | tostring) + "%" end;

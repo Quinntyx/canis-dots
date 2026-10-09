@@ -18,8 +18,9 @@ metadata:
 - Git plus the selected host's authenticated CLI: `fj` for Forgejo and `gh` for GitHub.
 - Permission to clone or create worktrees includes publishing newly created branches to `origin`.
   Honor an explicit local-only request instead. Commits and ordinary pushes on an existing `dev`
-  need no additional user permission; elsewhere require authorization to commit/push task changes.
-  Do not change repository visibility.
+  need no additional user permission; chezmoi source-state commits and pushes on `main` are also
+  authorized by a requested configuration change. Elsewhere require authorization to commit/push
+  task changes. Do not change repository visibility.
 
 ## Output Contract
 
@@ -36,14 +37,24 @@ metadata:
 
 ## Stage 1: Select the operation
 
-1. Bind shell variables to actual resolved values before using the commands below; quote every path
-   and identifier. Do not execute unresolved placeholders. Set `src="$HOME/docs/src"`.
+Chezmoi exception: `~/.local/share/chezmoi` is personal configuration, not a code repository.
+For work in that source tree, always use its existing `main` checkout; never ask about `dev`,
+create a feature branch, or impose the code-repository container/worktree layout. Verify that
+`main` is checked out; if it is not, stop and report the unexpected branch without switching it.
+Requested configuration edits authorize their commits and ordinary pushes on `main`. Edit source
+state, validate, commit and push to its configured upstream before applying with chezmoi. Verify
+clean task paths and report the source path, commit, push, and apply results. This completes the
+chezmoi path; only code repositories continue through the numbered stages below.
+
+1. Bind shell variables to actual resolved values before using the commands below; quote every
+   path and identifier. Do not execute unresolved placeholders. Set `src="$HOME/docs/src"`.
 2. Do not turn a location-only request into a clone, or a worktree request into a forge migration.
 3. Check `command -v git` and the CLI needed for the selected host. If missing, stop and report the
    prerequisite; do not install software or silently substitute unauthenticated cloning.
 4. Run network operations that may exceed 10–15 seconds in detached, dedicated tmux job windows.
-   Retain exited panes, use their native completion state with bounded monitoring, and reuse the same
-   pane for reruns. Target pane IDs, never split the active user pane, and preserve the exit status.
+   Retain exited panes, use their native completion state with bounded monitoring, and reuse the
+   same pane for reruns. Target pane IDs, never split the active user pane, and preserve
+   the exit status.
    Do not redirect progress to a file. The `tmux-jobs` skill supplies the reusable job helper.
 5. Select the requested operation:
    - Clone: proceed to Stage 2.
@@ -230,9 +241,13 @@ metadata:
   and ordinary pushes there are permitted without asking for separate user approval. Respect an
   explicit no-commit, no-push, or local-only instruction. This does not authorize unrelated
   changes, secrets, force-push, or bypass failed checks and remote access restrictions.
-- Before feature edits, if the actual checked-out branch is `main`, ask whether the user wants the
-  work on `dev` instead and wait. Do not ask when they explicitly requested work on `main`.
-  If `dev` is missing, explain that and ask for the destination; do not create it as a default fix.
+- Chezmoi source state always uses `main`: it is personal configuration, not a code repository.
+  Never ask to use `dev` or create a feature worktree for it. Requested configuration edits permit
+  committing and pushing those changes on `main`; preserve unrelated changes and push before apply.
+- Before code-repository feature edits, if the actual checked-out branch is `main`, ask whether the
+  user wants the work on `dev` instead and wait. Do not ask when they explicitly requested work on
+  `main`. If `dev` is missing, explain that and ask for the destination; do not create it
+  as a default fix.
 - Branch switching means creating a new sibling worktree for the destination branch. Never run
   `git checkout <branch>` or `git switch <branch>` in an existing clone/worktree. Keep its branch
   and folder association unchanged. If the destination already has a correctly named worktree,
@@ -242,6 +257,8 @@ metadata:
 
 # Invariants
 
+- Chezmoi source state is exempt from code-repository branch and checkout-layout requirements;
+  retain `~/.local/share/chezmoi` on `main`.
 - `~/docs/src/<repo>/main` is a normal clone with `.git`, not a bare clone or a branchless
   container.
   Its directory remains named `main` even when the actual default branch has another name.

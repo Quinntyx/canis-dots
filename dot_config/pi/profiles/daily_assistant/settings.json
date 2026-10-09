@@ -36,5 +36,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "npm:pi-everforest-tui"
   ],
-  "lastChangelogVersion": "0.84.1"
+  "lastChangelogVersion": "0.84.1",
+  "tuiMode": "fullscreen",
+  "fullscreenExitOutput": "resume-hint"
 }

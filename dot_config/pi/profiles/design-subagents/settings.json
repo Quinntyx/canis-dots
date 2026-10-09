@@ -19,10 +19,14 @@
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",
-    "git:git.quinntyx.dev/quinntyx/pi-ui-forge"
+    "git:git.quinntyx.dev/quinntyx/pi-ui-forge",
+    "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
+    "npm:pi-tool-display"
   ],
   "lastChangelogVersion": "1.0.4",
   "hideThinkingBlock": false,
   "transport": "websocket-cached",
-  "extensions": []
+  "extensions": [],
+  "tuiMode": "fullscreen",
+  "fullscreenExitOutput": "resume-hint"
 }

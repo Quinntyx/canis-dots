@@ -8,5 +8,7 @@
   "defaultProjectTrust": "never",
   "hideThinkingBlock": true,
   "quietStartup": true,
-  "packages": []
+  "packages": [],
+  "tuiMode": "fullscreen",
+  "fullscreenExitOutput": "resume-hint"
 }

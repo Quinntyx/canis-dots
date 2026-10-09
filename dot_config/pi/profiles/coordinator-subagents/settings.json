@@ -16,5 +16,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "npm:pi-everforest-tui"
   ],
-  "hideThinkingBlock": true
+  "hideThinkingBlock": true,
+  "tuiMode": "fullscreen",
+  "fullscreenExitOutput": "resume-hint"
 }

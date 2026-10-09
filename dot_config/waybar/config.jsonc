@@ -139,7 +139,7 @@
 
     "custom/reaper-route": {
         "format": "{}",
-        "max-length": 1,
+        "align": 0.5,
         "exec": "~/.config/waybar/reaper-route.py status",
         "return-type": "json",
         "interval": 2,

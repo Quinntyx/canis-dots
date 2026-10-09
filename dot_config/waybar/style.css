@@ -97,6 +97,10 @@ window#waybar {
     font-weight: 700;
 }
 
+#custom-reaper-route {
+    padding: 0 3px;
+}
+
 #custom-power:hover,
 #custom-reaper-route:hover {
     background: rgba(242, 183, 5, 0.85);

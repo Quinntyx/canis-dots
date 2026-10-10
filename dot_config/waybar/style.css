@@ -110,10 +110,9 @@ window#waybar {
     background: rgba(242, 183, 5, 0.85);
 }
 
-#custom-sunsetr.paused,
-#custom-sunsetr.off {
-    color: #8b3a2e;
-    background: rgba(244, 201, 92, 0.95);
+#custom-sunsetr {
+    padding: 0 4px;
+    font-family: "FiraCode Nerd Font Propo";
 }
 
 #custom-mpris.playing {

@@ -88,11 +88,11 @@ def status():
     until = deadline()
     if until:
         morning = datetime.fromtimestamp(until).strftime("%a %H:%M")
-        result = {"text": "☀", "class": "paused", "tooltip":
+        result = {"text": "\uf185", "class": "paused", "tooltip":
                   f"Sunsetr paused until {morning}\nClick to resume now"}
     else:
         active = is_active()
-        result = {"text": "☾" if active else "☀",
+        result = {"text": "\uf186" if active else "\uf185",
                   "class": "active" if active else "off", "tooltip":
                   "Sunsetr enabled\nClick to pause until 04:30" if active else
                   "Sunsetr stopped\nClick to resume"}

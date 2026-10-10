@@ -25,6 +25,23 @@
             "cacheRead": 0.06,
             "cacheWrite": 0
           }
+        },
+        {
+          "id": "deepseek-v4.1-flash:fast",
+          "name": "DeepSeek V4.1 Flash (Fast)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0.6,
+            "output": 2.4,
+            "cacheRead": 0.012,
+            "cacheWrite": 0
+          }
         }
       ]
     },

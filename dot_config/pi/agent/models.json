@@ -1,5 +1,33 @@
 {
   "providers": {
+    "inco": {
+      "baseUrl": "https://api.inco.ai/v1",
+      "api": "openai-completions",
+      "apiKey": "$INCO_API_KEY",
+      "authHeader": true,
+      "compat": {
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "glm-5.3-flash:fast",
+          "name": "GLM 5.3 Flash (Fast)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0.3,
+            "output": 1,
+            "cacheRead": 0.06,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    },
     "bitdeer": {
       "baseUrl": "https://api-inference.bitdeer.ai/v1",
       "api": "openai-completions",

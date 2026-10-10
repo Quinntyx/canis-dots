@@ -47,11 +47,12 @@
     "git:git.quinntyx.dev/quinntyx/pi-setup-command",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
-    "git:git.quinntyx.dev/quinntyx/pi-idle-time",
+    "git:git.quinntyx.dev/quinntyx/pi-idle-time@dev",
     "git:git.quinntyx.dev/quinntyx/pi-tps",
     "git:git.quinntyx.dev/quinntyx/pi-sock",
     "git:github.com/Quinntyx/billion-context-pi@main",
-    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
   "hideThinkingBlock": true,
   "extensions": [],

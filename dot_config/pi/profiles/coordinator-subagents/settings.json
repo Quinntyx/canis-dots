@@ -15,7 +15,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "npm:pi-everforest-tui",
-    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
   "hideThinkingBlock": true,
   "tuiMode": "fullscreen",

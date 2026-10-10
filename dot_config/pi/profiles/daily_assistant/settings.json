@@ -35,7 +35,8 @@
     "git:github.com/Quinntyx/pi-ptc-next@152f309272e5548f01d61235dc2d0c37140f0c66",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "npm:pi-everforest-tui",
-    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
   "lastChangelogVersion": "0.84.1",
   "tuiMode": "fullscreen",

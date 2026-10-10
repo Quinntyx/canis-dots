@@ -5,7 +5,7 @@ config="$HOME/.config/cliproxyapi/config.yaml"
 secrets="$HOME/.local/share/cliproxyapi/secrets.json"
 state="$HOME/.local/state/cliproxyapi"
 binary="$HOME/.local/lib/cliproxyapi/cli-proxy-api"
-[[ -x "$binary" ]] || { echo "Build the dev branch with cliproxyapi-update first." >&2; exit 1; }
+[[ -x "$binary" ]] || { echo "Build the main branch with cliproxyapi-update first." >&2; exit 1; }
 [[ -r "$secrets" ]] || { echo "Missing private $secrets (see ~/.config/cliproxyapi/README.md)." >&2; exit 1; }
 jq -e '.management_key | type == "string" and length >= 32' "$secrets" >/dev/null
 mkdir -p "$state"

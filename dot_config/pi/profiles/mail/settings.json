@@ -9,7 +9,8 @@
   "hideThinkingBlock": true,
   "quietStartup": true,
   "packages": [
-    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
   "tuiMode": "fullscreen",
   "fullscreenExitOutput": "resume-hint"

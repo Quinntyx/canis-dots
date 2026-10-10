@@ -22,7 +22,8 @@
     "git:git.quinntyx.dev/quinntyx/pi-ui-forge",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
     "npm:pi-tool-display",
-    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
   "lastChangelogVersion": "1.0.4",
   "hideThinkingBlock": false,

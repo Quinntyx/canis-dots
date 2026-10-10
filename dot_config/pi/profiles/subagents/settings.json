@@ -25,7 +25,8 @@
     "git:github.com/Quinntyx/billion-context-pi@main",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
     "npm:pi-tool-display",
-    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main"
+    "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
   "lastChangelogVersion": "1.1.0",
   "hideThinkingBlock": false,

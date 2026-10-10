@@ -10,7 +10,7 @@
   ],
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-questionnaire",
-    "git:git.quinntyx.dev/quinntyx/pi-sock",
+    "git:git.quinntyx.dev/quinntyx/pi-sock@dev",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",

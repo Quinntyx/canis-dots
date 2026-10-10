@@ -13,7 +13,7 @@
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",
     "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
-    "git:git.quinntyx.dev/quinntyx/pi-sock",
+    "git:git.quinntyx.dev/quinntyx/pi-sock@dev",
     "npm:pi-everforest-tui",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",

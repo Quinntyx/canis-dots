@@ -27,6 +27,7 @@
         "battery",
         "battery#bat2",
         "tray",
+        "custom/sunsetr",
         "custom/power"
     ],
 
@@ -187,6 +188,16 @@
         "tooltip": true,
         "tooltip-format": "Stop all players",
         "on-click": "playerctl -a pause"
+    },
+
+    "custom/sunsetr": {
+        "exec": "~/.config/waybar/sunsetr-toggle.py status",
+        "return-type": "json",
+        "interval": 5,
+        "on-click": "~/.config/waybar/sunsetr-toggle.py toggle",
+        "on-click-right": "~/.config/waybar/sunsetr-toggle.py resume",
+        "exec-on-event": true,
+        "escape": true
     },
 
     "custom/power": {

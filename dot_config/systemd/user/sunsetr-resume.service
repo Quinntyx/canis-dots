@@ -1,0 +1,7 @@
+[Unit]
+Description=Resume Sunsetr after the morning pause expires
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/waybar/sunsetr-toggle.py resume-if-due

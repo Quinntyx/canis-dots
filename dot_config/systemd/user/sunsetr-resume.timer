@@ -1,0 +1,10 @@
+[Unit]
+Description=Resume paused Sunsetr at 04:30 local time
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+Persistent=true
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

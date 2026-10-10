@@ -84,6 +84,7 @@ window#waybar {
 }
 
 #custom-power,
+#custom-sunsetr,
 #custom-reaper-route {
     background: rgba(255, 244, 191, 0.96);
     color: #2e2a1d;
@@ -104,8 +105,15 @@ window#waybar {
 }
 
 #custom-power:hover,
+#custom-sunsetr:hover,
 #custom-reaper-route:hover {
     background: rgba(242, 183, 5, 0.85);
+}
+
+#custom-sunsetr.paused,
+#custom-sunsetr.off {
+    color: #8b3a2e;
+    background: rgba(244, 201, 92, 0.95);
 }
 
 #custom-mpris.playing {

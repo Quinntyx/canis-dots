@@ -1,7 +1,7 @@
 ---
 name: tmux-jobs
-description: "Use when running commands expected to exceed 10–15 seconds, interactive commands,
-  parallel terminal jobs, or starting, monitoring, capturing, or rerunning jobs in tmux."
+description: "Use when running background commands expected to exceed 10–15 seconds, background
+  interactive commands, parallel background terminal jobs, or managing background jobs in tmux."
 metadata:
   type: procedure
 compatibility: "Linux, Python 3, recent tmux with indexed hooks; an existing tmux session."
@@ -11,7 +11,8 @@ compatibility: "Linux, Python 3, recent tmux with indexed hooks; an existing tmu
 
 ## Input Contract
 
-- A command argument vector, an absolute working directory, and an existing tmux session.
+- A background job, its command argument vector, an absolute working directory, and an existing
+  tmux session. Explicit requests to open a visible tmux split are outside this background workflow.
 - `TMUX` and `TMUX_PANE` identifying the agent's original connection and pane.
 - Optional stable job label when command arguments change but the job should retain its slot.
 - Optional `PI_SESSION_FILE` from Pi's shell tool; its latest session name supplies readable labels.
@@ -20,7 +21,7 @@ compatibility: "Linux, Python 3, recent tmux with indexed hooks; an existing tmu
 
 ## Output Contract
 
-- Visible command output in detached, dedicated job windows within the original session.
+- Command output retained in detached, dedicated background job windows within the original session.
 - A JSON result containing session, window, pane, run token, state, exit code, and signal.
 - Stable pane IDs and geometry across reruns of the same job, without stealing user focus.
 - Completed processes exit normally; their inert panes retain output until reuse, explicit cleanup,
@@ -37,15 +38,17 @@ compatibility: "Linux, Python 3, recent tmux with indexed hooks; an existing tmu
 
 ## Stage 1: Prepare
 
-1. Resolve this skill's absolute directory and use its `bin/tmux-jobs` executable for every
-   operation.
-2. Bind the absolute working directory and the command's argument vector before calling the helper.
+1. Confirm this is a background job. If the user explicitly asks to open a tmux split, follow
+   User-Requested Visible Splits and stop this background procedure. Otherwise continue Stage 1.
+2. Resolve this skill's absolute directory and use its `bin/tmux-jobs` executable for every
+   background-job operation.
+3. Bind the absolute working directory and the command's argument vector before calling the helper.
    Do not construct nested shell strings for the helper, tmux, and the command.
-3. Preserve the original `TMUX` connection and `TMUX_PANE` across tool calls. If either is absent,
+4. Preserve the original `TMUX` connection and `TMUX_PANE` across tool calls. If either is absent,
    stop and report the prerequisite. Otherwise continue preparing the invocation.
-4. If the caller has changed panes, supply the original ID through the global `--origin` option,
+5. If the caller has changed panes, supply the original ID through the global `--origin` option,
    before the subcommand. Never infer the origin from the currently active client pane.
-5. Proceed to Stage 2: Start.
+6. Proceed to Stage 2: Start.
 
 ## Stage 2: Start
 
@@ -85,6 +88,21 @@ compatibility: "Linux, Python 3, recent tmux with indexed hooks; an existing tmu
    without closing the pane or window. No keypress is required after completion.
 4. Only when workspace cleanup is requested, invoke `bin/tmux-jobs cleanup` with the original
    origin. It removes completed owned panes and skips running ones, then finish with its result.
+
+# User-Requested Visible Splits
+
+- This skill's helper and detached workspace rules apply only to background jobs. An explicit
+  request to open a tmux split means the user wants to see it in the current, focused tmux window
+  containing Pi, not in a background `pi-jobs` window, unless they explicitly name another target.
+- Use direct tmux operations for that request; do not route it through `bin/tmux-jobs`, even when
+  the command is long-running or interactive. This is not a fallback for a background-helper error.
+- Preserve Pi's original `TMUX` connection and `TMUX_PANE`. Resolve the containing window with
+  `tmux display-message -p -t "$TMUX_PANE" '#{window_id}'` and explicitly target that window with
+  `tmux split-window -t`. Never substitute a returned background-job pane or window as the target.
+- Honor the requested split orientation and command. Keep the new pane visible in Pi's window;
+  do not create or switch to a detached jobs window. Preserve focus only when the user asks for it.
+- If the Pi pane or connection is unavailable, stop and report the prerequisite rather than
+  guessing a background target. A user-specified alternate target overrides the default Pi window.
 
 # Workspace and Geometry
 

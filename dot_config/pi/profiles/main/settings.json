@@ -10,7 +10,9 @@
     "opencode-go/glm-5.3-flash",
     "deepseek-router/deepseek-v4.1-flash-1m",
     "bitdeer/zai-org/GLM-5.3-Flash",
-    "cliproxyapi/gpt-6.1-sol"
+    "cliproxyapi/gpt-6.1-sol",
+    "inco/glm-5.3-flash:fast",
+    "inco/deepseek-v4.1-flash:fast"
   ],
   "providers": {
     "openrouter": {
@@ -54,7 +56,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
     "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "extensions": [],
   "compaction": {
     "reserveTokens": 0

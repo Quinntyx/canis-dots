@@ -47,7 +47,7 @@
   ],
   "enableSkillCommands": true,
   "lastChangelogVersion": "0.84.4",
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "tuiMode": "fullscreen",
   "fullscreenExitOutput": "resume-hint"
 }

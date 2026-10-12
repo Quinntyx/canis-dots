@@ -33,7 +33,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",
-    "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt",
+    "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
     "git:git.quinntyx.dev/quinntyx/pi-undo-latest",
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
     "git:github.com/Quinntyx/pi-web-access@009fb6db1e01732935fe51815d0e508a4b0cb5f8",
@@ -41,7 +41,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-sock@dev",
     "git:git.quinntyx.dev/quinntyx/pi-idle-time@dev",
     "git:github.com/Quinntyx/pi-pycells@dev",
-    "git:github.com/Quinntyx/billion-context-pi@main",
+    "git:github.com/Quinntyx/billion-context-pi@dev",
     "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
     "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],

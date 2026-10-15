@@ -59,8 +59,8 @@
 - Reused sessions inherit omitted model, thinking, cwd and agentDir. Conflicting session settings
   raise `SessionReuseError`; a different model needs a fresh task/session with explicit lineage.
 - At most one queued or active continuation owns a session. Keep the new handle for every turn.
-  `await handle.send_async(text)` steers active work; a scheduled terminal send acknowledges scheduling
-  and returns a new handle, rather than returning the new agent answer.
+  `await handle.send_async(text)` steers active work. A terminal send acknowledges scheduling and
+  returns a new handle rather than the new agent answer.
 - Inspect `pool.snapshot()`, `pool.handles()`, `handle.state()`, `handle.activity()` and
   `handle.get_session()` as appropriate. Inspecting a dormant session keeps it dormant; the runtime
   resumes successful retained sessions only when a continuation is admitted.

@@ -1,8 +1,8 @@
 ---
 name: 3d
 description: "Use when creating, modeling, rendering, editing, inspecting, or exporting
-  3D objects, physical models, game assets, scenes, procedural geometry, materials, or animation.
-  Uses installed Blender or an existing connected scene."
+  3D objects, physical models, game assets, scenes, procedural geometry, materials, or animation,
+  including Blender files and existing connected scenes."
 metadata:
   type: procedure
 ---

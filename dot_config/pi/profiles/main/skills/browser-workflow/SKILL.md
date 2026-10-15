@@ -22,12 +22,14 @@ metadata:
 
 # Entrypoint
 
-## Stage 1: Establish the browser context
+## Stage 1: Select the task and context
 
-1. Discover available browser tools with tool search and inspect their actual parameter schemas.
-2. Inspect existing tabs and select the requested account, site, and task context.
-3. Read relevant page structure and resolve the user's requested effects and completion condition.
-4. When a usable browser or existing automation runtime is available, continue to Stage 2: Plan.
+1. For recorded browser calls or a trajectory-efficiency review, execute Trajectory analysis and
+   return its evidence-backed report. For a live browser task, continue here.
+2. Discover available browser tools with tool search and inspect their actual parameter schemas.
+3. Inspect existing tabs and select the requested account, site, and task context.
+4. Read relevant page structure and resolve the user's requested effects and completion condition.
+5. When a usable browser or existing automation runtime is available, continue to Stage 2: Plan.
    Otherwise, report the missing prerequisite and finish with a blocked result.
 
 ## Stage 2: Plan around observation boundaries

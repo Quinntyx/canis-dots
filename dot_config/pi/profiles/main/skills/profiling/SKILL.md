@@ -47,7 +47,8 @@ metadata:
 2. Resolve the skill root. Run `bin/profile-run` with `--out` set to a fresh artifact directory,
    optional `--label`, optional positive `--repeat`, and `--` followed by the command vector.
    This Linux/Python 3 standard-library helper records wall time, waited child-tree CPU time,
-   child peak RSS, exit status, and per-run stdout/stderr. It creates only its output directory.
+   child peak RSS, exit status, per-run stdout/stderr, and successful-run summary statistics.
+   It creates only its output directory.
 3. The helper runs sequentially and returns 1 if any command fails, 2 for setup failure, or 130
    for interruption. It adds no workload deadline. Run long captures in an owned background job;
    preserve its handle and wait for the real process result.
@@ -85,11 +86,14 @@ metadata:
 
 ## Stage 5: Report
 
-1. Write `performance-report.md` with the symptom, fixture, revision, commands, hardware, profiler
+1. Load raw capture records in Python and compute the exact values, units, ratios, and tables
+   used in the report. Use the capture's `summary` fields when present. Keep derived data and
+   diagnostic experiment scripts beside the raw artifacts, with each row tied to its source.
+2. Write `performance-report.md` with the symptom, fixture, revision, commands, hardware, profiler
    settings, raw artifact links, sample counts, timing distributions, and measured resource costs.
-2. State CPU, GPU, memory, and latency coverage individually. Explain unavailable or inapplicable
+3. State CPU, GPU, memory, and latency coverage individually. Explain unavailable or inapplicable
    captures and distinguish observation, supported inference, and an untested hypothesis.
-3. Report the outcome first, then evidence-backed bottlenecks, before/after deltas, correctness
+4. Report the outcome first, then evidence-backed bottlenecks, before/after deltas, correctness
    checks, changed paths, and remaining limits. Retain captures in the task artifact directory.
 
 # Capture selection

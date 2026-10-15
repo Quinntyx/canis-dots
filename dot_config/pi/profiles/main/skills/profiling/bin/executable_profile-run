@@ -8,9 +8,32 @@ import os
 from pathlib import Path
 import platform
 import signal
+import statistics
 import subprocess
 import sys
 import time
+
+
+def summarize_runs(runs):
+    successful = [
+        run for run in runs
+        if run.get("exit_code") == 0 and not run.get("interrupted", False)
+    ]
+    fields = ("wall_ms", "cpu_user_ms", "cpu_system_ms", "peak_rss_kib")
+    metrics = {}
+    if successful:
+        for field in fields:
+            values = [run[field] for run in successful]
+            metrics[field] = {
+                "median": statistics.median(values),
+                "min": min(values),
+                "max": max(values),
+            }
+    return {
+        "sample_count": len(successful),
+        "failed_count": len(runs) - len(successful),
+        "metrics": metrics,
+    }
 
 
 def main():
@@ -83,6 +106,7 @@ def main():
             run["error"] = str(error)
             code = 2
         summary["runs"].append(run)
+        summary["summary"] = summarize_runs(summary["runs"])
         (out / "capture.json").write_text(json.dumps(summary, indent=2) + "\n")
         if code in (2, 130):
             break

@@ -2,7 +2,8 @@
 name: git
 description: "Use when locating, cloning, forking, initializing, or mirroring repositories,
   using branches or worktrees, committing, pushing, or drafting, filing, updating, or responding
-  to pull requests and public issues."
+  to pull requests; also researching public issue discussions, checking for duplicates, drafting,
+  filing, updating, or responding to public issues."
 metadata:
   type: procedure
 ---
@@ -35,7 +36,8 @@ metadata:
    - New project initialization: `init-project/SKILL.md`.
    - Server-side GitHub mirrors, mirror repairs, or Forgejo migration: `github-mirror/SKILL.md`.
    - Drafting, publishing, revising, or responding to pull requests: `pr/SKILL.md`.
-   - Creating, drafting, updating, or responding to public issues: `public-issues/SKILL.md`.
+   - Researching public issue discussions, checking for duplicates, creating, drafting, updating,
+     or responding to public issues: `public-issues/SKILL.md`.
 3. For `~/.local/share/chezmoi`, retain the existing `main` checkout and source-state layout.
    Verify `main`; an unexpected branch ends with a report, preserving the checkout. Edit source
    state, validate, then commit and push before applying when those

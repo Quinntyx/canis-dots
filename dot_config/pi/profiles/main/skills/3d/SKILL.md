@@ -54,15 +54,18 @@ metadata:
    original file and use a distinct output path for edits. Record units, axes, scale, frame range,
    materials, node groups, cameras, lights, textures, color management, and linked dependencies.
 2. Translate the brief into silhouette, proportions, composition, topology needs, material roles,
-   lighting, camera, and export requirements. Make the principal subject readable in a preview.
+   lighting, camera, and export requirements. State a small checkable acceptance set for the
+   requested asset and outputs. Build the simplest scene that satisfies it, with the principal
+   subject readable in a preview.
 3. Choose a modest first render and bounded thread count that preserve desktop responsiveness.
    Resolve engine and device from installed capabilities and project requirements.
 4. Proceed to Stage 3: Build.
 
 ## Stage 3: Build
 
-1. Write `build-scene.py` in the output directory using Blender's bundled `bpy` API. Set seeds,
-   units, resolution, engine, lighting, camera, color management, and output paths explicitly.
+1. Write `build-scene.py` in the output directory using Blender's bundled `bpy` API. For procedural
+   mesh or modifier work, read `references/procedural-geometry.md` as the construction baseline.
+   Set seeds, units, resolution, engine, lighting, camera, color management, and paths explicitly.
 2. Use deterministic object names and a dedicated collection. Target owned data blocks and save
    results to the new `.blend` path. Preserve identity-bearing materials, nodes, and animation.
 3. Pass project-specific inputs after Blender's `--` separator and parse that trailing argument
@@ -90,8 +93,9 @@ metadata:
    rendering by CLI. Use `bpy.ops.render.render(write_still=True)` for script-controlled previews.
 4. Capture a camera render and views needed to judge the requested asset. Inspect actual image
    files for composition, silhouette, materials, shading, texture resolution, and lighting.
-5. If visible defects need correction within scope, return to Stage 3. Otherwise proceed to
-   Stage 5: Verify and export, retaining previews even when a remaining defect is disclosed.
+5. Compare the actual preview and geometry with the Stage 2 acceptance set. Correct unmet
+   requirements through Stage 3. Once those requirements hold, proceed to Stage 5: Verify and
+   export; record optional polish separately and retain previews of any disclosed limitation.
 
 ## Stage 5: Verify and export
 

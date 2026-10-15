@@ -1,6 +1,7 @@
 ---
 name: ui-mock
-description: "Use when a UI mock needs an interactive design-subagent review before implementation."
+description: "Use when the user requests an interactive UI mock or design-subagent session
+  with live annotation and explicit final approval through Pi UI Forge."
 metadata:
   type: procedure
 ---
@@ -9,128 +10,97 @@ metadata:
 
 ## Input Contract
 
-- A product brief, target pages, visual constraints, project path, and authority to run a designer.
-- A resolved absolute `design-subagents` agent directory with Pi UI Forge available and Pi native
-  automatic compaction enabled. Check profile and project overrides; do not change settings
-  silently.
-- A durable mock folder distinct from production implementation, with a known owner for its files.
-- A compatible `pi_subagents` runtime available in a persistent Python kernel, and tmux available.
-- Explicit user approval of the exact final mock before implementing that design in production.
+- An explicit request for interactive design review, a brief, project path, and designer authority.
+- A resolved absolute `design-subagents` agent directory with existing `mock_build` and
+  `mock_review` tools and native Pi automatic compaction enabled in profile and project settings.
+- A compatible installed `pi_subagents` runtime, persistent Python kernel, and tmux.
+- A durable mock folder with exclusive writer ownership, separate from production implementation.
+- Production replication authority is separate from design review and requires approval of the
+  exact final mock. Autonomous design belongs to the optional `visual-design` workflow.
 
 ## Output Contract
 
-- One user-driven designer session, preserved through native compaction, with no competing writers.
-- Mock source in `app/`, rendered pages in `shots/`, annotations in `ann/`, and `design-notes.md`.
-- A truthful terminal outcome: approved, cancelled, or blocked; successful turn settlement alone
-  never establishes approval. Preserve approval evidence produced by the installed UI Forge tools.
-- For approval, the exact approved version, matching source and renders, and production replication
-  within the user's implementation request. For cancellation or a blocker, a report without rollout.
-- A closed pool only after terminal work is accounted for and no continuing designer is needed.
+- One user-driven designer session retaining its identity through native compaction and dormancy.
+- Mock source in `app/`, renders in `shots/`, annotations in `ann/`, and `design-notes.md`.
+- Genuine tool-produced approval tied to the final version, or a cancelled or blocked outcome.
+- Exact approved source and captures used for production replication when separately authorized.
+- A terminal report that accounts for the designer before releasing its owned pool and resources.
 
 # Entrypoint
 
 ## Stage 1: Prepare
 
-1. Resolve the brief, project, mock folder, and absolute designer agent directory. Inspect existing
-   mock files and repository instructions; preserve unrelated work. For a requested resume, reuse
-   the existing designer session and mock folder when available rather than duplicate the designer.
-2. Verify the designer profile exposes `mock_build` and `mock_review`, and check native compaction
-   configuration for that profile and project. If compaction is disabled or unavailable, report the
-   mismatch and obtain authorization to correct it; do not replace the session as a workaround.
-3. Inspect the actual imported SDK: require `AgentPool`, `Task.agentDir`, `stage`, `submit`,
-   retained
-   handle continuation, and success-only dormancy. Record runtime source/version. An older `profile`
-   argument is not compatible. On incompatibility, stop with the required runtime change; otherwise
-   continue to Stage 2. Do not upgrade software or alter profiles without authorization.
+1. Resolve the brief, mock folder, project instructions, and absolute designer agent directory.
+   Inspect existing files and reuse the retained session for a requested resume.
+2. Verify existing UI Forge tools and effective native compaction settings. Inspect the installed
+   SDK for `AgentPool`, `Task.agentDir`, stages, submission, retained-handle continuation, and
+   successful-turn dormancy. Record the imported source and version.
+3. If these capabilities and launch authority are available, proceed to Stage 2: Start or resume.
+   Otherwise proceed to Stage 6: Report with the exact missing capability and preserved files.
 
-## Stage 2: Start or resume the designer
+## Stage 2: Start or resume
 
-1. In a persistent kernel, create `AgentPool(concurrency=1, name="design")` and a design stage with
-   `slots=1`. Keep the pool and submitted handle in kernel state so later cells can inspect or await
-   the same session. Save the orchestration in a notebook for substantial work.
-2. Submit one `Task` containing the brief with `name="designer"`, the resolved absolute `agentDir`,
-   `cwd` set to the mock folder, and an explicit positive settle timeout appropriate for human
-   review; allow at least four hours unless the user specifies otherwise. Check actual SDK fields
-   before supplying additional options. Apply required admission metadata without granting children
-   authority to spawn other agents. Do not launch variants or helpers into the same design loop.
-3. Include the lifecycle contract in the submitted instructions: the designer must keep the same
-   session through native compaction, use only genuine user feedback from `mock_review`, and never
-   settle merely to reduce context. Product constraints remain in the brief; do not override the
-   designer's design discipline or imply that implementation has been authorized.
-4. For an existing handle, inspect its actual state and continue that session using the supported
-   continuation API only when appropriate. A dormant successful handle retains its session identity;
-   dormancy is neither approval nor permission to create a replacement designer.
-5. Continue to Stage 3 once the designer is running. On a real startup or session failure, proceed
-   to Stage 4 with a blocked outcome rather than claim a successful design.
+1. In a persistent Python kernel, retain one `AgentPool(concurrency=1, name="design")`, a stage
+   with `slots=1`, and the submitted handle. Use the actual installed SDK's signatures and admission
+   policy. The optional package-provided `pi-subagents` skill offers additional API depth.
+2. Submit one designer `Task` with the resolved `agentDir`, mock-folder `cwd`, brief, and a positive
+   settle timeout compatible with the requested interactive lifetime. A wait bound measures when
+   to inspect progress, independently of whether the human has finished reviewing.
+3. Ask the designer to enter `mock_build` then blocking `mock_review` as the control plane for
+   genuine user markup. Carry product constraints into the brief and retain native compaction as
+   the context lifecycle. Keep design authority distinct from production editing authority.
+4. For a resume, inspect the retained handle and continue the same session through its supported
+   continuation API. Successful dormancy retains session identity and pending approval state.
+5. If startup succeeds or the retained session is continuing, proceed to Stage 3: Review loop.
+   Otherwise proceed to Stage 4: Verify outcome with the actual startup failure.
 
-## Stage 3: Run the interactive loop
+## Stage 3: Review loop
 
-1. Let the designer alternate propose, `mock_build`, blocking `mock_review`, and user-directed
-   revision. A feedback tool waiting for markup is expected; do not interrupt it for context upkeep.
-   The parent may perform unrelated work but must not edit the mock or compete for its review loop.
-2. Await the same handle. Check the actual result and error, not merely a completed await or an idle
-   window. A cell or settle-wait timeout does not establish a terminal design outcome: inspect the
-   live session, retain the pool, and re-await the same handle when it is still waiting for
-   feedback.
-3. Let Pi compact the designer's existing session automatically when its configured threshold or
-   supported overflow recovery triggers. Compaction preserves session identity and rebuilds model
-   context; it is not a final response, checkpoint handoff, approval, or reason to close the pool.
-4. If manual compaction is needed, use Pi's native `/compact` command in that designer session or a
-   supported native compaction API targeting that exact session. Wait for active feedback/tool work
-   to finish safely. Ordinary steering text is not a native compaction command. Preserve the latest
-   user direction, pending feedback, unresolved decisions, artifact paths, and approval status in
-   the compaction instructions; do not invent an SDK method or run compaction in the parent instead.
-5. After compaction, the designer re-reads `design-notes.md`, the current source as needed, and only
-   the latest relevant renders and annotations. Continue the same review loop with pending feedback.
-   Keep the contract current without duplicating transcript history or repeatedly loading old
-   images.
-6. If a settled result arrives, proceed to Stage 4. If feedback is still pending, stay in Stage 3.
-   A context percentage, review count, saved file, or successful stop is never a completion gate.
+1. Let the single designer alternate building, blocking review, and user-directed revisions.
+   Preserve exclusive ownership of its mock files and feedback loop while it awaits annotation.
+2. Await the same handle and inspect actual state and errors. For a wait timeout with a usable
+   session, remain in Stage 3 and re-await that handle. For a settled result or actual failure,
+   proceed to Stage 4: Verify outcome.
+3. Let Pi compact the existing designer session at its configured threshold or supported overflow
+   recovery. Preserve latest direction, pending feedback, artifact paths, and approval state.
+4. When native manual compaction is needed, target that exact designer session with `/compact` or
+   an installed supported native API, after active tool work settles safely. Ordinary steering
+   remains steering; compaction occurs only through Pi's native mechanism.
+5. After compaction, re-anchor from `design-notes.md`, current source, and the latest relevant
+   captures and annotations. Keep older full-resolution images available by path.
 
-## Stage 4: Verify the outcome
+## Stage 4: Verify outcome
 
-1. Read the result, `design-notes.md`, current source, final renders, and the actual review outcome.
-   Inspect `design-approval.json` when the installed tools produce it. Verify approval belongs to
-   the exact current version and artifact digests when provided; do not manufacture approval files.
-2. If genuine final approval is present and implementation is authorized, continue to Stage 5. If
-   approved but implementation was not requested, report the approved artifacts and go to Stage 6.
-3. If the user closed or cancelled the editor without approving the final version, record cancelled,
-   retain the mock, report what remains, and go to Stage 6. Closing the editor does not approve it.
-4. If an actual error, provider failure, or unrecoverable session loss blocks work, report blocked
-   with the evidence and preserved artifact paths, and go to Stage 6. Do not classify every 400 or
-   413 response as context overflow or assume Pi recovered; verify the actual error and retry
-   result.
-5. If an agent settled with approval pending, classify the design as incomplete, not approved. When
-   its retained session can continue, resume that same designer with the remaining task and return
-   to Stage 3. Otherwise report the blocker and seek explicit authorization for recovery; never
-   silently substitute a new designer or promote a checkpoint summary to completion.
+1. Inspect the actual review result, notes, source, renders, and tool-produced approval record.
+   When `design-approval.json` exists, check its version and artifact digests against current files.
+2. If genuine final approval matches the current version and implementation is authorized, proceed
+   to Stage 5: Replicate. If it matches but implementation is outside scope, proceed to Stage 6
+   with approved artifacts. Otherwise continue Stage 4 with approval still pending.
+3. If the user cancelled or closed review without approving, proceed to Stage 6 with a cancelled
+   outcome and retained mock. Otherwise continue Stage 4 and inspect the ability to resume.
+4. If approval is pending and the retained session is usable, continue that session and return to
+   Stage 3. Otherwise proceed to Stage 6 with a blocked outcome and the actual failure evidence.
+5. Diagnose the actual provider error and retry result. Classify overflow only from evidence of
+   overflow; preserve the same session during ordinary context pressure and supported recovery.
 
-## Stage 5: Replicate the approved design
+## Stage 5: Replicate
 
-1. Use the exact approved `design-notes.md`, matching `app/` source, and final `shots/` renders as
-   the implementation contract. Confirm the production destination and repository constraints.
-2. Port components, layout, spacing, colors, and structure pixel-near. Replace dummy data with real
-   sources while preserving the approved appearance and requested interactions.
-3. Run relevant checks and compare the implemented pages with the approved renders. Report any
-   remaining differences; do not claim approval for a materially changed design.
-4. Continue to Stage 6 after reporting the implemented paths and mock source location.
+1. Use matching approved `app/`, `shots/`, and `design-notes.md` as the implementation contract.
+   Record approval identity and source revision before production work.
+2. Port layout, spacing, colors, components, shaders, and interactions pixel-near. Replace mock
+   data with authorized real sources while preserving approved appearance and behavior.
+3. Run relevant checks and capture the implemented states at matching viewport, scale, and theme.
+   Compare side-by-side and pixel differences with an available image library; report deviations.
+4. If a material design change needs human approval, return to Stage 3 with the changed version.
+   Otherwise proceed to Stage 6: Report with implementation checks and remaining differences.
 
-## Stage 6: Teardown and report
+## Stage 6: Report
 
-1. Before closing, confirm approval, cancellation, or a reported blocker is accounted for and the
-   designer is no longer needed. Never close a pool just because a wait timed out or context grew.
-2. Call synchronous `pool.close()` only at this terminal boundary. Preserve the mock and session
-   artifacts; remove only owned temporary resources and never close unrelated windows or editors.
-3. Report the actual outcome, mock folder, approved version when applicable, production changes,
-   validation, and remaining decisions. Explicitly say when no final approval was obtained.
-
-# Context and completion invariants
-
-- Native Pi compaction is the context lifecycle. Do not request a saved-file handoff, terminate the
-  designer, reset its session, or replace it based on a context percentage or number of reviews.
-- Durable files support re-anchoring and genuine recovery; saving them does not complete the task.
-- A successful settled turn may automatically hibernate its tmux window. This is runtime cleanup,
-  not evidence of design approval. Never cause that cleanup with a premature success response.
-- Preserve approval as pending through compaction until the user approves that exact final version.
-- A genuinely unusable session may require recovery, but report it and obtain explicit authorization
-  before creating a replacement. Normal context pressure is not such a failure.
+1. Account for actual approval, cancellation, or a reported blocker. A successful turn, saved
+   checkpoint, or dormant window establishes execution state separately from design approval.
+2. If the retained designer remains useful and can continue, preserve its pool and report pending
+   review with its handle. Otherwise close the owned pool with synchronous `pool.close()` after
+   terminal work is accounted for, retaining artifacts and unrelated user windows.
+3. Report the actual outcome, mock folder, approved version when present, production changes,
+   validation, and remaining decisions. Recovery of a genuinely unusable session requires explicit
+   replacement authority; ordinary native compaction keeps the current session.

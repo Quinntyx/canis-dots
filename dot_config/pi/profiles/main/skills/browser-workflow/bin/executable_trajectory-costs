@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Calculate recorded trajectory costs and validate an operation coverage plan."""
+
+import argparse
+import json
+import math
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+
+def number(value, field):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field} must be a finite nonnegative number")
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(f"{field} must be a finite nonnegative number")
+    return value
+
+
+def calculate(record, plan=None):
+    rows = record["calls"] if isinstance(record, dict) else record
+    if not isinstance(rows, list):
+        raise ValueError("Recorded calls must be an array")
+    if plan is not None and not isinstance(plan, dict):
+        raise ValueError("The coverage plan must be an object")
+    calls = {}
+    totals = defaultdict(float)
+    counts = Counter()
+    for position, row in enumerate(rows, 1):
+        if not isinstance(row, dict) or not isinstance(row.get("tool"), str):
+            raise ValueError("Each source operation needs a tool string")
+        if row.get("condition") and not isinstance(row["condition"], str):
+            raise ValueError("Source completion conditions must be strings")
+        identity = str(row.get("n", row.get("id", position)))
+        if identity in calls:
+            raise ValueError(f"Duplicate source identity: {identity}")
+        tool = row["tool"]
+        duration = number(row.get("ms", row.get("durationMs")), identity)
+        calls[identity] = dict(row, id=identity, ms=duration, tool=tool)
+        totals[tool] += duration
+        counts[tool] += 1
+    baseline = sum(row["ms"] for row in calls.values())
+    result = {
+        "baseline_calls": len(calls),
+        "baseline_ms": baseline,
+        "by_tool": {k: {"calls": counts[k], "ms": totals[k]} for k in counts},
+        "source_calls": list(calls.values()),
+    }
+    if plan is None:
+        return result
+    seen = set()
+
+    def consume(identities):
+        identities = [str(value) for value in identities]
+        for identity in identities:
+            if identity not in calls:
+                raise ValueError(f"Unknown source identity: {identity}")
+            if identity in seen:
+                raise ValueError(f"Source identity accounted for twice: {identity}")
+            seen.add(identity)
+        return [calls[identity] for identity in identities]
+
+    retained = consume(plan.get("retained_ids", []))
+    removed = []
+    for row in plan.get("removed", []):
+        if not row.get("reason"):
+            raise ValueError("Each removed operation needs its evidence-based reason")
+        source = consume([row["id"]])[0]
+        if source.get("condition"):
+            raise ValueError("Completion conditions belong in retained or replacement operations")
+        removed.append(dict(row, source=source))
+    replacements = []
+    for row in plan.get("replacements", []):
+        sources = consume(row["source_ids"])
+        if not sources or not row.get("tool") or not row.get("reason"):
+            raise ValueError("A replacement needs sources, tool, reason, and estimated_ms")
+        conditions = set(row.get("completion_conditions", []))
+        required = {source["condition"] for source in sources if source.get("condition")}
+        if not required.issubset(conditions):
+            raise ValueError("Replacement completion_conditions must preserve source conditions")
+        duration = number(row["estimated_ms"], "estimated_ms")
+        replacements.append(dict(row, estimated_ms=duration))
+    missing = set(calls) - seen
+    if missing:
+        raise ValueError("Unaccounted source identities: " + ", ".join(sorted(missing)))
+    revised = sum(row["ms"] for row in retained)
+    revised += sum(row["estimated_ms"] for row in replacements)
+    result.update({
+        "retained": retained,
+        "removed": removed,
+        "replacements": replacements,
+        "estimated_revised_calls": len(retained) + len(replacements),
+        "estimated_revised_ms": revised,
+        "estimated_saved_ms": baseline - revised,
+        "estimated_saved_percent": (baseline - revised) / baseline * 100 if baseline else 0,
+        "estimate_only": True,
+    })
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", type=Path)
+    parser.add_argument("--plan", type=Path)
+    parser.add_argument("--summary", action="store_true")
+    args = parser.parse_args()
+    try:
+        record = json.loads(args.input.read_text())
+        plan = json.loads(args.plan.read_text()) if args.plan else None
+        result = calculate(record, plan)
+        if args.summary:
+            detail_keys = {"source_calls", "retained", "removed", "replacements"}
+            result = {key: value for key, value in result.items() if key not in detail_keys}
+        print(json.dumps(result, indent=2))
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        print(f"trajectory-costs: {error}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

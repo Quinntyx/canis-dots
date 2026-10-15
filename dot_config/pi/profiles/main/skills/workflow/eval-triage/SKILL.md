@@ -30,6 +30,9 @@ metadata:
 1. Inspect the installed `pi_subagents` API in an explicitly named persistent kernel. Import
    `AgentPool` and `Task`; retain pool, stage and submission handles. Give leaves zero delegation
    fuel. Read `PI_SUBAGENTS_MAX_CONCURRENT` and honor tighter user limits and active resource use.
+   Keep inherited admission identity and reservations runtime-owned. If public construction or
+   admission is unavailable, retain its original error and go to Stage 5: Drain and retain with
+   worker execution blocked. Otherwise continue preparation at step 2.
 2. Verify the target revision, dataset revision, dependency environment, runner entrypoint and a
    representative case once. Keep environment preparation in the coordinator so diagnosis agents
    receive ready inputs and a focused objective.

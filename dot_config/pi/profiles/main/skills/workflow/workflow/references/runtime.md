@@ -3,8 +3,11 @@
 ## Preparation
 
 - Use an explicitly named persistent Python kernel and inspect its existing namespace first.
-- Inspect the installed package when signatures differ. The runtime owns scheduling and sessions;
-  the coordinator owns dependency release, acceptance, resource leases and side-effect receipts.
+- Inspect the installed package when signatures differ. The runtime owns scheduling, admission
+  identity, reservations and sessions; the coordinator owns dependencies, acceptance, resource
+  leases and side-effect receipts. Use public construction/submission to establish admission.
+- An inconsistent inherited admission state ends the delegated path with its original error and
+  incomplete stages recorded. Resume after the runtime owner restores a valid admission context.
 - Import `AgentPool` and `Task` from `pi_subagents`. Pool construction accepts `concurrency` and
   keyword `name`. The default concurrency comes from `PI_SUBAGENTS_MAX_CONCURRENT`; an explicit
   value must be a positive integer within that ceiling. Runtime admission is shared across pools.

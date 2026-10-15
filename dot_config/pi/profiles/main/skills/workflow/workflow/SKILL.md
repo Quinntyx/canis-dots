@@ -45,7 +45,10 @@ metadata:
 ## Stage 2: Prepare
 
 1. Inspect the named kernel and installed `AgentPool`, `Task`, submission, completion and failure
-   interfaces. Use `references/runtime.md` for the compact binding to the current API.
+   interfaces. Use `references/runtime.md` for the compact binding to the current API. Keep
+   inherited admission identity and reservations runtime-owned. If public construction or admission
+   is unavailable, preserve its original error and go to Stage 5: Retain or finish with delegated
+   execution blocked. Otherwise continue preparation at step 2.
 2. Establish the environment and baseline once in the coordinator. Check the actual execution
    path, test discovery and needed services. Give workers ready inputs and scoped objectives.
 3. Let read-only workers share immutable inputs. Give concurrent writers separate worktrees.

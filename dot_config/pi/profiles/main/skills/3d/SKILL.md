@@ -86,13 +86,15 @@ metadata:
 1. Enumerate supported render devices through Blender's engine API. For Cycles, call
    `bpy.context.preferences.addons['cycles'].preferences.get_devices()` and inspect devices after
    selecting a supported compute backend. Record enabled devices and the scene's device setting.
-2. Select an available device within the resource envelope. Record CPU fallback as CPU execution;
-   host GPU visibility alone establishes neither Cycles support nor GPU rendering.
+2. Select a compatible device within the resource envelope and record engine-side evidence.
+   Cycles' CPU setting establishes CPU fallback. For EEVEE, record the graphics backend/device
+   separately from the CPU thread cap; preserve unobserved device identity as unresolved.
 3. Set all render options before rendering; Blender processes command-line arguments in order.
    Place `--render-frame` or `--render-anim` after file loading and render-setting arguments when
    rendering by CLI. Use `bpy.ops.render.render(write_still=True)` for script-controlled previews.
-4. Capture a camera render and views needed to judge the requested asset. Inspect actual image
-   files for composition, silhouette, materials, shading, texture resolution, and lighting.
+4. Fit each requested whole-asset view to the evaluated subject bounds with a modest margin;
+   verify camera-projection bounds at each preview state using the geometry reference. Capture
+   actual renders and inspect composition, silhouette, materials, shading, textures, and lighting.
 5. Compare the actual preview and geometry with the Stage 2 acceptance set. Correct unmet
    requirements through Stage 3. Once those requirements hold, proceed to Stage 5: Verify and
    export; record optional polish separately and retain previews of any disclosed limitation.

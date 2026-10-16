@@ -17,7 +17,7 @@ metadata:
 
 ## Output Contract
 
-- A role, minimum capability tier, exact provider/model slug and effort for each assignment.
+- A role, minimum capability tier, one exact provider/model slug and effort per assignment.
 - A diversity plan containing eligible peers, or an honest statement of limited diversity.
 - Model choices ready for Task construction, with selection reasons retained in the task ledger.
 - A precise unavailable-model or capability blocker when the required assignment cannot be staffed.
@@ -45,20 +45,24 @@ metadata:
    best_model_match or resolve_models. Bind exact provider/model slugs for the selected agentDir.
    Catalog registration establishes identity and advertised modalities; configured provider access
    and actual runtime errors establish whether the route is usable.
-3. Filter candidates by the task's tier floor, required tools, image input, context size, output
-   needs, provider access, current quota and explicit constraints. Codex-family roles use
-   CLIProxyAPI routes with the actual project's working directory and quota identity. Project
-   quota admission is part of route eligibility. Use current quota observations for this run.
-4. Prefer the role's default among eligible models. Resolve transport alternatives for the same
-   model before changing its identity when provider choice is open. Prefer a stronger eligible
-   model when the preferred tier has no usable route and the task budget permits it.
+3. Establish each identity's required provider scope first. Codex-family assignments require
+   CLIProxyAPI project-quota admission with the actual project's directory and quota identity.
+   The frontier roster's eligible routes are admitted cliproxyapi entries. When the project's
+   admitted set is empty, go to Stage 5: Record with the project quota blocker. Other identities use
+   their roster routes. Within that scope filter by tier floor, tools, modalities, context, output,
+   access and current quota. The eligible set contains only routes satisfying every prerequisite.
+4. Choose the role default within that eligible set. An alternate transport qualifies only within
+   the required provider scope from step 3. A stronger model qualifies only if its route meets the
+   same project/provider requirements and budget. An empty eligible set goes to Stage 5: Record
+   with the unavailable route and the required quota, budget or scope decision.
 5. With eligible models, go to Stage 3: Compose the roster. Without one, refresh the catalog once
    and inspect the actual prerequisite. If still unavailable, go to Stage 5: Record with a blocker
    and the required scope, provider or budget decision.
 
 ## Stage 3: Compose the roster
 
-1. For ordinary assignments, bind the selected role default and continue at step 4. For competing
+1. Bind one exact route per requested assignment; keep alternate routes in selection reasoning.
+   For ordinary assignments, bind the selected role default and continue at step 4. For competing
    implementations, exploratory design variants or requested independent model perspectives,
    continue at step 2 with the requested useful assignment count.
 2. Form the peer set from a single tier meeting the floor. Choose the lowest suitable tier with
@@ -87,9 +91,10 @@ metadata:
    that task to frontier engineering with its retained artifacts and observed failures. New model
    identity uses a fresh session with explicit lineage. Broader review-loop caps remain owned by
    the surrounding workflow. An earlier discovery of frontier-level scope raises the floor at once.
-4. For unavailable routes, return to Stage 2 with the actual provider/quota error. For remaining
-   authorized repairs return to Stage 3 with the revised floor or assignment. For accepted work,
-   exhausted repair authority or a blocker, go to Stage 5: Record.
+4. For unavailable routes, recompute eligibility in Stage 2 using the actual provider/quota error
+   and the same required project/provider scope. An exhausted eligible set goes to Stage 5 with
+   its blocker. For authorized repairs return to Stage 3 with the revised floor. For accepted work
+   or exhausted repair authority, go to Stage 5: Record.
 
 ## Stage 5: Record
 

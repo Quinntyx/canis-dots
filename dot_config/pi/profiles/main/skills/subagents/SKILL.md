@@ -1,7 +1,8 @@
 ---
-name: workflow
-description: "Use when prototyping, evaluating software, diagnosing evaluation errors,
-  coordinating agents or research, integrating parallel work, or resuming a workflow."
+name: subagents
+description: "Use when delegating work, launching or continuing subagents, using agent pools,
+  coordinating parallel research, prototyping or evaluation workflows, integrating parallel work,
+  or requesting an interactive design-subagent review."
 metadata:
   type: procedure
 ---
@@ -20,7 +21,7 @@ metadata:
 - Verified requested results or an accurate partial outcome with blockers and resume identities.
 - A task ledger, evidence artifacts and isolated workspaces proportional to the actual work.
 - Exact-revision integration evidence when delivering code; source-backed synthesis for research.
-- Public actions, target updates and cleanup only within the user's authorized scope.
+- Hosted actions, target updates and cleanup only within the user's authorized scope.
 
 # Entrypoint
 
@@ -28,13 +29,17 @@ metadata:
 
 1. Infer the outcome and effects from the request. Resolve only uncertainties that change authority,
    correctness or delivery. Use supplied deadlines as constraints; otherwise plan by dependencies.
-2. For a prototype, proof of concept or first usable version, read `../prototype/SKILL.md` and
-   execute its Entrypoint; return here only for coordination detail needed by that procedure.
+   For an explicit interactive designer session, read `design-subagent/SKILL.md`, execute its
+   Entrypoint, and return that outcome. Other delegated work continues at step 2.
+2. For a delegated prototype or first usable version, read `prototype/SKILL.md` and execute its
+   Entrypoint; return here only for coordination detail needed by that procedure.
    For evaluation, benchmark passes/failures/crashes, regression diagnosis or issue triage, read
-   `../eval-triage/SKILL.md` and execute its Entrypoint, covering runner and agent errors alike.
+   `eval-triage/SKILL.md` and execute its Entrypoint, covering runner and agent errors alike.
    Otherwise continue with lightweight delegation for one assignment, research for evidence,
    independent implementation for separable subsystems, or dependent integration for accepted
-   predecessors. An explicit workflow request selects coordination with only the needed stages.
+   predecessors. One assignment or a small independent roster uses lightweight delegation and
+   its relevant checks. An explicit workflow or substantial dependent scope selects only the
+   coordination stages it needs.
 3. Preserve requested assignment counts. Distinguish total launches, total assignments and live
    concurrency C. Read `PI_SUBAGENTS_MAX_CONCURRENT` as the runtime ceiling; use available headroom
    and user limits. A total-launch cap includes follow-ups and reviews according to its wording.
@@ -58,8 +63,8 @@ metadata:
    choices as blockers or obtain an authorized substitute. Treat quota changes as current context.
 5. For authorized role routing, use a strong reasoning model for implementation, integration and
    consequential review; use a throughput model for bounded diagnosis or evidence extraction.
-   Historical fits are GPT 6.1 Sol high and GLM 5.3 Flash high, respectively. These are role fits,
-   not universal model/provider mandates. Research inherits the profile unless directed otherwise.
+   Choose actual models from the live catalog and task context. Research inherits the selected
+   profile unless the request supplies a different choice.
 6. Give leaves zero delegation fuel. Keep any authorized nested orchestration finite and within
    inherited global limits. Use parent-owned scheduling for the ordinary path.
 7. Record task identities, dependencies, revision/input identities, owners and acceptance checks.
@@ -77,7 +82,7 @@ metadata:
    - Lightweight delegation: one completion per useful assignment; see `references/delegation.md`.
    - Research: independent evidence questions and coordinator synthesis; see
      `references/research.md`.
-   - Streaming evaluation: read `../eval-triage/SKILL.md` and execute its Entrypoint for bounded
+   - Streaming evaluation: read `eval-triage/SKILL.md` and execute its Entrypoint for bounded
      intake, diagnosis, error isolation and serialized publication before continuing this stage.
    - Independent implementation: owned subsystem worktrees, relevant tests and scoped acceptance;
      see `references/independent-implementation.md`.
@@ -121,8 +126,10 @@ metadata:
 
 # Focused entrypoints
 
-- `../prototype/SKILL.md` selects a runnable prototype path with optional independent subsystem
+- `design-subagent/SKILL.md` selects the explicitly requested interactive designer session.
+
+- `prototype/SKILL.md` selects a runnable prototype path with optional independent subsystem
   work.
-- `../eval-triage/SKILL.md` selects streaming regression diagnosis and bounded public publication.
+- `eval-triage/SKILL.md` selects streaming regression diagnosis and bounded issue publication.
 - Read the matching child before executing either selected route. Both also run independently.
 - Every child carries its own contract; this skill supplies general coordination when needed.

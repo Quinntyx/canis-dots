@@ -29,8 +29,9 @@ metadata:
 
 1. Resolve the user-visible operation, data size, execution path, runtime, revision, build mode,
    and metric boundaries. Define start and completion events with a monotonic clock.
-2. Establish a reproducible fixture. For long-history UI lag, use a local deterministic provider
-   or replay with recorded content size, avoiding paid model traffic as the benchmark driver.
+2. Establish a reproducible fixture with controlled inputs and recorded workload size. Reuse a
+   deterministic local substitute or replay when external service cost or variability would
+   obscure the operation being measured; measure real external latency when that is the target.
 3. Inspect current load and available binaries using executable lookup and bounded version queries.
    Record CPU/GPU hardware, active backend, power mode, profiler availability, and capture rights.
 4. Select only relevant capture modes from Capture selection. Where a tool is absent, record the
@@ -75,8 +76,8 @@ metadata:
 
 ## Stage 4: Change and compare
 
-1. Make the smallest causally supported change. Preserve behavior, visual identity, shader output,
-   and workload fidelity; compare screenshots where rendering behavior could change.
+1. Make the smallest causally supported change. Preserve required behavior and workload fidelity;
+   compare rendered output when visual behavior could change.
 2. Re-run the same fixture and capture settings on the changed revision. Alternate baseline and
    candidate runs when practical to reduce drift; record changed conditions and profiler overhead.
 3. Compute absolute and relative deltas from successful comparable runs. Run relevant correctness

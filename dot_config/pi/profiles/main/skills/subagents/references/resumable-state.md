@@ -18,7 +18,7 @@
 1. Inspect the existing named kernel and its pool, handles and saved notebook before execution.
    Match live handle identities to ledger entries and actual task/session artifacts.
 2. Reconcile every in-flight intent. For an uncertain submission, inspect existing pool handles and
-   retained sessions before deciding whether any launch is missing. For an uncertain public write,
+   retained sessions before deciding whether any launch is missing. For an uncertain hosted write,
    inspect the remote issue/comment/PR and capture its receipt before scheduling another attempt.
 3. Inspect failed, cancelled and dormant outcomes as their actual state. A cell interrupt or pop
    timeout leaves the pool alive; resume collection and account for already completed handles once.

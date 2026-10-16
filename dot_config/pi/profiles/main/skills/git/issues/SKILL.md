@@ -1,7 +1,7 @@
 ---
-name: public-issues
-description: "Use when researching, drafting, filing, revising, or responding to public
-  repository issues, bug reports, feature requests, or duplicate reports."
+name: issues
+description: "Use when researching, drafting, filing, revising, or responding to repository
+  issues, bug reports, feature requests, or duplicate reports."
 metadata:
   type: procedure
 ---
@@ -10,8 +10,8 @@ metadata:
 
 ## Input Contract
 
-- A report, question, issue URL, reproducible failure, or feature request and intended repository.
-- Public repository access, Git, and authenticated `gh` for GitHub or `fj`/HTTP for Forgejo.
+- A report, question, issue URL, reproducible failure, or feature request and task context.
+- Repository and discussion access, plus authenticated host tooling for authorized writes.
 - A direct instruction to file, open, create, submit, or post an issue authorizes that specified
   publication. A direct instruction to reply or respond authorizes a response to that discussion.
 - Asking for a draft, wording, review, explanation, or how to file produces an unpublished artifact.
@@ -31,19 +31,16 @@ metadata:
 
 # Entrypoint
 
-## Stage 1: Resolve intent and destination
+## Stage 1: Establish the issue operation
 
 1. Identify creation, response, revision, or research; record publication state from the Input
    Contract. Ambiguity retains draft-only scope; an explicit hosted action records its exact
    authorized scope. Both paths continue Stage 1 at step 2.
-2. Resolve the actual destination from the user's repository or issue URL, the affected upstream,
-   and verified ownership. An explicit foreign upstream stays on its real host and repository.
-   A local fork or personal mirror is a source of evidence, not an automatic filing destination.
-   Personal Forgejo repositories use canonical Forgejo unless a different destination is explicit.
-3. Confirm host identity and available permissions. Public access permits research and a draft
-   through Stage 2: Read the repository; authenticated access also proceeds there with hosted
-   scope retained. Unavailable public access ends at Stage 6: Verify and report with that limit.
-   Keep writes scoped to the resolved owner/repo and issue number throughout.
+2. Read the repository and discussion context established by the task. Record the issue operation,
+   existing issue identity when applicable, available evidence, and requested deliverable.
+3. Check access and permissions for that operation. Read access proceeds to Stage 2: Read the
+   repository; authenticated write access retains the authorized hosted scope there. Unavailable
+   access ends at Stage 6: Verify and report with the preserved report and exact capability limit.
 
 ## Stage 2: Read the repository
 
@@ -77,7 +74,7 @@ metadata:
 3. Establish a minimal safe reproduction: exact version or commit, necessary environment and
    inputs, runnable steps, expected result, observed result, and the smallest relevant trace or
    artifact. Execute it where feasible within scope, preserving active user jobs and worktrees.
-   Use stable public source links or commit-pinned artifacts; keep credentials, personal paths,
+   Use source links accessible to the intended readers or commit-pinned artifacts; keep credentials,
    private session material, and unrelated logs private.
 4. Separate observed behavior from a likely cause and a proposed fix. Verify source claims against
    current code and line-stable links. An unexecuted reproduction remains marked unexecuted.
@@ -109,10 +106,8 @@ metadata:
    the original report rather than bot-to-bot review comments. Other authors retain ownership of
    their text; a response carries the correction. Comment deletion remains a separate explicit act.
 6. Select existing labels/types only when supported by the report, repo conventions, and scope.
-   Keep metadata sparse and verify automation-sensitive effects. Agent-generated reports in the
-   user's PyLingual evaluation workflow retain its established `slop` label when available.
-   Other repositories use their own conventions and explicit user instructions rather than that
-   historical workflow's label policy. Follow disclosure rules and answer provenance honestly.
+   Keep metadata sparse and verify automation-sensitive effects. Derive labels and disclosure
+   conventions from the repository and task context; answer provenance honestly.
 7. A grounded authorized hosted action proceeds to Stage 5: Publish or update. A requested draft,
    material unresolved evidence, or unclear authority ends with the usable artifact and the exact
    pending decision at Stage 6: Verify and report. Readiness is evidence-based rather than an
@@ -135,9 +130,8 @@ metadata:
 4. For Forgejo, use the installed CLI or `POST /repos/{owner}/{repo}/issues` for creation,
    `POST /repos/{owner}/{repo}/issues/{number}/comments` for replies, and
    `PATCH /repos/{owner}/{repo}/issues/{number}` for owned issue revisions. Send reviewed
-   title/body and repository label IDs. Read the token in memory from
-   `~/.local/share/forgejo-cli/keys.json` at `hosts["git.quinntyx.dev"].token` and use
-   `Authorization: token ...` with `https://git.quinntyx.dev/api/v1` for the personal forge.
+   title/body and repository label IDs through the host's configured authenticated client. Resolve
+   the API base and credentials through that client; retain credentials in memory and redact logs.
 5. A successful write proceeds to Stage 6: Verify and report. A timeout or uncertain failure first
    re-reads recent destination state for the accepted write. Retry only a proven missing write;
    a permission or API failure proceeds to Stage 6 with its retained draft and partial state.
@@ -156,6 +150,6 @@ metadata:
 - Bind and quote command variables from verified values. Every write explicitly names its
   destination. Keep tokens in memory and redact output.
 - Infer intent and technical context from evidence first; ask only for a material missing choice.
-  Public problem statements are concise while private research retains diagnostic depth.
+  Issue prose is concise while private research retains diagnostic depth.
 - Use bounded remote waits and dedicated detached tmux jobs for commands expected to exceed
   10–15 seconds. Retain native output and exit status while preserving active user panes.

@@ -33,7 +33,12 @@
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-subagents@dev",
     "git:git.quinntyx.dev/quinntyx/pi-activity@dev",
-    "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
+    {
+      "source": "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
+      "skills": [
+        "-skills/pi-subagents"
+      ]
+    },
     "npm:@narumitw/pi-btw",
     "git:git.quinntyx.dev/quinntyx/pi-antigravity-auth",
     "npm:pi-everforest-tui",
@@ -56,7 +61,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
     "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
   ],
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "extensions": [],
   "compaction": {
     "reserveTokens": 0

@@ -12,16 +12,16 @@ metadata:
 
 - Evaluation target and revision, dataset revision, case identity and result/artifact locations.
 - A working runner, reproducible environment, expected case-failure boundaries and GPU needs.
-- Diagnosis scope, permitted public repository actions and any requested new-issue cap.
+- Diagnosis scope, authorized issue actions and any requested new-issue cap.
 - AgentPool capacity, selected profile, explicit role/model choices and known resource ownership.
 
 ## Output Contract
 
 - Durable case outcomes and independently reasoned diagnoses linked to reproducible evidence.
-- Deduplicated root-cause groups, verified public receipts when authorized, and exact cap
+- Deduplicated root-cause groups, verified issue receipts when authorized, and exact cap
   accounting.
 - Preserved failed cases, pending work, producer cursor, counters and lease ownership for recovery.
-- A concise result stating coverage, distinct confirmed defects, public actions and open limits.
+- A concise result stating coverage, distinct confirmed defects, hosted actions and open limits.
 
 # Entrypoint
 
@@ -41,7 +41,7 @@ metadata:
 4. Inherit profile models unless the user names them or authorizes role routing. Resolve explicit
    provider/model/effort choices in the live catalog. With authorized routing, use a throughput
    model for bounded diagnosis and a strong reasoner for independent review or implementation.
-   GLM 5.3 Flash high and GPT 6.1 Sol high are historical fits, subject to current availability.
+   Resolve actual models and effort from the live catalog and task context.
 5. Declare a finite in-flight diagnosis bound D within C and a buffered-case high-water bound H.
    Default D to available diagnosis capacity and H to 2D cases; persist larger raw output on disk.
    Default the resume threshold to H // 2 and require D >= 1 before admission. Apply backpressure
@@ -52,12 +52,13 @@ metadata:
    continue unaffected work. Expected nonzero case exit is a case result; shared environment or
    scheduler failure is a blocker. Any additional attempt needs an explicit recovery decision;
    a dead non-dormant session does not automatically restart.
-7. Establish public authority and cap K. Count confirmed new issue creations in this run separately
-   from reproductions, comments, failed writes and issue reviews. A finite requested cap governs
-   publication; until authority and any needed cap are settled, keep findings local.
-8. Assign one coordinator writer for the ledger and public actions. Record root-cause reservations,
+7. Establish issue authority and any supplied creation cap K. Count confirmed new creations in
+   this run separately from reproductions, comments, failed writes and issue reviews. A finite K
+   bounds publication; when omitted, the requested evaluation scope bounds the work. Findings stay
+   local until publication is authorized.
+8. Assign one coordinator writer for the ledger and hosted actions. Record root-cause reservations,
    intended actions, remote receipts and pending independent reviews. Keep a separate `created`
-   counter; K is its upper bound, not a target number of cases or confirmed diagnoses.
+   counter; a supplied K is its upper bound, independently of case or diagnosis counts.
 9. Implement Stages 2 through 4 as routes in one completion-driven dispatcher. Keep at most one
    pending `pool.pop()` await, alongside producer I/O. Use `asyncio.wait` with `FIRST_COMPLETED`
    when both are pending. Preserve pending awaitables across routing steps and waiting interrupts.
@@ -66,11 +67,11 @@ metadata:
 
 ## Stage 2: Intake
 
-1. Acquire the authoritative GPU/model lease before loading a variant. Use a shared cooperative
-   lock respected by all participating runners, with recorded process ownership. Inspect existing
-   occupancy; defer when ownership is uncertain or another workload holds the resource. Include
-   GPU-backed diagnosis reproductions in the same lease protocol and complete their users before
-   unloading or switching a model variant.
+1. Identify the runner's actual shared resources. GPU-backed work continues with the lease steps
+   here and at step 2; independent CPU-only work proceeds directly to step 3. Acquire a GPU/model
+   lease before loading a variant, using a cooperative lock and recorded process ownership. Inspect
+   occupancy and defer conflicting loads. Include GPU-backed diagnosis reproductions in the same
+   lease and finish their users before unloading or switching the variant.
 2. Keep incompatible model variants mutually exclusive. Evaluate requested variants in alternating
    bounded batches when balanced coverage matters; record coverage and switching cost. Release a
    lease after verified unload or owned process exit, then admit the next variant.
@@ -114,7 +115,7 @@ metadata:
 
 ## Stage 4: Publish
 
-1. Serialize public decisions in the coordinator, or admit exactly one publisher handle at a time.
+1. Serialize issue decisions in the coordinator, or admit exactly one publisher handle at a time.
    AgentPool stage slots are soft priorities; a one-slot stage does not enforce a mutex. Use the
    repository's cooperative publication lock when multiple participating coordinators may write.
 2. Reserve the accepted fingerprint and recheck the remaining confirmed-creation budget under the
@@ -125,16 +126,17 @@ metadata:
    its receipt. Both branches finish publication accounting at step 6.
 4. For a genuinely new root cause with budget, persist a create intent and content digest, then
    publish a concise issue: observable defect, minimal reproduction, expected versus actual
-   behavior and source-backed cause. Include public dataset/source links and relevant versions.
+   behavior and source-backed cause. Include relevant versions and dataset/source links accessible
+   to the issue readers.
    On confirmed creation record its remote ID/URL and increment `created` exactly once.
 5. For an uncertain network outcome, retain the intent and reconcile remote state before another
    write. A confirmed failed write consumes no creation slot. If a concurrent external writer
    published the same cause, link that issue and finish at step 6 instead of creating another.
-6. Record the receipt and release the reservation. Keep public prose for repository readers;
+6. Record the receipt and release the reservation. Keep issue prose for repository readers;
    private machine paths, session details and workflow bookkeeping stay in the private ledger.
 7. When independent issue review is requested, immediately submit one read-only review for each
    confirmed creation and keep polling completions alongside intake. Review checks causal validity
-   and issue quality; public comments use the user's requested brevity and action authority.
+   and issue quality; issue comments use the user's requested brevity and action authority.
 8. Admit implementation only when the user requested it, with accepted issue identities and
    separate owned worktrees. Issue creation alone authorizes diagnosis delivery, not source repair.
 9. At `created == K`, stop new diagnoses and producer admission, preserve buffered case identities
@@ -151,7 +153,7 @@ metadata:
    and Stage 4: Publish, returning here after each route.
 2. Persist case cursor, coverage by variant, queued/buffered identities, processed handles, accepted
    fingerprints, unresolved hypotheses, publication intents/receipts and resource ownership.
-3. Reconcile uncertain public writes before resuming. Inspect live kernel/pool/handle state against
+3. Reconcile uncertain hosted writes before resuming. Inspect live kernel/pool/handle state against
    the ledger before resubmitting any task. Continue retained sessions through
    `stage.submit(task, parent=result, session_handle=result.handle)` and retain the new handle.
 4. Release owned GPU/model leases after actual unload or process exit. Keep uncertain resources

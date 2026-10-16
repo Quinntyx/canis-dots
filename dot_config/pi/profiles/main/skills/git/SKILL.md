@@ -2,8 +2,8 @@
 name: git
 description: "Use when locating, cloning, forking, initializing, or mirroring repositories,
   using branches or worktrees, committing, pushing, or drafting, filing, updating, or responding
-  to pull requests; also researching public issue discussions, checking for duplicates, drafting,
-  filing, updating, or responding to public issues."
+  to pull requests; also researching issue discussions, checking for duplicates, drafting, filing,
+  updating, or responding to repository issues."
 metadata:
   type: procedure
 ---
@@ -36,8 +36,8 @@ metadata:
    - New project initialization: `init-project/SKILL.md`.
    - Server-side GitHub mirrors, mirror repairs, or Forgejo migration: `github-mirror/SKILL.md`.
    - Drafting, publishing, revising, or responding to pull requests: `pr/SKILL.md`.
-   - Researching public issue discussions, checking for duplicates, creating, drafting, updating,
-     or responding to public issues: `public-issues/SKILL.md`.
+   - Researching issue discussions, checking for duplicates, creating, drafting, updating,
+     or responding to repository issues: `issues/SKILL.md`.
 3. For `~/.local/share/chezmoi`, retain the existing `main` checkout and source-state layout.
    Verify `main`; an unexpected branch ends with a report, preserving the checkout. Edit source
    state, validate, then commit and push before applying when those
@@ -88,11 +88,12 @@ metadata:
 
 ## Stage 4: Select the branch
 
-1. Verify an ordinary primary clone at `main` and sibling layout before creating worktrees.
-   A missing/noncanonical anchor ends at Stage 6: Verify and report for a destination decision;
-   a valid anchor continues Stage 4 here. Set `target` to the supplied task checkout or `primary`.
-   Inspect `git -C "$primary" remote -v`, `git -C "$primary" status --short --branch`, and
+1. Use the supplied checkout and its actual worktree layout for existing repository work. New
+   personal clones use the ordinary `main` anchor and sibling layout established in Stage 3. Set
+   `target` to the supplied task checkout or `primary`. Inspect `git -C "$primary" remote -v`,
+   `git -C "$primary" status --short --branch`, and
    `git -C "$primary" worktree list --porcelain`. Preserve existing edits and branch associations.
+   A missing anchor ends at Stage 6: Verify and report; an established anchor continues at step 2.
 2. Locate/list-only requests proceed to Stage 6: Verify and report. Other requests continue
    Stage 4 here. Check the actual task checkout's branch; use the primary when none was supplied.
    For feature edits on `main`, ask whether to use `dev` and wait, unless work on `main` was
@@ -157,8 +158,9 @@ metadata:
   its requested scope; implementation alone is distinct from opening a pull request.
 - Requested chezmoi configuration changes normally authorize source-state commits and ordinary
   pushes on `main`, followed by apply. A coordinator-owned lifecycle leaves source changes ready.
-- Foreign upstream contributions use the upstream's actual host, fork workflow, contribution rules,
-  and target branches. An explicit foreign repo or issue URL outranks personal-host defaults.
+- Contribution work follows the task's repository, host, contribution rules, and target branches.
+  Clone-layout and personal-host defaults apply to checkout setup, independently of hosted issues
+  and pull requests, whose repository context is supplied by their task.
 - Respect configured transport rewrites on restricted machines while preserving canonical hosting.
   Ordinary development pushes use the canonical writable origin, with server-side mirrors syncing
   personal Forgejo repositories to GitHub.

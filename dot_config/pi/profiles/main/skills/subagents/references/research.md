@@ -14,7 +14,7 @@
 6. Validate decisive citations in their actual source. Synthesize the answer around the requested
    decision, supported alternatives and uncertainty, with enough references for audit.
 7. Finish when the decision criterion is supported or the remaining gap is a reported blocker.
-   Keep public posting, code edits and implementation as separately authorized downstream work.
+   Keep hosted posting, code edits and implementation as separately authorized downstream work.
 
 # Coordination
 

@@ -16,7 +16,7 @@
 6. Use five review/repair cycles as the cap in selected substantial implementation workflows.
    Finish at first approval. At cap exhaustion preserve the candidate and report the blocker.
    Lightweight checks need only the feedback necessary for their actual acceptance decision.
-7. Keep public review comments appropriate to public readers: actionable finding, evidence and
+7. Keep review comments appropriate to repository readers: actionable finding, evidence and
    requested correction or acceptance. Put private execution details in the coordinator ledger.
 
 # Acceptance boundaries

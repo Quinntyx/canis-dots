@@ -33,8 +33,9 @@ metadata:
 
 ## Stage 1: Inspect and Classify
 
-1. Read the request and identify the intended trigger, governed behavior, required inputs, expected
-   outputs, side effects, artifact paths, environment constraints, and validation requirements.
+1. Read the request and identify the action or capability, intended trigger, governed behavior,
+   required inputs, outputs, side effects, artifact paths, environment and validation requirements.
+   Separate reusable procedure from the task context that selects its target and configuration.
 2. Inspect the system prompt for the active Pi profile and use its `skills` directory as the default
    destination.
 3. Classify the skill as `guideline` when it primarily states what to keep in mind while performing
@@ -71,6 +72,8 @@ metadata:
    the package.
 3. Confirm that every line is at most 100 characters.
 4. Confirm that the description communicates selection criteria rather than summarizing content.
+   Check that the skill governs its named capability; task-specific targets, labels, models and
+   resources remain context inputs unless they define an explicitly specialized workflow.
 5. Confirm that a procedure can be followed mechanically from its Entrypoint and contracts.
 6. Confirm that a guideline skill communicates its constraints densely and unambiguously.
 7. If any check fails, return to Stage 3: Author and correct every failure. Otherwise, proceed to
@@ -146,6 +149,16 @@ metadata:
 - Keep the main path direct enough that an agent can execute it without reconstructing intent.
 - Add any number of guideline sections after Entrypoint when the procedure also needs behavioral
   constraints.
+
+# Capability Scope
+
+- Name and trigger a skill by the action or capability it governs.
+- Treat the repository, account, destination, subject matter, model, and resource needs as inputs
+  resolved from the request and current environment at invocation.
+- Keep procedure mechanics reusable across private and public projects and different task targets.
+- Place durable personal setup conventions in the narrowly triggered setup procedure they govern;
+  keep them local to that action when composing broader capabilities.
+- Apply optional phases according to the requested deliverable, authority, and observed needs.
 
 # Standalone Design
 

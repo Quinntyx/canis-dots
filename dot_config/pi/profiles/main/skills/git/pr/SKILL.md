@@ -26,20 +26,17 @@ metadata:
 
 # Entrypoint
 
-## Stage 1: Resolve destination and authority
+## Stage 1: Establish the PR operation
 
 1. Resolve and record the requested artifact and publication state. Draft-only and ambiguous
    scope retain an unpublished artifact for Stage 5: Verify and report. An explicit hosted
    instruction records its exact scope for Stage 4: Publish or revise. Continue Stage 1 at step 2.
-2. Inspect remotes, checked-out branch, worktrees, repository owner, and the specified PR URL.
-   An explicit destination governs. Personal Forgejo repositories use Forgejo for PRs; GitHub
-   mirror URLs remain mirrors. Foreign upstream contributions target the genuine upstream's host
-   and repository, using the personal fork as head when required. Verify the PR base repository
-   independently of the local `origin` to prevent accidentally targeting a fork or mirror.
-3. For personal feature work, use `feat-<dash-delimited-description>` branches based on `dev` and
-   target PRs explicitly to `dev`. Branch-base and PR-target overrides are independent. A required
-   missing `dev` ends with a target decision. Foreign repositories follow their actual contributor
-   workflow and branches. Explicit user targets take precedence after repository verification.
+2. Read the task's repository, branch and PR context. Inspect the existing PR when supplied and
+   verify its base/head identities against the actual refs. Retain the context's repository and
+   contribution policy throughout the requested operation.
+3. Establish the base, head and draft state from the request, existing PR and repository policy.
+   Preserve explicit choices and established branch relationships. A material unresolved ref ends
+   with the precise pending choice; established refs continue at step 4.
 4. Read contribution instructions, PR templates, existing PR state, and every review thread and
    timeline page. For GitHub use paginated issue comments, pull review comments, reviews, and
    GraphQL review threads as needed; a short summary is a locator rather than the full discussion.
@@ -56,10 +53,9 @@ metadata:
 3. Run the smallest relevant checks for the change and inspect the actual results. Separate
    observed behavior, inferred mechanism, assumptions, and unverified claims. Preserve existing
    unrelated edits and runtime jobs.
-4. For requested review fixes, use the authorized checkout or a separate sibling worktree named
-   after its branch. Existing `dev` permits task commits and ordinary pushes. Other task branches
-   need authorization for commits/pushes. Retain chezmoi's existing `main` source-state checkout
-   and its assigned configuration lifecycle. Merges into `main` require explicit authorization.
+4. For requested review fixes, use the authorized checkout or an isolated writer worktree. Follow
+   the repository's commit, push and integration policy within the task's effects. Keep unrelated
+   work and concurrent contributors' checkouts intact.
 5. Once evidence and checks are sufficient, proceed to Stage 3: Write the artifact. Check failures
    remain explicit findings; they are repaired within scope or reported as unresolved.
 
@@ -95,9 +91,8 @@ metadata:
 4. Use `gh pr comment "$number" --repo "$repo" --body-file "$body_file"` for GitHub timeline
    comments. For Forgejo resolution failures, use
    `POST /repos/{owner}/{repo}/issues/{number}/comments`; edit an owned comment with
-   `PATCH /repos/{owner}/{repo}/issues/comments/{id}`. Read the forge token in memory from
-   `~/.local/share/forgejo-cli/keys.json`, at `hosts["git.quinntyx.dev"].token`, and send an
-   `Authorization: token ...` header to `https://git.quinntyx.dev/api/v1`.
+   `PATCH /repos/{owner}/{repo}/issues/comments/{id}`. Use the host's configured authenticated
+   client and API base, keep credentials in memory, and redact them from output.
 5. A successful write proceeds to Stage 5: Verify and report. A failed or timed-out write first
    re-reads the destination for an accepted write, then reports its actual state at Stage 5.
    Retry only a proven missing write, preserving unrelated edits and existing discussion.
@@ -108,4 +103,4 @@ metadata:
    title/body, draft state, and relevant commit/check links. Report incomplete checks honestly.
 2. Return the URL and concise outcome for publication, or the complete usable text for a draft.
    Include the verified tests and material unresolved limit. Local working-tree bookkeeping belongs
-   in the private task report, while the public artifact serves repository readers.
+   in the private task report, while the PR artifact serves repository readers.

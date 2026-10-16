@@ -1,7 +1,7 @@
 ---
-name: ui-mock
-description: "Use when the user requests an interactive UI mock or design-subagent session
-  with live annotation and explicit final approval through Pi UI Forge."
+name: design-subagent
+description: "Use when the user explicitly requests an interactive design-subagent session
+  or designer-led UI review with live annotation and final approval through Pi UI Forge."
 metadata:
   type: procedure
 ---
@@ -42,7 +42,7 @@ metadata:
 
 1. In a persistent Python kernel, retain one `AgentPool(concurrency=1, name="design")`, a stage
    with `slots=1`, and the submitted handle. Use the actual installed SDK's signatures and admission
-   policy. The optional package-provided `pi-subagents` skill offers additional API depth.
+   policy. `../references/runtime.md` offers optional depth on the installed AgentPool API.
 2. Submit one designer `Task` with the resolved `agentDir`, mock-folder `cwd`, brief, and a positive
    settle timeout compatible with the requested interactive lifetime. A wait bound measures when
    to inspect progress, independently of whether the human has finished reviewing.

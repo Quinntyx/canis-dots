@@ -67,3 +67,20 @@
 - Keep setup, scheduling and teardown separate. Cell interruption preserves the pool. Close only
   the owned pool through `pool.close()` after work and continuation needs end; closure permanently
   invalidates handles. Keep live kernels attached while their pools are active.
+
+## Model resolution and task settings
+
+- Resolve named models through `best_model_match`, `model_slugs`, `resolve_models` or
+  `list_models`. Use a full provider/model slug for ambiguous names. `list_models(refresh=True)`
+  refreshes the catalog; otherwise unspecified models inherit the selected profile.
+- Task timeouts express a supplied task limit or a supported operational wait boundary. Match
+  those values to the actual task lifetime and keep user delivery deadlines separate.
+- Inspect `handle.agent_state()` when runtime state alone cannot explain progress. Inspection of
+  a dormant successful session preserves dormancy and its durable identity.
+- A terminal `send` returns `scheduled`, a new `handle`, `handleId` and queued status. Retain that
+  new handle and collect its outcome. Use explicit stage submission to change schema, metadata,
+  timeout or routing. At most one queued or active continuation owns each session.
+- `handle.cancel()` applies to that handle's queued or running turn. Track continuation handles
+  separately, preserve their actual cancellation outcomes and retain inspectable work.
+- Read-only assignments share immutable inputs. Concurrent writers own separate worktrees.
+  Select stages, CI and integration policy in proportion to the task's real dependencies.

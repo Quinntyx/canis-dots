@@ -19,7 +19,8 @@ metadata:
 
 ## Output Contract
 
-- A saved `.blend`, reproducible Python build or edit script, and actual rendered preview artifacts.
+- Requested scene, inspection, preview, or export artifacts. Changed scenes include a saved
+  working `.blend` and reproducible build or edit script; previews are actual rendered images.
 - Requested exports, plus verification of scale, orientation, material coverage, and required data.
 - `scene-report.md` containing capability results, source assets, commands, Blender version,
   engine, actual render device, settings, artifact paths, and remaining limitations.
@@ -59,7 +60,9 @@ metadata:
    subject readable in a preview.
 3. Choose a modest first render and bounded thread count that preserve desktop responsiveness.
    Resolve engine and device from installed capabilities and project requirements.
-4. Proceed to Stage 3: Build.
+4. For inspection-only or export-only work, proceed to Stage 5: Verify and export with the existing
+   scene. For creation or editing, proceed to Stage 3: Build. For rendering an existing scene,
+   proceed to Stage 4: Render.
 
 ## Stage 3: Build
 
@@ -101,11 +104,12 @@ metadata:
 
 ## Stage 5: Verify and export
 
-1. Reopen the saved `.blend` in a separate background process and inspect required objects,
+1. Inspect the requested existing scene, or reopen a changed `.blend` in a separate background
+   process to verify the saved result. Inspect required objects,
    materials, transforms, camera, render settings, external paths, and animation data.
 2. Check evaluated geometry with modifiers and render settings accounted for. Apply manifoldness,
    normal, topology, or polygon-budget checks only where the deliverable requires them.
-3. Export only the requested formats through the installed Blender version's operators. Reimport
+3. When export is requested, use the installed Blender version's operators. Reimport
    into a separate scene or inspect with an available reader; verify units, axes, bounds, and data.
 4. Proceed to Stage 6: Report.
 

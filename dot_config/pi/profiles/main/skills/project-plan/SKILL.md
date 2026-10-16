@@ -65,6 +65,7 @@ metadata:
    test entrypoints, dependencies, and deployment or execution constraints.
 2. Run proportionate read-only discovery and baseline checks. Record actual commands and results;
    label an unexecuted or unavailable check as pending rather than using it as evidence.
+   Bind dated baseline and status entries to the current task timestamp or an observed clock.
 3. Reconcile the supplied discussion with observed code and documentation. Mark existing behavior
    separately from the desired target and identify the migration between them.
 4. Identify the consequential alternatives, coupling, invariants, failure modes, resource needs,

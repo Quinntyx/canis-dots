@@ -22,7 +22,9 @@ metadata:
 - A focused implementation or diagnosis, with the original interaction exercised in the application.
 - A private, task-owned evidence directory outside the repository and installed skill tree.
 - A run manifest binding source/build identity, argv, environment, PTY geometry and event trace.
-- Timed terminal output, boundary screens, cursor/viewport state, check results and artifact hashes.
+- Completion tuple: manifest/source identity; timed raw output; event index with screens/metadata;
+  exit/restoration provenance; separate `checksums.json` and successful digest verification.
+- Boundary assertions, cursor/viewport state and check results tied to that tuple.
 - A report separating deterministic tests, observed terminal behavior and unverified boundaries.
 - Source delivery and cleanup within task authority; publication follows its chosen policy.
 
@@ -30,8 +32,10 @@ metadata:
 
 ## Stage 1: Bind the target and evidence
 
-1. Read project instructions, checkout status, build commands and the rendering/input owner. Resolve
-   the process actually implicated by the request, including launch wrappers and loaded modules.
+1. Open `references/capture.md` with the read tool and read it fully before allocating any run.
+   Resolve it relative to this skill's root, not the checkout. Then read project instructions,
+   checkout status, build commands and the rendering/input owner. Resolve the implicated process,
+   including launch wrappers and loaded modules.
 2. Record the repository HEAD, complete dirty patch and hashes of relevant untracked source. Record
    dependency lock hashes, runtime versions and the build command. Bind the built executable or
    loaded source paths to these inputs; capture a digest of the actual runnable artifact.
@@ -57,7 +61,10 @@ metadata:
    state transitions that affect the bug. Store only the selected trace in the private workspace.
 4. Select the smallest decisive boundary set and one nearby unaffected path. Use the coverage rules
    below to choose geometry, Unicode, scroll, stream and animation states. State each expected
-   invariant, comparison method and tolerance before changing the implementation.
+   invariant, comparison method and tolerance before changing the implementation. For each selected
+   geometry, include completion and subsequent redraw as well as active streaming. Specify expected
+   cells and blank remainder across the affected rows so stale delimiters, suffixes and wrapped
+   residue fail acceptance even when streaming width and cursor position pass.
 5. For a repair, continue to Stage 3: Observe and localize with the failing build. For new terminal
    functionality, continue to Stage 4: Implement with the expected journey and baseline behavior.
 
@@ -98,7 +105,9 @@ metadata:
    loaded paths/build identity in the running application; reproduce Stage 2's entrypoint and trace.
 2. Capture the real PTY output and terminal state at the selected boundaries. Repeat the decisive
    path and nearby unaffected path. Exercise the selected resize, theme and lifecycle transitions
-   while the affected component is active, then verify final cursor, screen and input restoration.
+   while the affected component is active. Capture completion and redraw before application exit
+   at each selected geometry; compare full affected rows, including blank cells, with Stage 2's
+   expectations. Separately retain exit status and final cursor, screen and input restoration.
 3. Run the deterministic regression and applicable project checks. Reconcile their results with the
    actual terminal capture. A framework simulator proves its modeled behavior; a passing simulator
    and an unobserved application run remain separate findings.
@@ -106,16 +115,20 @@ metadata:
    For emulator-specific appearance, inspect the real target emulator and retain its screenshot or
    recording plus version/geometry. tmux cell captures establish tmux's interpretation, not glyph
    appearance or support for every protocol in another emulator.
-5. Verify that source and runnable digests still match the launched identities. Seal evidence using
-   `references/capture.md`, inspect file contents and check every claimed artifact exists and hashes
-   correctly. A resolved journey and passing selected checks continue to Stage 6: Deliver. A failed
-   invariant returns to Stage 3: Observe and localize with the new evidence. Changed source/build
-   identities return to Stage 4: Implement for a fresh build and exact-revision run.
+5. Verify that source and runnable digests still match the launched identities. Complete and seal
+   the run using `references/capture.md`; reopen every component of the Output Contract's completion
+   tuple and verify event/frame links and checksums. Screens alone cannot establish completion.
+   Changed identities return to Stage 4: Implement for a fresh build and exact-revision run.
+   Otherwise, a failed invariant returns to Stage 3: Observe and localize with the new evidence.
+   Otherwise, a complete tuple and passing selected checks continue to Stage 6: Deliver as verified;
+   missing tuple evidence continues to Stage 6: Deliver as incomplete, naming the missing artifacts.
 
 ## Stage 6: Deliver
 
-1. Report implemented behavior or findings, causal evidence, exact revision/build and the evidence
-   directory. List the actual trace, geometry/theme coverage, checks run and their results.
+1. Report implemented behavior or findings, causal evidence and the evidence directory. Copy actual
+   HEAD, dirty-source and runnable digests from the verified manifest; state any unobserved identity
+   rather than replacing a recorded revision with a placeholder. Report the completion tuple's
+   paths and verification result, actual trace, geometry/theme coverage and checks run.
 2. Separate observed fixes, test-only coverage, unavailable terminal boundaries and remaining work.
    A blocked run reports the precise prerequisite and retains the trace for resumption.
 3. Retain evidence and completed job output for the handoff. Finish the owned PTY after graceful

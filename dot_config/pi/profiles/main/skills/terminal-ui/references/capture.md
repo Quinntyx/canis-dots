@@ -77,10 +77,12 @@ chmod 700 "$launch"
 
 ## Drive and capture
 
-1. Use a task-local controller to persist `events.jsonl`. Each event records its index, monotonic
-   time before/after the operation, kind, byte payload in hex or logical payload, expected state,
-   return status and observed readiness. Record stream chunk boundaries, resize dimensions, theme
-   changes and clock advances. Also record timed-output file offsets at settled boundaries.
+1. Use a task-local controller to persist `events.jsonl` from startup through completion and exit.
+   Each event records its index, monotonic time before/after the operation, kind, byte payload in
+   hex or logical payload, expected state, return status and observed readiness. Record stream
+   chunk boundaries, resize dimensions, theme changes and clock advances. At each selected boundary
+   include observed geometry, screen/metadata paths and timed-output offsets. A planned trace in
+   the manifest is not an executed event index; never invent missing event timing after the run.
 2. Bind `hex_bytes` to the event's bytes as two-digit hexadecimal Bash array entries. Inject them
    only into the recorded pane. Bind `cols` and `rows` to each resize event and target its window.
    For mouse, paste and keyboard protocols, encode the application's actual negotiated protocol.
@@ -107,8 +109,11 @@ fmt+=' #{pane_pid} #{pane_dead} #{pane_dead_status} #{pane_dead_signal}'
 "${t[@]}" display-message -p -t "$pane" "$fmt" > "$run/screen-$step.meta"
 ```
 
-5. Inspect cell text, attributes and cursor/viewport assertions. `capture-pane -e` preserves cell
-   styling but reconstructs a screen; it is not the original escape stream or a timing record.
+5. Inspect cell text, attributes and cursor/viewport assertions, including completion and redraw
+   at every selected geometry. Compare the full affected rows against expected cells and blank
+   remainder; distinguish intended borders from stale suffixes using the declared expectation.
+   Capture settled completion before exit, separately from the dead-pane screen. `capture-pane -e`
+   reconstructs styled cells; it is not the original escape stream or a timing record.
    `output.ansi` and `output.time` supply the emitted stream and timing. The typescript also has
    recorder headers/trailers; interpret it with the matching timing file.
 6. For terminal-owned scrollback, capture the normal-screen history at the relevant settled point.
@@ -125,22 +130,27 @@ fmt+=' #{pane_pid} #{pane_dead} #{pane_dead_status} #{pane_dead_signal}'
 
 ## Complete, inspect and seal
 
-1. Send the application's documented graceful exit event and wait for the owned pane's `pane_dead`
-   state with a deadline. Record its status and signal; `script -e` reports its child's status.
-   A deadline reports a live handle at Stage 6: Deliver in `SKILL.md`; an exited process continues
-   at step 2. Cancellation and forced shutdown follow the task's explicit authority.
-2. Capture final metadata and inspect the typescript tail for terminal restoration. Compare final
-   raw operations with the expected cursor, input mode and screen cleanup. tmux's dead-pane footer
-   is harness output rather than an application frame. Parse the recorder summary without replaying
-   arbitrary escape sequences into the agent's terminal.
+1. Send the application's documented graceful exit event, or observe its declared natural exit,
+   and wait for the owned pane's `pane_dead` state with a deadline. Persist the exit event and final
+   pane status/signal as `final.meta` with field names or the exact queried format. Reconcile them
+   with recorder status; `script -e` reports its child's status. A deadline reports a live handle
+   at Stage 6: Deliver in `SKILL.md`; an exited process continues at step 2. Cancellation and forced
+   shutdown follow the task's explicit authority.
+2. Inspect the typescript tail for terminal restoration. Record expected and observed cursor,
+   input-mode and screen cleanup in the manifest, citing final raw byte intervals and metadata.
+   For modes never changed, record that fact and its evidence rather than assuming restoration.
+   tmux's dead-pane footer is harness output, not an application completion frame or restoration
+   proof. Parse the recorder summary without replaying arbitrary escapes into the agent's terminal.
 
 ```bash
 scriptreplay --summary -T "$run/output.time" > "$run/recording-summary.txt"
 ```
 
 3. Verify output/timing are nonempty, expected ANSI/state transitions are present, selected screens
-   contain the asserted cells and all event indices resolve to retained evidence. Read the actual
-   artifacts, not only process exit codes. Retain failing comparisons with the expected values.
+   contain the asserted cells without redraw residue and all event indices resolve to retained
+   screens, metadata and timed-output intervals. Read the actual artifacts, not only process exit
+   codes. Retain failing comparisons with expected values; a passing width check is not a passing
+   completion/redraw check.
 4. When playback is useful, launch `scriptreplay` with `--log-out` and `--log-timing` bound to these
    files inside another fresh owned PTY. Use the recorded geometry and apply recorded resizes from
    the controller. Playback visualizes recorded output; rerunning the application trace verifies
@@ -152,10 +162,16 @@ scriptreplay --summary -T "$run/output.time" > "$run/recording-summary.txt"
 "${t[@]}" kill-server
 ```
 
-6. Finalize `manifest.json` with exit status, observed process/build identity, coverage and limits.
-   Write a SHA-256 map of every regular evidence file except the checksum map itself; exclude the
-   socket. Reopen each file and verify its digest and referenced event/frame paths. Store the map
-   as `checksums.json` and record verification results. Preserve evidence with the task receipt.
+6. Finalize `manifest.json` with actual HEAD, dirty-source/runnable digests, observed process/build
+   identity, exit/restoration findings, coverage and limits. Write a separate `checksums.json`
+   SHA-256 map of every regular evidence file, including the finalized manifest, except the map
+   itself; exclude the socket. Embedded manifest hashes do not replace this map. Reopen every file,
+   verify its digest and resolve every event/frame path. Record verification results in the receipt
+   outside the sealed run; any subsequent evidence edit requires resealing and verification.
+   Completion requires the whole tuple: manifest/source identity, timed raw output, event index
+   with screens/metadata, exit/restoration provenance and verified checksums. Missing evidence goes
+   to Stage 6: Deliver in `SKILL.md` as incomplete; a complete tuple returns to Stage 5: Verify the
+   integrated run in `SKILL.md` for acceptance, not automatic certification from captures.
 
 ## Sources
 

@@ -1,6 +1,7 @@
 ---
 name: api-migration
-description: "Use when changing an API or propagating internal or external API migrations."
+description: "Use when migrating or updating API or function contracts, changing signatures,
+  return shapes or semantics, propagating changes to callers and docs, or replacing obsolete SDKs."
 metadata:
   type: procedure
 compatibility: "Python 3.11+, Git, rg, POSIX; direct TypeSafe HTTPS access for Jev triage."

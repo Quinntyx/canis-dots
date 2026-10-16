@@ -1,9 +1,15 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 
 const CONTINUE = "pi-continue:request";
+const STATUS = "Continued from existing session";
 
 export default function (pi: ExtensionAPI) {
-  // Pi has no public continue() API. Use a hidden control message to start its
+  pi.registerMessageRenderer(CONTINUE, (_message, { outputPad }, theme) =>
+    new Text(theme.fg("dim", STATUS), outputPad, 0),
+  );
+
+  // Pi has no public continue() API. Use a visible control message to start its
   // normal run pipeline, then remove every such marker before model conversion.
   // Filtering by type also handles markers restored from older session entries.
   pi.on("context", (event) => ({
@@ -36,7 +42,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       pi.sendMessage(
-        { customType: CONTINUE, content: [], display: false },
+        { customType: CONTINUE, content: STATUS, display: true },
         { triggerTurn: true },
       );
     },

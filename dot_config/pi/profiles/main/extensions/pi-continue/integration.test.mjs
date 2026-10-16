@@ -85,11 +85,15 @@ test("/continue sends the existing transcript over HTTP with no new user turn", 
       assert.equal(outgoing.at(-1).content, previousAssistant.content[0].text);
       assert.equal(outgoing.filter((m) => m.role === "user").length, usersBefore);
       assert.ok(!JSON.stringify(requests.at(-1)).includes("pi-continue:request"));
+      assert.ok(!JSON.stringify(requests.at(-1)).includes("Continued from existing session"));
       const after = session.sessionManager.buildSessionContext().messages;
+      const markers = after.filter((m) => m.role === "custom" && m.customType === "pi-continue:request");
+      assert.equal(markers.length, i - 1);
+      assert.ok(markers.every((m) => m.display === true && m.content === "Continued from existing session"));
       assert.equal(after.filter((m) => m.role === "user").length, usersBefore);
       assert.equal(session.getLastAssistantText(), `Answer ${i}`);
     }
-    console.log("3 HTTP requests; /continue twice; unchanged transcript prefixes; 1 original user turn; no marker sent.");
+    console.log("3 HTTP requests; /continue twice; unchanged transcript prefixes; 1 original user turn; visible status entries; no marker or status sent.");
   } finally {
     session?.dispose();
     server.closeAllConnections();

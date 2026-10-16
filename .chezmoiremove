@@ -5,3 +5,6 @@
 .config/pi/profiles/subagents/skills/pi-subagents
 .config/pi/profiles/main/extensions/pi-continue
 .config/pi/profiles/main/extensions/pi-codex-disconnect-retry
+.config/pi/shared/extensions/pi-opencode-zen-free
+.config/pi/profiles/main/extensions/pi-opencode-zen-free
+.config/pi/profiles/subagents/extensions/pi-opencode-zen-free

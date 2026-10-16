@@ -30,10 +30,11 @@
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
     "npm:pi-tool-display",
     "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
-    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev"
+    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev",
+    "git:git.quinntyx.dev/quinntyx/pi-opencode-zen-free@v0.1.0"
   ],
   "lastChangelogVersion": "1.1.0",
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "transport": "websocket-cached",
   "extensions": [],
   "tuiMode": "fullscreen",

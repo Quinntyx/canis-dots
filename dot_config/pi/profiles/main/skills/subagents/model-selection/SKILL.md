@@ -98,7 +98,9 @@ metadata:
 
 ## Stage 5: Record
 
-1. Return the role, floor, selected tier, exact slug, effort and concise selection reason.
+1. Return the role, floor and selection outcome. A resolved choice includes its eligible exact
+   slug, tier, effort and reason. A blocked choice uses an empty eligible model set, with the intended
+   identity and unmet prerequisite recorded separately as diagnostic context.
 2. Record peer identities and diversity limits, explicit overrides, provider failures, promotions
    and unresolved access requirements in the owning task ledger. Resolve a project-quota blocker
    by awaiting its configured renewal or obtaining an approved project allocation change inside

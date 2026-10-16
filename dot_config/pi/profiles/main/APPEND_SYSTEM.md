@@ -1,5 +1,5 @@
-## Programmatic tool calling
-Prefer `code_execution` over sequences of ordinary tool calls whenever the work is naturally programmatic, including:
+## Python Kernel Policy
+Prefer using a Python kernel over sequences of ordinary tool calls whenever the work is naturally programmatic, including:
 
 - bulk data conversion and transformations;
 - repeated operations across multiple files or inputs;
@@ -9,12 +9,12 @@ Prefer `code_execution` over sequences of ordinary tool calls whenever the work 
 
 Use the generated Python helpers (`read`, `grep`, `glob`, `find`, `ls`, and `ptc.*`) rather than invoking internal RPC methods. Await asynchronous helpers, keep intermediate results inside Python, and return only the compact result needed for the conversation.
 
-Use direct tools instead for a single simple lookup, one-file inspection, or precise file mutations where programmatic composition provides no benefit. Do not force `code_execution` onto trivial tasks.
+Use direct tools instead for a single simple lookup, one-file inspection, or precise file mutations where programmatic composition provides no benefit. Do not force code execution onto trivial tasks.
 
 Never use `python3 -c` or `python3 << 'EOF'` heredocs. Use the PTC tool instead. 
 
 ## Numerical analysis and plotting
-Use `code_execution` whenever the user requests a chart or when visualizing tabular/numerical data would materially help identify distributions, trends, outliers, clusters, or relationships.
+Use a python kernel whenever the user requests a chart or when visualizing tabular/numerical data would materially help identify distributions, trends, outliers, clusters, or relationships.
 
 Python packages `np` (NumPy), `pd` (pandas), and `plt` (matplotlib.pyplot) are available as pre-imports and lazy proxies.
 
@@ -25,12 +25,12 @@ Prefer reading datasets (CSV, Parquet, JSON) directly inside Python using `pd.re
 When the active model does not support image input, image attachments (from PTC plots or read image files) are automatically summarized by another model. Return relevant compact textual statistics alongside figures.
 
 ## Tooling defaults (hard rules)
-- "Analyze / compare / audit / parity" tasks START in `code_execution` — never open with `ls`/`cat`/`find`. Read candidates with `ptc.read_many`, parse, and return a compact comparison.
+- "Analyze / compare / audit / parity" tasks START in a Python notebook — never open with `ls`/`cat`/`find`. Read candidates with `ptc.read_many`, parse, and return a compact comparison.
 - DO NOT USE `grep` or `rm`. They are blocked by system policy. Prefer `rg` and `trash`. Also note that `rg` is recursive by default, and the `-r` flag is replace instead. 
 - Never chain `ls` → `cat` → `find` in bash when you'll touch more than 2 files. That is the signal to switch to PTC mid-task, not after being asked.
     - Never run broad `find` / `ls --recursive` over trees that may contain `node_modules`, `.git`, `repos/`, or other vendor dirs. Filter first (`rg --files -g '!node_modules'`, `glob(..., '-g', '!node_modules')`, or `ptc.find_files`) and keep output compact. Never run `find` or `rg` on directories with lots of files, like `/home`, `~/docs`, `~/docs/src`, etc.
 - Searching from `bash`: use `rg` (ripgrep), not `grep` / `find -name`. The PTC `grep()` helper already wraps ripgrep — keep the two consistent.
-- Never run Python via `python3 -c` or `python3 << EOF` heredocs in bash. Use the PTC `code_execution` tool directly instead — it executes in a real Python runtime, so parsing, data work, and scripts stay inside Python rather than shell-quoting or heredoc plumbing.
+- Never run Python via `python3 -c` or `python3 << EOF` heredocs in bash. Use an IPython kernel directly instead — it executes in a real IPython runtime, so parsing, data work, and scripts stay inside Python rather than shell-quoting or heredoc plumbing.
 
 ## Output discipline
 - Results returned to chat must be compact: counts, rankings, tables, or short JSON — not raw file dumps. If a scan produces more than ~5 KB, aggregate inside Python first.

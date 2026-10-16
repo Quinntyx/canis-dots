@@ -148,6 +148,25 @@ today, and semantically equivalent formulations.
     on it; the linter's `stale-scheduling` policy is an ERROR for exactly
     this, so a pass is not done until that policy is silent.
 
+### Assignment budgets and evening cutoff (permanent, set 2026-10-09)
+
+- Budget exactly **2 hours total per assignment**, across all its work blocks.
+  This replaces historical assignment estimates unless the user overrides it.
+  It is not a minimum block length or a single-sitting requirement; normal
+  chunking rules still apply.
+- **10 PM America/Chicago is a hard daily stop**, including deadline days.
+  Finish scheduled work by 22:00; never use late-night overflow past it.
+- Earlier academic deadlines and before-class requirements remain binding;
+  the 22:00 cutoff never postpones or replaces them.
+- Related steps within one work block belong in its `todo` UDA as individual
+  bullet points, retaining their omn references. Never schedule overlapping
+  parent and child tasks for the same work; consolidate their coverage into
+  the one block. Never overlap scheduled blocks.
+- Package pickups (University Housing emails): when a package-received email
+  arrives, schedule a short pickup action (0.25-0.5h) inside the 7-day return
+  window, anchored to a return trip from a class or other on-campus block —
+  not as a standalone trip.
+
 ## Canvas item classification
 
 1. Never label a Canvas assignment a placeholder, sample, or fake because its

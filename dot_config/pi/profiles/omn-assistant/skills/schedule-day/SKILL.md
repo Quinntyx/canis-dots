@@ -43,10 +43,61 @@ metadata:
 - `task schedule` contains the same pending task set as `task daily`.
 - Created and modified Taskwarrior IDs and the chronological schedule are reported.
 
+# State freshness protocol (runs before any state-dependent reply)
+
+Session memory of Taskwarrior / omn / calendar / mail state goes stale
+silently: the user marks things done, deletes, or reschedules in their own
+TUI between prompts. This is the recorded failure behind "night is full",
+"quiz can't fit tonight", and the fabricated-PREFS sweep of 2026-10-15 —
+an unverified premise turned into confident scheduling architecture.
+Hard rule: a claim that depends on live state is made only after a read in
+the CURRENT turn. The `[timing]` block supplies idle time; condition on it.
+
+## Decision tree (by idle time since the last user prompt)
+
+- **T0 — same turn (< ~2 min).** A state fact may be cited only with a read
+  from this turn. My own writes from this turn count as fresh reads.
+- **T1 — minutes (< 30 min).** Before any claim about a specific task, day,
+  or window ("X is pending", "the day is full", "no time for Y"), re-read the
+  exact object live: `task schedule`, or a filtered `task export` for the
+  date under discussion. One command; run it before reasoning, not after.
+- **T2 — hours (< ~6 h).** Treat ALL session memory of TW/calendar/omn/mail
+  state as stale by default. Sweep first: `date`, `task schedule`, pending
+  export, plus the specific store the prompt touches (mail → notmuch count /
+  search; calendar → sync state; omn → re-query the record). Then reply.
+- **T3 — long (≥ ~6 h, overnight, or a session gap).** Full re-anchor before
+  any state-dependent sentence: `date`; `task schedule`; pending export;
+  calendar-push state; mail refresh if the topic could involve mail.
+  Nothing scheduled, corrected, or asserted from memory.
+
+## Change-implied override (any idle time)
+
+If the user's message implies anything may have changed — done / deleted /
+moved / "it isn't showing" / "why would you" / any negation of my premise /
+reference to an offline action — read the specific object live BEFORE
+answering, regardless of how recent the prompt is. Never argue from memory
+against a user's statement about state; the record decides, and if the
+record contradicts my premise, say exactly that instead of reasoning
+around it.
+
+## Gated claims (each requires its named check in this turn)
+
+- "The day is full / no room for X" → live `task schedule` + pending export
+  of that exact date.
+- "X is still pending / already done" → live read of X.
+- Any deadline claim steering placement ("due before class, late = 0") →
+  the authoritative source (omn record / Canvas iCal), not my own task
+  description strings.
+- Capacity arithmetic (22:00 cutoffs, block sums) → only after the live
+  read, never on the staged afternoon snapshot.
+
 # Entrypoint
 
 ## Stage 1: Establish staged Taskwarrior state
 
+0. Run the State freshness protocol above first (classify idle time, sweep
+   the stores the request touches). Its reads are the only state this stage
+   consumes.
 1. Run `date` in America/Chicago and state the selected date.
 2. Run `task ready` and treat its listed actions as the scheduling input.
 3. Run `task export` to retrieve complete fields for those ready tasks.

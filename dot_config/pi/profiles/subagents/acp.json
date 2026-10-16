@@ -10,6 +10,26 @@
             "nudgeGrowthTokens": 500000
           }
         }
+      },
+      "inco": {
+        "models": {
+          "glm-5.3-flash:fast": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000
+          },
+          "deepseek-v4.1-flash:fast": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000
+          }
+        }
+      },
+      "opencode-go": {
+        "models": {
+          "glm-5.3-flash": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000
+          }
+        }
       }
     }
   }

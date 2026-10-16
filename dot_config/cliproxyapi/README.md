@@ -2,7 +2,7 @@
 
 Canonical source: https://git.quinntyx.dev/quinntyx/CLIProxyAPI
 Server-side GitHub mirror: https://github.com/Quinntyx/CLIProxyAPI
-Development checkout: ~/docs/src/CLIProxyAPI/dev
+Build checkout: ~/docs/src/CLIProxyAPI/main
 
 ## Tailnet-only access, no inference API key
 
@@ -53,10 +53,18 @@ install -d -m 700 ~/.local/share/cliproxyapi/auths
   '{management_key:$management_key}' > ~/.local/share/cliproxyapi/secrets.json)
 ```
 
-Build with `cliproxyapi-update` after preparing the canonical dev worktree.
+Build with `cliproxyapi-update` after preparing the canonical main checkout.
 Chezmoi manages the secret-free config, service and helpers. Commit/push before
 applying. The launcher assembles owner-only runtime YAML with empty inference
 keys and the private management key. It no longer requires a client_key.
+
+`~/.local/bin/cliproxyapi` is the managed shell launcher, NOT an installation
+path for the compiled executable. Install binaries only at
+`~/.local/lib/cliproxyapi/cli-proxy-api` (unmanaged), as `cliproxyapi-update` does.
+Overwriting the launcher with a binary makes `chezmoi re-add` scan the entire
+executable for secrets and can appear to hang. Preserve the misplaced binary
+outside the managed tree and restore the launcher with `chezmoi apply` instead
+of re-adding the binary; keep secret detection enabled.
 
 ## Operations
 
@@ -64,7 +72,7 @@ keys and the private management key. It no longer requires a client_key.
 systemctl --user enable --now cliproxyapi.service
 systemctl --user status cliproxyapi.service
 journalctl --user -u cliproxyapi.service -n 50
-cliproxyapi-update                   # fetch dev, build, install, restart if running
+cliproxyapi-update                   # fetch main, build, install, restart if running
 systemctl --user restart cliproxyapi.service
 ```
 

@@ -28,6 +28,11 @@ metadata:
 
 # Entrypoint
 
+Before Stage 1, run the State freshness protocol from the `schedule-day`
+skill (decision tree by idle time + change-implied override): reschedule is
+precisely the flow that burns on stale completion/schedule state — verify
+live before moving anything.
+
 ## Stage 1: Establish ground truth
 1. Run `date` and record the current date and weekday.
 2. Read the store with `omn list` and `omn export` for assignment deadlines and

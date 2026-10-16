@@ -33,6 +33,10 @@ metadata:
 
 # Entrypoint
 
+Before Stage 1, run the State freshness protocol from the `schedule-day`
+skill (decision tree by idle time + change-implied override): any claim of
+"full / pending / done / can't fit" needs a live read in the current turn.
+
 ## Stage 1: Establish ground truth
 1. Run `date` and record the current weekday.
 2. Read the store with `omn list` and `omn export`; collect assignment tasks and

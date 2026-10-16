@@ -1,7 +1,8 @@
 ---
 name: pi-plugin
-description: "Use when asked to create, build, develop, or deliver a Pi plugin,
-  extension, or resource package, or change an existing Pi plugin's implementation."
+description: "Use when creating or changing a Pi plugin, extension, or resource package.
+  Deliver standalone packages through ~/docs/src/<name>/main, Forgejo, a server-side GitHub
+  mirror, and managed Git-reference installation."
 metadata:
   type: procedure
 ---

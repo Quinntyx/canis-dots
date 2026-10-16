@@ -16,7 +16,8 @@ metadata:
 
 ## Output Contract
 
-- A reproduced failure and supported causal explanation, or an explicit reproduction limitation.
+- Observed runtime behavior and supported causal explanations for identified defects, or an
+  explicit execution limitation. A clean review records its actual coverage and findings.
 - For authorized implementation, a focused repair verified against the original user flow.
 - For review, actionable findings with affected paths, conditions, impact, and evidence.
 - A concise final account separating observed behavior, inference, and remaining uncertainty.

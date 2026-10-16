@@ -12,7 +12,7 @@ metadata:
 
 - A product goal or existing UI, repository path, requested deliverable, and editing authority.
 - Existing visual assets, design constraints, and target platform inferred from the project.
-- A distinct output directory for screenshots, design notes, and the comparison report.
+- A task-local output directory when screenshots, design files, or a comparison report are needed.
 - Existing browser or application capture tools, or permission to run a local preview.
 - Autonomous work is the default within an authorized design request. Interactive markup requires
   an explicit request for a user-driven review session.
@@ -20,8 +20,10 @@ metadata:
 ## Output Contract
 
 - A purposeful, runnable design or an evidence-backed review within the requested product scope.
-- Captured pages and interaction states, with exact viewport, revision, theme, and route metadata.
-- A Markdown report with inline relative image links, observed differences, and remaining limits.
+- Rendered evidence for runnable work, with viewport, revision, theme, and route metadata. Reviews
+  of supplied artifacts use that evidence and identify its limits.
+- A comparison report or design artifacts when part of the deliverable; advice returns the
+  requested critique or design direction directly.
 - For variants, a reasoned recommendation and concrete features worth combining from each version.
 - Preserved product identity and established visual constraints within the requested change scope.
   Autonomous completion describes validation, separately from human approval.
@@ -86,8 +88,9 @@ metadata:
 1. Verify the requested deliverable with the relevant checks. For runnable changes, run build and
    interaction checks. Associate captures with their revision, route, theme, and viewport; artifact
    reviews and design advice use the supplied evidence and describe any unrendered proposals.
-2. Write `visual-report.md` in the output directory. Embed selected page images with relative
-   Markdown links; link remaining full-resolution captures without loading every image into context.
+2. For runnable work or a requested comparison, write `visual-report.md` in the output directory
+   with relative image links and remaining capture links. For advice or a supplied-artifact review,
+   return the requested critique directly. Both paths continue at step 3.
 3. For each design, describe observed workflow choices, fidelity, interaction completeness,
    accessibility, and visual tradeoffs. Tie judgments to rendered evidence and exercised behavior.
 4. For multiple variants, recommend one with reasons and identify useful elements from the others.

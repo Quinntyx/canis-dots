@@ -22,8 +22,8 @@ metadata:
 - Requested scene, inspection, preview, or export artifacts. Changed scenes include a saved
   working `.blend` and reproducible build or edit script; previews are actual rendered images.
 - Requested exports, plus verification of scale, orientation, material coverage, and required data.
-- `scene-report.md` containing capability results, source assets, commands, Blender version,
-  engine, actual render device, settings, artifact paths, and remaining limitations.
+- Findings or `scene-report.md` appropriate to the deliverable, covering relevant capabilities,
+  source assets, version, commands, settings, artifact paths, and verification limits.
 - Capability-limited output explicitly identifies which stages ran and which remain pending.
 - Scene operations and artifacts stay within the authorized project and owned working copy.
 
@@ -115,7 +115,8 @@ metadata:
 
 ## Stage 6: Report
 
-1. Write `scene-report.md` with inline preview links, saved scene, scripts, exports, validation,
-   device evidence, asset provenance, and the exact command vector needed to reproduce the run.
+1. For created artifacts, write `scene-report.md` with relevant previews, scene, scripts, exports,
+   checks, device evidence, asset provenance, and reproduction commands. Inspection-only work
+   returns the requested findings directly, with evidence from the inspected scene.
 2. Report available and missing paths separately, with failures and unexecuted stages made explicit.
    Preserve working copies and logs; release only processes owned by this task.

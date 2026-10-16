@@ -29,9 +29,10 @@ metadata:
 
 1. Resolve the user-visible operation, data size, execution path, runtime, revision, build mode,
    and metric boundaries. Define start and completion events with a monotonic clock.
-2. Establish a reproducible fixture with controlled inputs and recorded workload size. Reuse a
-   deterministic local substitute or replay when external service cost or variability would
-   obscure the operation being measured; measure real external latency when that is the target.
+2. For analysis of supplied captures, proceed to Stage 3 with their recorded workload and
+   measurement identities. Otherwise establish a reproducible fixture and continue at step 3.
+   Use controlled inputs and a deterministic substitute or replay where service variability
+   obscures the target operation; measure real external latency when that is the target.
 3. Inspect current load and available binaries using executable lookup and bounded version queries.
    Record CPU/GPU hardware, active backend, power mode, profiler availability, and capture rights.
 4. Select only relevant capture modes from Capture selection. Where a tool is absent, record the
@@ -62,8 +63,9 @@ metadata:
 
 ## Stage 3: Diagnose
 
-1. Collect the smallest CPU, GPU, allocation, or scheduling trace that can distinguish the leading
-   hypotheses. Correlate timeline events with the slow user operation and preserve the raw file.
+1. Inspect supplied captures or collect the smallest authorized CPU, GPU, allocation, or scheduling
+   trace that distinguishes the leading hypotheses. Correlate timeline events with the slow user
+   operation and retain the raw evidence and any limits of the available capture.
 2. Confirm the actual compute device with runtime placement and observed activity. Separate CPU
    preparation, transfer, GPU kernels, synchronization, and idle wait; label fallback explicitly.
 3. For memory, compare repeated equal workloads and retained allocations after equivalent cleanup.

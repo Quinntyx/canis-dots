@@ -54,10 +54,10 @@ metadata:
 4. Choose the role default within that eligible set. An alternate transport qualifies only within
    the required provider scope from step 3. A stronger model qualifies only if its route meets the
    same project/provider requirements and budget. An empty eligible set goes to Stage 5: Record
-   with the unavailable route and the required quota, budget or scope decision.
+   with the unavailable route and required in-scope access or quota decision.
 5. With eligible models, go to Stage 3: Compose the roster. Without one, refresh the catalog once
    and inspect the actual prerequisite. If still unavailable, go to Stage 5: Record with a blocker
-   and the required scope, provider or budget decision.
+   and the required configured-route, credential or quota decision.
 
 ## Stage 3: Compose the roster
 
@@ -100,7 +100,9 @@ metadata:
 
 1. Return the role, floor, selected tier, exact slug, effort and concise selection reason.
 2. Record peer identities and diversity limits, explicit overrides, provider failures, promotions
-   and unresolved access requirements in the owning task ledger.
+   and unresolved access requirements in the owning task ledger. Resolve a project-quota blocker
+   by awaiting its configured renewal or obtaining an approved project allocation change inside
+   CLIProxyAPI. Keep the same project identity and capability requirement in the proposed next step.
 3. Continue the surrounding workflow with resolved choices, or report the concrete blocking
    decision. Keep completed work and retained sessions available for their existing owner.
 

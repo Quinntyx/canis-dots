@@ -9,7 +9,8 @@
     "deepseek-router/deepseek-v4.1-flash-1m",
     "deepseek-router/deepseek-v4-pro",
     "bitdeer/zai-org/GLM-5.3-Flash",
-    "cliproxyapi/gpt-6.1-sol"
+    "cliproxyapi/gpt-6.1-sol",
+    "opencode-zen-free/glm-5.3-flash-free"
   ],
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",

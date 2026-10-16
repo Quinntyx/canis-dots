@@ -70,10 +70,11 @@
 
 ## Model resolution and task settings
 
-- `../model-selection/SKILL.md` owns role defaults, capability tiers, diversity and escalation.
-  Resolve its chosen identities through `best_model_match`, `model_slugs`, `resolve_models` or
-  `list_models`. Use a full provider/model slug for ambiguous names. `list_models(refresh=True)`
-  refreshes the catalog. Verify provider access separately from catalog registration.
+- `../model-selection/SKILL.md` owns model defaults, variants, tiers, diversity and escalation.
+  Resolve its chosen model and inference variant through `best_model_match`, `model_slugs`,
+  `resolve_models` or `list_models`, then use the resolved value for `Task.model`.
+  `list_models(refresh=True)` refreshes the catalog. Registration and successful execution are
+  separate checks; retain the actual startup failure when a selected model cannot execute.
 - Task timeouts express a supplied task limit or a supported operational wait boundary. Match
   those values to the actual task lifetime and keep user delivery deadlines separate.
 - Inspect `handle.agent_state()` when runtime state alone cannot explain progress. Inspection of

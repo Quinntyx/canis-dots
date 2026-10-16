@@ -60,8 +60,9 @@ metadata:
 3. Let read-only workers share immutable inputs. Give concurrent writers separate worktrees.
    Assign one owner to integration, publication and each scarce shared resource.
 4. Read `model-selection/SKILL.md` for each new assignment's model choice, including profile
-   inheritance, workflow roles, candidate comparisons and escalation. Resolve capable, eligible
-   routes and supported effort. Simple delegation may inherit an eligible, capable profile model.
+   inheritance, workflow roles, candidate comparisons and escalation. Resolve eligible model
+   identities, explicit inference variants and supported effort. Simple delegation may inherit an
+   eligible, capable profile model.
 5. Record each assignment's role, minimum tier, resolved model and effort. Apply explicit user
    choices and the central policy's capability floor before cost or diversity preferences. Keep
    model substitutions and promotions attached to the affected task's evidence. Carry the resolved

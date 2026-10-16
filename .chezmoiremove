@@ -3,3 +3,4 @@
 .config/systemd/user/cliproxyapi-tailscale.service
 .config/systemd/user/sockets.target.wants/cliproxyapi-tailscale.socket
 .config/pi/profiles/subagents/skills/pi-subagents
+.config/pi/profiles/main/extensions/pi-continue

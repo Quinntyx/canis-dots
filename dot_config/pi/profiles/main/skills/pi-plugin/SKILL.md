@@ -12,16 +12,19 @@ metadata:
 
 - Requested Pi behavior, acceptance criteria, package identity, and selected installation profiles.
 - Active profile and installed Pi version; existing repository or installed package identity.
-- Git, Node.js, npm, chezmoi, authenticated Forgejo and GitHub access, and eligible CI capacity.
+- Git, Node.js, npm, and chezmoi; execution also requires authenticated hosting and CI capacity.
 - New-project visibility and material dependency choices, resolved with the user when unspecified.
 - A new-plugin delivery request includes personal hosting, mirroring, source commits and pushes,
   and managed Git-reference installation. Explicit local-only limits or coordinator ownership
-  select a source handoff instead of those delivery effects.
+  select a source handoff instead of those delivery effects. Planning-only requests preview the
+  intended production lifecycle without executing it; they do not select local-only delivery.
 - Runtime credentials and service access only for the requested behavior and selected test modes.
 
 ## Output Contract
 
-- Implementation, documentation, reproducible dependencies, and real tests in a source repository.
+- Execution produces implementation, documentation, reproducible dependencies, and source tests.
+- Planning-only output records bound profiles, intended source layout, and the production lifecycle,
+  with proposed actions distinguished from observed state; no implementation or delivery occurs.
 - New personal projects use `~/docs/src/<name>/main` as an ordinary clone, a sibling `dev`
   worktree, canonical `git.quinntyx.dev/quinntyx` hosting, and a server-side GitHub push mirror.
 - Authorized delivery includes a pushed source revision, exact-revision CI, verified mirror,
@@ -36,19 +39,46 @@ metadata:
 ## Stage 1: Bind the delivery
 
 1. Bind behavior, npm package identity, one-segment repository name, visibility, acceptance checks,
-   and publication scope. Bind profile names and absolute agent directories from task context.
-   Resolve material uncertainty with the user, then resume Stage 1: Bind the delivery.
-2. Inspect `command -v pi`, the installed package version, its README, and `docs/extensions.md`,
-   `docs/packages.md`, and `docs/skills.md`. Read linked API documents needed by the implementation.
-   Use `references/api-and-sources.md` to locate installed-version documentation and source.
-3. Read selected profiles' settings and package entries, then their chezmoi source equivalents.
-   Identify project overrides, resource filters, parent/worker profile relationships, and runtime
-   dependencies relevant to this plugin. Preserve the task's selected profiles as the target set.
-4. Record acceptance checks, source/config ownership, external services, and delivery destinations.
+   publication ownership, and planning-only versus execution mode. Planning-only suspends effects,
+   not the requested topology; a sandbox cwd and unchanged hosting/profiles do not relocate source.
+2. Bind the active profile from system context and `PI_CODING_AGENT_DIR`. Keep explicitly selected
+   installation profiles separate from the worker's active profile; otherwise use the active one.
+   Bind absolute `agent_dir` values before reading `$agent_dir/settings.json`. Run
+   `chezmoi source-path -- "$agent_dir/settings.json"` and read that exact source and neighbors.
+   Inspect package entries, project overrides, filters, and parent/worker relationships. A profile
+   conflict proceeds to Stage 10: Report for a target decision; otherwise continue at step 3.
+3. Inspect `command -v pi`, the installed package version, its README, and `docs/extensions.md`,
+   `docs/packages.md`, and `docs/skills.md`. Use `references/api-and-sources.md` for linked API docs
+   and installed source. Verify profile resolution in `dist/config.js` and settings paths in
+   `dist/core/settings-manager.js`. Describe package caches only after
+   `dist/core/package-manager.js` and `dist/utils/git.js` prove the actual scope and path.
+4. Bind intended source before planning: for new personal projects use
+   `container="$HOME/docs/src/$name"`, `primary="$container/main"`, and
+   `development="$container/dev"`. For existing work, derive canonical identity from selected
+   package metadata and origin, honoring a verified supplied checkout. Read
+   `references/hosting.md` for the ordinary-clone, Forgejo, mirror, and branch lifecycle.
+5. Record acceptance checks, source/config ownership, external services, and delivery destinations.
    Use PTC for structured inspection and evidence processing when available. Run long operations
    in dedicated detached tmux jobs with retained native output, exit status, and bounded monitoring.
-5. A ready request proceeds to Stage 2: Establish source. An unresolved prerequisite proceeds to
-   Stage 10: Report with its concrete decision or required access.
+   Unresolved bindings proceed to Stage 10: Report with the required decision. Otherwise,
+   planning-only proceeds to Stage 1A: Preview lifecycle; execution proceeds to
+   Stage 2: Establish source.
+
+## Stage 1A: Preview lifecycle
+
+1. Use the bound source and profiles to describe Stages 2 through 9 without executing them.
+   Preserve the ordinary `main` clone and sibling `dev`, canonical Forgejo origin, server-side
+   GitHub push mirror, bootstrap publication, and exact-revision CI for new personal delivery.
+2. Describe development and isolated entrypoint tests, source publication, mirror verification,
+   and Git-ref selection. New `dev` delivery uses published `dev` unless release was selected;
+   distinguish an advancing branch from immutable code. Read the relevant runtime/API references
+   before promising a check, and label every unexecuted test as proposed.
+3. Name each selected profile's exact managed settings source and intended canonical package entry.
+   Describe source commit and push before targeted apply, profile-scoped update, installed-SHA
+   verification, isolated startup/behavior checks, reload, and current-instance move as applicable.
+   Report unavailable access or unresolved future choices as prerequisites, not alternate topology.
+4. Proceed directly to Stage 10: Report with the preview. Do not establish source, implement,
+   install dependencies, run tests, or perform hosting, publication, or configuration writes.
 
 ## Stage 2: Establish source
 
@@ -212,11 +242,14 @@ metadata:
 
 ## Stage 10: Report
 
-1. Record canonical and mirror URLs, source paths, branch/base, source SHA, installed ref, exact
+1. For planning-only, report bound profiles, source/config paths, the lifecycle, proposed checks,
+   unresolved decisions, and that execution effects remain unperformed. Stop here; do not
+   claim validated source or a completed handoff. Execution reports continue at step 2.
+2. Record canonical and mirror URLs, source paths, branch/base, source SHA, installed ref, exact
    CI result, mirror completion/error, profiles, configuration diff, apply result, and cwd result.
-2. Attach local tests, discovery paths, runtime entrypoint evidence, observed behavior, and retained
+3. Attach local tests, discovery paths, runtime entrypoint evidence, observed behavior, and retained
    isolated test artifacts. Identify partial state, first failed stage, and a concrete resume step.
-3. For coordinator handoff, list changed files, dependencies, checks, and pending publication,
+4. For coordinator handoff, list changed files, dependencies, checks, and pending publication,
    managed configuration, apply, or runtime actions. Finish with coordinator effects pending.
 
 # Package authoring

@@ -1,7 +1,7 @@
 ---
 name: research-book
-description: "Use when creating primary-source technical study guides or books,
-  paper-to-mdBook guides, or researched mathematical explanations with derivations."
+description: "Use when creating a technical mdBook, textbook, or study guide; turning notes or
+  papers into a book; or authoring a researched learning guide with step-by-step derivations."
 metadata:
   type: procedure
 ---
@@ -24,10 +24,11 @@ metadata:
 - A coherent guide bridging the stated baseline to the target, in the requested project and
   format.
 - A source audit, dependency map, curriculum, claim/source locator ledger, and explicit
-  uncertainties.
+  uncertainties, scaled to the requested scope; these may share one concise notes file.
 - Chapters with prerequisites, intuition, actual derivations, defined notation, and primary
   citations.
-- Retained source documents, extraction notes, synthesis, and licenses within the task workspace.
+- Retained sources, synthesis, applicable extraction notes, and license records within the task
+  workspace; supplied sources may remain in place.
 - Build, link, mathematics, and rendered-page verification evidence with precise pass/blocked
   status.
 - Requested delivery only within the authorized scope, plus reproducible commands and remaining
@@ -43,10 +44,13 @@ metadata:
 2. Bind `project_root` to the requested workspace. Record paths for source downloads, extracted
    text, research notes, the source ledger, curriculum, deliverable, and verification evidence
    there. Reuse established paths and preserve existing author content. Keep private research
-   separate from distributable content while retaining both within the project context.
+   separate from distributable content while retaining both within the project context. Scale
+   artifacts to the request: a short guide can keep its audit, ledger, dependency map, curriculum,
+   and checks in one notes file without extra research directories or chapter expansion.
 3. Select the requested format. For a book-shaped study guide without a selected tool, choose
    mdBook. For a focused researched explanation, retain the requested document scale and format.
-   Record the choice and renderer requirements; source research remains the same in both cases.
+   Record the choice and renderer requirements; source adequacy and derivation continuity apply
+   at either scale.
 4. Inventory local tools and source access. Inspect installed tool help, local docs, and project
    configuration before selecting exact commands. Record unavailable tools as pending
    dependencies.
@@ -55,20 +59,23 @@ metadata:
 
 ## Stage 2: Audit primary sources
 
-1. Read supplied local documents and the target's authoritative paper, specification, or source.
-   Verify title, authors, date, version, stable identifier, and relationship to the requested
-   target.
-2. Follow references and technical dependencies backward until each essential prerequisite
-   connects to the reader's baseline. Use discovery tools to locate originals; ground claims in
-   inspected primary material. Consult corrections, revised papers, supplements, and official
-   implementations.
-3. Download accessible originals into the bound source directory. Record original URL, retrieval
-   date, version, local filename, checksum, license, and redistribution conditions in the source
-   ledger. Preserve attribution and notices. Retain restricted material in the private research
-   area and distribute citations or permitted excerpts according to its terms.
-4. Extract searchable text using available PDF tools and inspect original pages for equations,
-   diagrams, tables, notation, and layout-sensitive evidence. Reconcile OCR and extraction errors
-   against the page image. Record printed page and PDF page indices when they differ.
+1. Read supplied sources first and identify their relationship to the requested target. Record
+   title, authors, date, version, and stable identifier where available; label missing metadata
+   honestly. A supplied primary note can be sufficient for the entire requested guide.
+2. Trace essential prerequisites to the reader's baseline and identify factual gaps in supplied
+   material. Select external research only to close those gaps or meet an explicit research
+   request, not to meet a source count. Ground added claims in inspected originals and check
+   relevant corrections or revisions. Independently reconstruct derivations even when no external
+   research is needed; do not widen the subject or chapter count merely to add sources.
+3. Retain supplied sources in place and download additional accessible originals only as needed
+   into the bound source directory. Record applicable URLs, retrieval dates, versions, local paths,
+   checksums, licenses, and redistribution conditions in the ledger; do not invent metadata for
+   local notes. Preserve attribution and notices. Retain restricted material privately and
+   distribute only citations or permitted excerpts according to its terms.
+4. Read plain-text sources directly with heading or line locators. For PDFs or layout-sensitive
+   sources, extract searchable text and inspect original pages for equations, diagrams, tables,
+   and notation. Reconcile OCR and extraction errors against page images. Record printed page and
+   PDF page indices when they differ; do not require PDF tooling for plain-text notes.
 5. Assign stable source and claim IDs. For each substantive claim, record its chapter destination,
    primary source ID, exact section/page/equation or code revision/line locator, and inspected
    support. Distinguish reported result, author interpretation, derived result, hypothesis, and

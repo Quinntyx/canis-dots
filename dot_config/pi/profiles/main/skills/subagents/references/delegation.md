@@ -5,8 +5,8 @@
 2. Use one AgentPool and the minimum useful stages. Select one agent when a single specialist can
    deliver the result. Let immutable input sharing replace unnecessary workspace preparation.
 3. Give each worker the requested outcome, relevant context, actual cwd/profile, allowed effects,
-   acceptance criteria and a concise artifact/report destination. Preserve explicit model choices;
-   otherwise inherit the selected profile's configuration.
+   acceptance criteria and a concise artifact/report destination. Use `../model-selection/SKILL.md`
+   for explicit selection or role routing; otherwise inherit a capable selected-profile model.
 4. Give concurrent writers owned worktrees and real shared-resource leases. A read-only task needs
    only the environment and inputs necessary to answer it.
 5. Collect the outcome once, verify the relevant claim or changed behavior, and provide targeted

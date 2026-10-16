@@ -31,7 +31,9 @@ metadata:
 ## Stage 1: Prepare
 
 1. Resolve the brief, mock folder, project instructions, and absolute designer agent directory.
-   Inspect existing files and reuse the retained session for a requested resume.
+   Inspect existing files and reuse the retained session for a requested resume. For a new session,
+   read `../model-selection/SKILL.md` for exploratory candidate selection or a higher task floor.
+   Preserve the existing model identity when resuming the retained designer.
 2. Verify existing UI Forge tools and effective native compaction settings. Inspect the installed
    SDK for `AgentPool`, `Task.agentDir`, stages, submission, retained-handle continuation, and
    successful-turn dormancy. Record the imported source and version.

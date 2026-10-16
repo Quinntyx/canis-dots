@@ -22,5 +22,6 @@
   evidence objective and can propose follow-ups as results rather than recursively scheduling them.
 - Use retained-session feedback to resolve a source discrepancy. Give the next worker concrete
   findings and artifact paths so that evidence survives summarization.
-- Use profile inheritance for unspecified models. Broader or cheaper role routing follows explicit
-  user authorization and live availability, with consequential claims independently verified.
+- Use `../model-selection/SKILL.md` for evidence-worker and frontier-synthesis selection when
+  role routing is needed. Simple delegation can inherit a capable selected-profile model.
+  Verify consequential claims against the underlying evidence.

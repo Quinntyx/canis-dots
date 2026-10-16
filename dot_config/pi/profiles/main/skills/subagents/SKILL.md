@@ -2,7 +2,7 @@
 name: subagents
 description: "Use when delegating work, launching or continuing subagents, using agent pools,
   coordinating parallel research, prototyping or evaluation workflows, integrating parallel work,
-  or requesting an interactive design-subagent review."
+  selecting models, or requesting an interactive design-subagent review."
 metadata:
   type: procedure
 ---
@@ -29,6 +29,7 @@ metadata:
 
 1. Infer the outcome and effects from the request. Resolve only uncertainties that change authority,
    correctness or delivery. Use supplied deadlines as constraints; otherwise plan by dependencies.
+   For model selection without execution, read `model-selection/SKILL.md` and return its plan.
    For an explicit interactive designer session, read `design-subagent/SKILL.md`, execute its
    Entrypoint, and return that outcome. Other delegated work continues at step 2.
 2. For a delegated prototype or first usable version, read `prototype/SKILL.md` and execute its
@@ -58,13 +59,12 @@ metadata:
    path, test discovery and needed services. Give workers ready inputs and scoped objectives.
 3. Let read-only workers share immutable inputs. Give concurrent writers separate worktrees.
    Assign one owner to integration, publication and each scarce shared resource.
-4. Inherit the selected profile's model unless the user names a model or authorizes role routing.
-   Resolve explicit model/provider/effort choices against the live catalog. Preserve unavailable
-   choices as blockers or obtain an authorized substitute. Treat quota changes as current context.
-5. For authorized role routing, use a strong reasoning model for implementation, integration and
-   consequential review; use a throughput model for bounded diagnosis or evidence extraction.
-   Choose actual models from the live catalog and task context. Research inherits the selected
-   profile unless the request supplies a different choice.
+4. Read `model-selection/SKILL.md` when assigning workflow roles, comparing candidate models,
+   choosing an explicit model or escalating work. Resolve capable models and supported effort
+   against the live catalog. Simple delegation may inherit a capable selected-profile model.
+5. Record each assignment's role, minimum tier, resolved model and effort. Apply explicit user
+   choices and the central policy's capability floor before cost or diversity preferences. Keep
+   model substitutions and promotions attached to the affected task's evidence.
 6. Give leaves zero delegation fuel. Keep any authorized nested orchestration finite and within
    inherited global limits. Use parent-owned scheduling for the ordinary path.
 7. Record task identities, dependencies, revision/input identities, owners and acceptance checks.
@@ -126,10 +126,12 @@ metadata:
 
 # Focused entrypoints
 
+- `model-selection/SKILL.md` selects models, capability tiers and heterogeneous peer rosters.
+
 - `design-subagent/SKILL.md` selects the explicitly requested interactive designer session.
 
 - `prototype/SKILL.md` selects a runnable prototype path with optional independent subsystem
   work.
 - `eval-triage/SKILL.md` selects streaming regression diagnosis and bounded issue publication.
-- Read the matching child before executing either selected route. Both also run independently.
+- Read the matching child before executing a selected route. Each child also runs independently.
 - Every child carries its own contract; this skill supplies general coordination when needed.

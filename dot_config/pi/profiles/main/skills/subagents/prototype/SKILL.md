@@ -52,8 +52,9 @@ metadata:
    Give each delegated writer an owned worktree and the overall request, subsystem objective,
    ready environment, permitted effects and acceptance criteria. Builders discover their design.
 2. Use an explicitly named persistent kernel, `AgentPool` and `Task` when delegating. Inspect the
-   installed API first. Set each Task's `cwd` and `agentDir`, inherit unspecified profile models,
-   preserve explicit model/effort choices and give leaves zero delegation fuel.
+   installed API first. Set each Task's `cwd` and `agentDir`. Read `../model-selection/SKILL.md`
+   for scoped builders, frontier engineers or acceptance reviewers as needed. Resolve the task's
+   floor and explicit choices through that policy; give leaves zero delegation fuel.
 3. Queue useful assignments once with `stage.submit` or `stage.submit_all`. For selected large
    high-parallelism work, up to 2C useful initial assignments is a headroom policy, not a minimum.
    Enforce real shared-resource leases in coordinator admission; stage slots are soft priorities.

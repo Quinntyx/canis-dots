@@ -38,10 +38,10 @@ metadata:
    receive ready inputs and a focused objective.
 3. Define case keys from target revision, dataset revision, file identity, interpreter/model variant
    and run configuration. Record exact source URLs at immutable revisions and private log paths.
-4. Inherit profile models unless the user names them or authorizes role routing. Resolve explicit
-   provider/model/effort choices in the live catalog. With authorized routing, use a throughput
-   model for bounded diagnosis and a strong reasoner for independent review or implementation.
-   Resolve actual models and effort from the live catalog and task context.
+4. Read `../model-selection/SKILL.md` for case diagnostician, frontier engineer and acceptance
+   reviewer assignments as needed. Resolve their minimum tiers, exact models and effort from that
+   policy, the live catalog and task context. Keep diagnosis throughput separate from final
+   root-cause acceptance and substantial implementation capability.
 5. Declare a finite in-flight diagnosis bound D within C and a buffered-case high-water bound H.
    Default D to available diagnosis capacity and H to 2D cases; persist larger raw output on disk.
    Default the resume threshold to H // 2 and require D >= 1 before admission. Apply backpressure

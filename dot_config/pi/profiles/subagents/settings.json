@@ -14,7 +14,10 @@
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",
     {
-      "source": "git:git.quinntyx.dev/quinntyx/pi-pycells@dev"
+      "source": "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
+      "skills": [
+        "-skills/pi-subagents"
+      ]
     },
     "git:git.quinntyx.dev/quinntyx/pi-sock@dev",
     "npm:pi-everforest-tui",

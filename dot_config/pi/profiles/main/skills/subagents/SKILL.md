@@ -64,7 +64,8 @@ metadata:
    routes and supported effort. Simple delegation may inherit an eligible, capable profile model.
 5. Record each assignment's role, minimum tier, resolved model and effort. Apply explicit user
    choices and the central policy's capability floor before cost or diversity preferences. Keep
-   model substitutions and promotions attached to the affected task's evidence.
+   model substitutions and promotions attached to the affected task's evidence. Carry the resolved
+   role, model choice and relevant skill entrypoint paths in each worker's task context.
 6. Give leaves zero delegation fuel. Keep any authorized nested orchestration finite and within
    inherited global limits. Use parent-owned scheduling for the ordinary path.
 7. Record task identities, dependencies, revision/input identities, owners and acceptance checks.

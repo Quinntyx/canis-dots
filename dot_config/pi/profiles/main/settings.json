@@ -61,7 +61,8 @@
     "git:github.com/Quinntyx/billion-context-pi@dev",
     "git:git.quinntyx.dev/quinntyx/pi-tmux-resurrect@main",
     "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev",
-    "git:git.quinntyx.dev/quinntyx/pi-continue@main"
+    "git:git.quinntyx.dev/quinntyx/pi-continue@main",
+    "git:git.quinntyx.dev/quinntyx/pi-codex-disconnect-retry@main"
   ],
   "hideThinkingBlock": true,
   "extensions": [],

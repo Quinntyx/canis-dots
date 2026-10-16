@@ -4,3 +4,4 @@
 .config/systemd/user/sockets.target.wants/cliproxyapi-tailscale.socket
 .config/pi/profiles/subagents/skills/pi-subagents
 .config/pi/profiles/main/extensions/pi-continue
+.config/pi/profiles/main/extensions/pi-codex-disconnect-retry

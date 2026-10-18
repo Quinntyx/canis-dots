@@ -6,9 +6,10 @@ After=network-online.target
 
 [Service]
 Type=simple
+ExecStartPre=/usr/bin/tailscale wait --timeout=60s
 ExecStart=%h/.local/bin/cliproxyapi
 WorkingDirectory=%h/.local/share/cliproxyapi
-Restart=on-failure
+Restart=always
 RestartSec=5
 UMask=0077
 NoNewPrivileges=true

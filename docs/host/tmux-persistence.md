@@ -2,8 +2,13 @@
 
 `~/.tmux.conf` loads `~/.config/tmux/persistence.conf`. The `tmux-persist`
 helper serializes startup restores, manual operations, and timer saves under a
-per-socket lock. Numeric session names remain disposable. Only verified Pi and
-Neovim processes are replayed; other panes reopen as shells.
+per-socket lock. Persistence is restricted to the main server: the `default`
+socket in `${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)`. Private/named sockets do not load
+the persistence plugin, and direct helper operations on them are harmless no-ops.
+The `is-main-server` probe exits nonzero on those sockets. This prevents test
+servers from replaying the main layout or overwriting its shared snapshot.
+Numeric session names remain disposable. Only verified Pi and Neovim processes
+are replayed; other panes reopen as shells.
 
 ## New machines
 
@@ -66,9 +71,11 @@ Run regression tests from the chezmoi source directory:
 python docs/host/tests/test_tmux_persistence.py
 ```
 
-The isolated runtime check uses the real plugin on a private socket, deliberately
-waits 65 seconds during restoration, then checks cancellation cleanup, retry,
-and a real filtered save (allow about 75 seconds):
+The isolated runtime check first verifies that a private socket cannot load
+persistence or change the snapshot. It then uses the real plugin on an isolated
+`default` socket under a temporary `TMUX_TMPDIR`, deliberately waits 65 seconds
+during restoration, and checks cancellation cleanup, retry, and a real filtered
+save (allow about 75 seconds):
 
 ```sh
 python docs/host/tests/check_tmux_persistence_runtime.py

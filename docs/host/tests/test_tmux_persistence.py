@@ -31,6 +31,42 @@ class PersistenceTests(unittest.TestCase):
         for action in ("restore", "save"):
             (self.module.PLUGIN / "scripts" / f"{action}.sh").write_text("exit 0\n")
 
+    def test_main_socket_only_including_custom_tmpdir(self):
+        for tmpdir in ("", "/tmp", str(self.root / "sockets")):
+            directory = Path(tmpdir or "/tmp") / f"tmux-{self.module.os.getuid()}"
+            with self.subTest(tmpdir=tmpdir), mock.patch.dict(self.module.os.environ, {"TMUX_TMPDIR": tmpdir}):
+                with mock.patch.object(self.module, "SOCKET", str(directory / "default")):
+                    self.assertTrue(self.module.is_main_server())
+                for socket in (directory / "pycells-git-test", self.root / "default"):
+                    with mock.patch.object(self.module, "SOCKET", str(socket)):
+                        self.assertFalse(self.module.is_main_server())
+
+    def test_timer_context_resolves_default_socket_without_tmux_environment(self):
+        with mock.patch.dict(self.module.os.environ, {"TMUX_TMPDIR": "/tmp"}), mock.patch.object(self.module, "SOCKET", ""), mock.patch.object(self.module, "tmux", return_value=f"/tmp/tmux-{self.module.os.getuid()}/default") as tmux:
+            self.assertTrue(self.module.is_main_server())
+            tmux.assert_called_once_with("display-message", "-p", "#{socket_path}", check=False)
+        with mock.patch.object(self.module, "SOCKET", ""), mock.patch.object(self.module, "tmux", return_value=""):
+            self.assertFalse(self.module.is_main_server())
+
+    def test_private_server_operations_are_noops_before_touching_state(self):
+        for action in ("startup", "save", "restore", "filter", "resume"):
+            with self.subTest(action=action), mock.patch.object(self.module.sys, "argv", [str(HELPER), action]), mock.patch.object(self.module.signal, "signal"), mock.patch.object(self.module, "is_main_server", return_value=False), mock.patch.object(self.module, "lock") as lock, mock.patch.object(self.module, "tmux") as tmux, mock.patch.object(self.module, "filter_file") as filter_file, mock.patch.object(self.module, "resume") as resume:
+                self.assertEqual(self.module.main(), 0)
+                lock.assert_not_called()
+                tmux.assert_not_called()
+                filter_file.assert_not_called()
+                resume.assert_not_called()
+
+    def test_main_server_probe_exit_status(self):
+        for allowed in (True, False):
+            with self.subTest(allowed=allowed), mock.patch.object(self.module.sys, "argv", [str(HELPER), "is-main-server"]), mock.patch.object(self.module.signal, "signal"), mock.patch.object(self.module, "is_main_server", return_value=allowed):
+                self.assertEqual(self.module.main(), 0 if allowed else 1)
+
+    def test_main_server_dispatch_still_runs(self):
+        with mock.patch.object(self.module.sys, "argv", [str(HELPER), "startup"]), mock.patch.object(self.module.signal, "signal"), mock.patch.object(self.module, "is_main_server", return_value=True), mock.patch.object(self.module, "startup") as startup:
+            self.assertEqual(self.module.main(), 0)
+            startup.assert_called_once_with()
+
     def test_no_fixed_deadline_for_restore_or_save(self):
         for action in ("restore", "save"):
             with self.subTest(action=action), mock.patch.object(self.module.subprocess, "Popen") as popen, mock.patch.object(self.module, "cleanup_resurrect") as cleanup:

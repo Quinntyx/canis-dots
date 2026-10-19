@@ -14,11 +14,16 @@ if not (source / "private_dot_local/bin/executable_tmux-persist").is_file():
     source = Path(subprocess.check_output(["chezmoi", "source-path"], text=True).strip())
 real_home = Path.home()
 root = Path(tempfile.mkdtemp(prefix="tmux-persist-long-restore-"))
-socket = str(root / "test.sock")
+env_socket_root = root / "sockets"
+env_socket_root.mkdir()
+socket = str(env_socket_root / f"tmux-{os.getuid()}" / "default")
+Path(socket).parent.mkdir(mode=0o700)
 env = os.environ.copy()
 for key in ("TMUX", "TMUX_PANE", "XDG_STATE_HOME"):
     env.pop(key, None)
 env["HOME"] = str(root)
+# Exercise a main/default socket without touching the real main server.
+env["TMUX_TMPDIR"] = str(env_socket_root)
 helper = root / ".local/bin/tmux-persist"
 plugin = root / ".local/share/tmux/plugins/tmux-resurrect"
 helper.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +63,25 @@ def spinner_pids():
 
 
 child = None
+private_socket = str(root / "private.sock")
 try:
+    # A private socket must neither initialize persistence nor touch shared state.
+    subprocess.run(["tmux", "-S", private_socket, "-f", "/dev/null", "new-session", "-d", "-s", "private-probe", "sleep 180"], env=env, check=True, timeout=10)
+    subprocess.run(["tmux", "-S", private_socket, "source-file", str(source / "dot_config/tmux/persistence.conf")], env=env, check=True, timeout=10)
+    private_env = env.copy()
+    private_env["TMUX"] = private_socket + ",0,0"
+    assert subprocess.run([str(helper), "is-main-server"], env=private_env, timeout=5).returncode == 1
+    before = saved.read_bytes()
+    for action in ("startup", "save", "restore", "filter", "resume"):
+        subprocess.run([str(helper), action, str(saved)], env=private_env, check=True, timeout=5)
+    assert saved.read_bytes() == before
+    private_options = subprocess.check_output(["tmux", "-S", private_socket, "show-options", "-g"], env=env, text=True)
+    assert "@resurrect" not in private_options and "@tmux-persist" not in private_options
+    private_panes = subprocess.check_output(["tmux", "-S", private_socket, "list-panes", "-a", "-F", "#{pane_id}"], env=env, text=True)
+    assert len(private_panes.splitlines()) == 1
+    print(json.dumps({"private_socket": "ignored", "shared_snapshot": "unchanged", "private_panes": 1}), flush=True)
+    subprocess.run(["tmux", "-S", private_socket, "kill-server"], env=env, check=True, timeout=5)
+
     tmux("-f", "/dev/null", "new-session", "-d", "-s", "bootstrap", "sleep 180")
     tmux("set-option", "-g", "default-shell", "/bin/sh")
     tmux("set-option", "-g", "@resurrect-hook-pre-restore-all", "sleep 65")
@@ -116,4 +139,5 @@ finally:
         child.terminate()
         child.wait(timeout=6)
     subprocess.run(["tmux", "-S", socket, "kill-server"], capture_output=True)
+    subprocess.run(["tmux", "-S", private_socket, "kill-server"], capture_output=True)
     subprocess.run(["trash", str(root)], check=True)

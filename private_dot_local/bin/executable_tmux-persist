@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Named-session tmux-resurrect snapshots, with exact Pi/nvim restoration."""
+"""Main-server tmux-resurrect snapshots, with exact Pi/nvim restoration."""
 import argparse
 import base64
 import contextlib
@@ -23,11 +23,19 @@ SOCKET = os.environ.get("TMUX", "").split(",")[0]
 
 
 def tmux(*args, check=True):
-    prefix = ["tmux"] + (["-S", SOCKET] if SOCKET else [])
+    prefix = ["tmux"] + (["-S", SOCKET] if SOCKET else ["-L", "default"])
     result = subprocess.run(prefix + list(args), capture_output=True, text=True, timeout=5)
     if check and result.returncode:
         raise RuntimeError(result.stderr.strip() or "tmux command failed")
     return result.stdout.rstrip("\n")
+
+
+def is_main_server():
+    """Only the default socket may share the persistent layout and metadata."""
+    socket = SOCKET or tmux("display-message", "-p", "#{socket_path}", check=False)
+    directory = Path(os.environ.get("TMUX_TMPDIR") or "/tmp")
+    expected = directory / f"tmux-{os.getuid()}" / "default"
+    return bool(socket) and Path(socket).resolve() == expected.resolve()
 
 
 def option(name):
@@ -325,11 +333,15 @@ def main():
     for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(signum, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("startup", "save", "restore", "filter", "resume"))
+    parser.add_argument("action", choices=("startup", "save", "restore", "filter", "resume", "is-main-server"))
     parser.add_argument("value", nargs="?")
     parser.add_argument("--manual", action="store_true")
     args = parser.parse_args()
     try:
+        if args.action == "is-main-server":
+            return 0 if is_main_server() else 1
+        if not is_main_server():
+            return 0  # Private/test servers must never read or write shared snapshots.
         if args.action == "filter":
             filter_file(args.value)
         elif args.action == "resume":

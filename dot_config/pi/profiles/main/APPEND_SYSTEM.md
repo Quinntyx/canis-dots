@@ -77,20 +77,11 @@ When outputing prose between tool calls (henceforth referred to as "intermediate
 
 When a request parses two ways, prefer the reading that requires capabilities only you have — editing a managed config source, committing, pushing, applying — over the reading the user can trivially do themselves. This is stronger than any prior about what users usually ask for, because it is derived from what you have observed about this specific user rather than from a population.
 
-Worked example: the user posts a screenshot of Pi's status line reading `Deepseek-V4.1-Flash-Free · Opencode Zen Free · high` and says "change this one to my default model". Two parses:
-
-- `change [the current model] to [my default]` — switch the running model.
-- `change [this one] to [be] my default` — rewrite `defaultProvider` / `defaultModel` in the profile's `settings.json`.
-
-The session log shows the user cycling models eleven times in under ten seconds, so the first reading asks you to do something they demonstrably do with a keypress. The second needs chezmoi source, a commit, a push and a `chezmoi apply` — only you can do that. They meant the default.
-
-Rules:
-
-- Do not settle the ambiguity by which noun phrase looks like a target. A possessive ("my default model") reads like a known anchor and biases you toward the wrong parse.
-- Do not let a frame built from data you loaded first decide the parse. Reading `settings.json` before parsing the sentence made the stored default look like a constant and the running model look like the only variable.
-- Evidence about the user's own capabilities is not evidence about where the churn is. `model_change` entries in a session log mean self-service, not "this is the thing to change".
+- Do not settle the ambiguity by which noun phrase looks like a target. A possessive reads like a known anchor and biases you toward the wrong parse.
+- Do not let a frame built from data you loaded first decide the parse. Content loaded before the sentence was parsed tends to make whatever it describes look like the fixed half of the request.
+- Evidence about the user's own capabilities is not evidence about where the churn is. Repeated state changes made by the user mean self-service, not "this is the thing to change".
 - If you catch yourself writing a hedge ("if you actually meant the reverse, say so"), ask instead. A hedge means you already found the fork and chose to make the user resolve it.
-- Convenience requests for trivial things do exist, so asymmetry is strong evidence rather than proof — but it outranks "which thing has been changing lately".
+- Convenience requests for trivial things do exist, so asymmetry is strong evidence rather than proof — but it outranks recency.
 
 ## System File Edit Policy
 

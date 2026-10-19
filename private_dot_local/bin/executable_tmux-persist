@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -173,19 +174,84 @@ def snapshot():
     return Path(os.path.expandvars(os.path.expanduser(directory))) / "last" if directory else None
 
 
+def cleanup_resurrect(process):
+    """Reap the owned process group, including resurrect's background spinner."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        process.wait()
+        return
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        process.poll()  # Reap the leader even while descendants are exiting.
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.05)
+    else:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
+    process.wait()
+
+
 def resurrect(action):
     script = PLUGIN / "scripts" / f"{action}.sh"
     if not script.is_file():
         raise RuntimeError(f"Missing tmux-resurrect: {script}; run chezmoi apply")
-    result = subprocess.run(["bash", str(script), "quiet"], timeout=60)
-    if result.returncode:
-        raise RuntimeError(f"tmux-resurrect {action} failed ({result.returncode})")
+    # Layout size and shell startup determine runtime; a fixed deadline can leave
+    # a partially restored server. Never time out a restore or a snapshot save.
+    process = subprocess.Popen(["bash", str(script), "quiet"], start_new_session=True)
+    try:
+        result = process.wait()
+    finally:
+        # Also runs on cancellation, errors, and a successful script that forgot
+        # to stop its spinner. Restored panes belong to tmux, not this group.
+        cleanup_resurrect(process)
+    if result:
+        raise RuntimeError(f"tmux-resurrect {action} failed ({result})")
 
 
 def restore_snapshot():
     saved = snapshot()
-    if saved and saved.is_file() and any(line.startswith("pane\t") for line in saved.read_text().splitlines()):
-        resurrect("restore")
+    if not saved or not saved.is_file():
+        return
+    expected = set()
+    for line in saved.read_text().splitlines():
+        row = line.split("\t")
+        if row[0] == "pane":
+            if len(row) != 11:
+                raise RuntimeError(f"Malformed pane row in {saved}")
+            expected.add((row[1], row[2], row[5]))
+    if not expected:
+        return
+    resurrect("restore")
+    # Upstream's shell script can exit zero after individual tmux commands fail.
+    # Do not let a partial layout overwrite the complete last-good snapshot.
+    actual = {tuple(line.split("\t")) for line in tmux(
+        "list-panes", "-a", "-F", "#{session_name}\t#{window_index}\t#{pane_index}"
+    ).splitlines()}
+    missing = expected - actual
+    if missing:
+        raise RuntimeError(f"Restore incomplete: {len(missing)} of {len(expected)} saved panes missing; snapshot preserved")
+
+
+def restore_locked(pid):
+    tmux("set-option", "-g", "-u", "@tmux-persist-ready", check=False)
+    tmux("set-option", "-g", "@tmux-persist-state", "restoring")
+    tmux("set-option", "-g", "-u", "@tmux-persist-error", check=False)
+    try:
+        restore_snapshot()
+        if server_pid() != pid:
+            raise RuntimeError("Tmux server changed during restore")
+        tmux("set-option", "-g", "@tmux-persist-ready", pid)
+        tmux("set-option", "-g", "@tmux-persist-state", "ready")
+    except BaseException as error:
+        tmux("set-option", "-g", "-u", "@tmux-persist-ready", check=False)
+        tmux("set-option", "-g", "@tmux-persist-state", "restore-failed", check=False)
+        tmux("set-option", "-g", "@tmux-persist-error", str(error)[:500], check=False)
+        tmux("display-message", f"Tmux restore failed: {error}; autosave paused", check=False)
+        raise
 
 
 def startup():
@@ -200,8 +266,7 @@ def startup():
         pid = server_pid()
         if ready(pid):  # Re-sourcing config must not resurrect closed sessions.
             return
-        restore_snapshot()
-        tmux("set-option", "-g", "@tmux-persist-ready", pid)
+        restore_locked(pid)
 
 
 def save(manual=False):
@@ -210,7 +275,7 @@ def save(manual=False):
     with lock():
         pid = server_pid()
         if not ready(pid):
-            return  # Never overwrite the last snapshot while restore is pending.
+            raise RuntimeError("Autosave paused: restore has not completed; run tmux-persist restore")
         resurrect("save")
         if manual:
             tmux("display-message", "Named tmux sessions saved (Pi/nvim only)", check=False)
@@ -218,10 +283,10 @@ def save(manual=False):
 
 def restore():
     with lock():
-        restore_snapshot()
         pid = server_pid()
-        if pid:
-            tmux("set-option", "-g", "@tmux-persist-ready", pid)
+        if not pid:
+            raise RuntimeError("No running tmux server to restore")
+        restore_locked(pid)
 
 
 def resume(payload):
@@ -251,8 +316,14 @@ def resume(payload):
     os.execvpe(argv[0], argv, env)
 
 
+def interrupted(signum, frame):
+    raise InterruptedError(f"Interrupted by {signal.Signals(signum).name}")
+
+
 def main():
     os.umask(0o077)
+    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(signum, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("startup", "save", "restore", "filter", "resume"))
     parser.add_argument("value", nargs="?")

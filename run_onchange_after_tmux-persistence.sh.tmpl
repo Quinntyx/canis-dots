@@ -1,0 +1,19 @@
+#!/bin/sh
+# Re-activate after installing or changing persistence on this machine.
+# helper: {{ include "private_dot_local/bin/executable_tmux-persist" | sha256sum }}
+# service: {{ include "dot_config/systemd/user/tmux-resurrect-save.service" | sha256sum }}
+# config: {{ include "dot_config/tmux/persistence.conf" | sha256sum }}
+set -eu
+
+if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+    systemctl --user daemon-reload
+    systemctl --user enable --now tmux-resurrect-save.timer
+else
+    printf '%s\n' 'tmux persistence: user systemd is unavailable; start tmux-resurrect-save.timer after login' >&2
+fi
+
+# Existing servers do not otherwise pick up files installed by chezmoi.
+# The startup helper is backgrounded and idempotent once restoration succeeds.
+if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
+    tmux source-file "$HOME/.config/tmux/persistence.conf"
+fi

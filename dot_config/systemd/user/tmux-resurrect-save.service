@@ -6,5 +6,6 @@ Type=oneshot
 UnsetEnvironment=TMUX TMUX_PANE
 Environment=PATH=%h/.local/bin:%h/.npm-global/bin:/usr/local/bin:/usr/bin
 ExecStart=%h/.local/bin/tmux-persist save
-TimeoutStartSec=90
+# Large restores hold the shared lock; large saves can also exceed 90 seconds.
+TimeoutStartSec=infinity
 UMask=0077

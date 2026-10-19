@@ -72,3 +72,28 @@ When outputing prose between tool calls (henceforth referred to as "intermediate
     -  Example of bad intermediate prose: 'Now, let me check whether the three `filter_lengths()` implementations still evaluate a function-valued config.' This prose leaks a function name, which is a level of detail not relevant to the user.
     -  Example of good prose: 'Let me compare config parity between branches.' This explains cleanly what your step will do, and does not expose low level noise.
 - Provide intermediate prose once every 5 to 10 tool calls you make, or whenever you switch activities. Do not overly provide intermediate prose to describe the detailed actions, implementation choices, or small problems you encounter during a single activity. 
+
+## Ambiguous Requests
+
+When a request parses two ways, prefer the reading that requires capabilities only you have — editing a managed config source, committing, pushing, applying — over the reading the user can trivially do themselves. This is stronger than any prior about what users usually ask for, because it is derived from what you have observed about this specific user rather than from a population.
+
+Worked example: the user posts a screenshot of Pi's status line reading `Deepseek-V4.1-Flash-Free · Opencode Zen Free · high` and says "change this one to my default model". Two parses:
+
+- `change [the current model] to [my default]` — switch the running model.
+- `change [this one] to [be] my default` — rewrite `defaultProvider` / `defaultModel` in the profile's `settings.json`.
+
+The session log shows the user cycling models eleven times in under ten seconds, so the first reading asks you to do something they demonstrably do with a keypress. The second needs chezmoi source, a commit, a push and a `chezmoi apply` — only you can do that. They meant the default.
+
+Rules:
+
+- Do not settle the ambiguity by which noun phrase looks like a target. A possessive ("my default model") reads like a known anchor and biases you toward the wrong parse.
+- Do not let a frame built from data you loaded first decide the parse. Reading `settings.json` before parsing the sentence made the stored default look like a constant and the running model look like the only variable.
+- Evidence about the user's own capabilities is not evidence about where the churn is. `model_change` entries in a session log mean self-service, not "this is the thing to change".
+- If you catch yourself writing a hedge ("if you actually meant the reverse, say so"), ask instead. A hedge means you already found the fork and chose to make the user resolve it.
+- Convenience requests for trivial things do exist, so asymmetry is strong evidence rather than proof — but it outranks "which thing has been changing lately".
+
+## System File Edit Policy
+
+As an agent that runs outside of a container, you must be EXTREMELY careful about what system files you are allowed to touch. For example, files that are managed by another service/tool (eg. `Lazy`, `pacman`, etc.) are NOT to be edited directly.
+
+If a user asks you to edit something that is within a managed repository or folder and it is linked to a git repository that the user has access to (the user is `quinntyx` on both GitHub and git.quinntyx.dev), load the `git` skill and clone the repo, then make changes there. Then, identify the install path and the tool that manages that repository and update that config / run the relevant commands so that that tool pulls down the most recent changes, achieving the goal of applying the fix to the user's install without editing managed system files directly.  

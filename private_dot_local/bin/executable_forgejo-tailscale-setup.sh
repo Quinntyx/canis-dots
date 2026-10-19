@@ -6,16 +6,17 @@
 # stores matching credentials. Safe to re-run (idempotent).
 #
 # What it does:
-#   1. git config --global: https://git.quinntyx.dev/... -> http://araveia:3000/...
+#   1. ~/.gitconfig.local: https://git.quinntyx.dev/... -> http://araveia:3000/...
 #      (also rewrites ssh://git@git.quinntyx.dev/ and scp-style git@git.quinntyx.dev:)
+#      and ensures ~/.gitconfig includes ~/.gitconfig.local
 #   2. scopes the `store` credential helper to http://araveia:3000
 #   3. copies the existing git.quinntyx.dev credential from ~/.git-credentials
 #      to a http://...@araveia:3000 entry (prompts for a token if none exists)
 #   4. verifies with a git ls-remote
 #
 # Revert with:
-#   git config --global --unset-all 'url.http://araveia:3000/.insteadOf'
-#   git config --global --unset-all 'credential.http://araveia:3000.helper'
+#   git config --file ~/.gitconfig.local --unset-all 'url.http://araveia:3000/.insteadOf'
+#   git config --file ~/.gitconfig.local --unset-all 'credential.http://araveia:3000.helper'
 #   # and delete the http://...@araveia:3000 line from ~/.git-credentials
 
 set -euo pipefail
@@ -26,6 +27,7 @@ TS_PORT="3000"
 TS_URL="http://${TS_HOST}:${TS_PORT}/"
 USER_NAME="${FORGEJO_USER:-quinntyx}"
 CREDS_FILE="${HOME}/.git-credentials"
+LOCAL_CONFIG="${HOME}/.gitconfig.local"
 
 # 0. sanity: forgejo must be reachable over the tailnet
 if ! curl -fsS -o /dev/null --max-time 5 "${TS_URL}"; then
@@ -34,14 +36,17 @@ if ! curl -fsS -o /dev/null --max-time 5 "${TS_URL}"; then
 fi
 
 # 1. URL rewrites (transport-level; remotes in .git/config stay unchanged)
+if ! git config --global --get-all include.path 2>/dev/null | sed "s#^~/#${HOME}/#" | rg -F -x -q "${LOCAL_CONFIG}"; then
+    git config --global --add include.path "${LOCAL_CONFIG}"
+fi
 urlkey="url.${TS_URL}.insteadOf"
-git config --global --unset-all "${urlkey}" 2>/dev/null || true
-git config --global --add "${urlkey}" "https://${PUBLIC_HOST}/"
-git config --global --add "${urlkey}" "ssh://git@${PUBLIC_HOST}/"
-git config --global --add "${urlkey}" "git@${PUBLIC_HOST}:"
+git config --file "${LOCAL_CONFIG}" --unset-all "${urlkey}" 2>/dev/null || true
+git config --file "${LOCAL_CONFIG}" --add "${urlkey}" "https://${PUBLIC_HOST}/"
+git config --file "${LOCAL_CONFIG}" --add "${urlkey}" "ssh://git@${PUBLIC_HOST}/"
+git config --file "${LOCAL_CONFIG}" --add "${urlkey}" "git@${PUBLIC_HOST}:"
 
 # 2. credential helper scoped to the tailscale URL
-git config --global --replace-all "credential.http://${TS_HOST}:${TS_PORT}.helper" "store"
+git config --file "${LOCAL_CONFIG}" --replace-all "credential.http://${TS_HOST}:${TS_PORT}.helper" "store"
 
 # 3. credentials: clone the existing forgejo token, prompt if there is none
 if [[ -f "${CREDS_FILE}" ]] && rg -F -q "@${TS_HOST}:${TS_PORT}" "${CREDS_FILE}"; then

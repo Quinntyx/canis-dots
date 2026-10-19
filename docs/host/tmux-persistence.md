@@ -53,10 +53,12 @@ readlink ~/.local/state/tmux/resurrect/last
 ```
 
 Readiness must match `tmux display-message -p '#{pid}'`. The state should be
-`ready`, the timer active, and the selected snapshot should advance after a
-successful timer save. Normal state is `restoring` until the entire plugin
-operation and pane verification complete; there is deliberately no 60-second
-cutoff.
+`ready` and the timer active. A changed layout advances the selected snapshot;
+identical snapshots are deliberately discarded, so an unchanged `last` symlink
+does not mean saving stopped. Check the service's successful completion records
+and its next timer deadline as well. Normal state is `restoring` until the entire
+plugin operation and pane verification complete; there is deliberately no
+60-second cutoff.
 
 Run regression tests from the chezmoi source directory:
 

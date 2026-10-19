@@ -407,7 +407,7 @@
         {
           "type": "chat",
           "id": "deepseek/deepseek-v4.1-flash-1017",
-          "name": "DeepSeek V4.1 Flash 1017 (Wafer)",
+          "name": "DeepSeek V4.1 Flash 1017 (Wafer, Relace fallback)",
           "api": "openai-completions",
           "baseUrl": "https://openrouter.ai/api/v1",
           "reasoning": true,
@@ -440,10 +440,12 @@
             "requiresReasoningContentOnAssistantMessages": true,
             "openRouterRouting": {
               "only": [
-                "wafer"
+                "wafer",
+                "relace"
               ],
               "order": [
-                "wafer"
+                "wafer",
+                "relace"
               ],
               "allow_fallbacks": false
             }

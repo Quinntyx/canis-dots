@@ -30,6 +30,13 @@
             "nudgeGrowthTokens": 500000
           }
         }
+      },
+      "openrouter": {
+        "models": {
+          "deepseek/deepseek-v4.1-flash-1017": {
+            "enabled": false
+          }
+        }
       }
     }
   }

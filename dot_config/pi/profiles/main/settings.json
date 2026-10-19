@@ -47,6 +47,7 @@
     "git:git.quinntyx.dev/quinntyx/pi-web-access",
     "npm:pi-permissions",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
+    "git:git.quinntyx.dev/quinntyx/pi-block-inline-python",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-prompt@dev",
     "npm:pi-tool-display",

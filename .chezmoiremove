@@ -8,3 +8,4 @@
 .config/pi/shared/extensions/pi-opencode-zen-free
 .config/pi/profiles/main/extensions/pi-opencode-zen-free
 .config/pi/profiles/subagents/extensions/pi-opencode-zen-free
+.config/pi/profiles/main/deepseek-router.json

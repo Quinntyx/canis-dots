@@ -5,12 +5,10 @@
   "defaultModel": "zai-org/GLM-5.3-Flash",
   "defaultThinkingLevel": "high",
   "enabledModels": [
-    "deepseek-router/deepseek-v4.1-flash",
-    "deepseek-router/deepseek-v4.1-flash-1m",
-    "deepseek-router/deepseek-v4-pro",
     "bitdeer/zai-org/GLM-5.3-Flash",
     "cliproxyapi/gpt-6.1-sol",
-    "opencode-zen-free/glm-5.3-flash-free"
+    "opencode-zen-free/glm-5.3-flash-free",
+    "openrouter/deepseek/deepseek-v4.1-flash-1017"
   ],
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",
@@ -22,7 +20,6 @@
     },
     "git:git.quinntyx.dev/quinntyx/pi-sock@dev",
     "npm:pi-everforest-tui",
-    "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-web-access",

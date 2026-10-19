@@ -124,6 +124,11 @@ class PersistenceTests(unittest.TestCase):
         service = (SOURCE / "dot_config/systemd/user/tmux-resurrect-save.service").read_text()
         self.assertIn("TimeoutStartSec=infinity", service)
 
+    def test_timer_spaces_runs_from_completion_not_start(self):
+        timer = (SOURCE / "dot_config/systemd/user/tmux-resurrect-save.timer").read_text()
+        self.assertIn("OnUnitInactiveSec=1min", timer)
+        self.assertNotIn("OnUnitActiveSec=", timer)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

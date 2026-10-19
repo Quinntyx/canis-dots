@@ -1,9 +1,9 @@
 [Unit]
-Description=Save named tmux sessions every minute (independent of status line)
+Description=Save named tmux sessions one minute after each completed save
 
 [Timer]
 OnStartupSec=1min
-OnUnitActiveSec=1min
+OnUnitInactiveSec=1min
 AccuracySec=5s
 
 [Install]

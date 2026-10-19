@@ -2,6 +2,7 @@
 # Re-activate after installing or changing persistence on this machine.
 # helper: {{ include "private_dot_local/bin/executable_tmux-persist" | sha256sum }}
 # service: {{ include "dot_config/systemd/user/tmux-resurrect-save.service" | sha256sum }}
+# timer: {{ include "dot_config/systemd/user/tmux-resurrect-save.timer" | sha256sum }}
 # config: {{ include "dot_config/tmux/persistence.conf" | sha256sum }}
 set -eu
 

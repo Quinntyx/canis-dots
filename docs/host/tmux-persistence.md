@@ -9,7 +9,7 @@ Neovim processes are replayed; other panes reopen as shells.
 
 A chezmoi `run_onchange_after` hook reloads user systemd, enables and starts
 `tmux-resurrect-save.timer`, and loads persistence into an existing tmux server.
-It reruns when the helper, service, or persistence configuration changes. With
+It reruns when the helper, service, timer, or persistence configuration changes. With
 no user systemd manager available, it prints the remaining activation step.
 
 Snapshots, application sessions, and launch metadata remain machine-local and
@@ -19,7 +19,10 @@ are not synchronized by chezmoi.
 
 Neither restores nor saves have a fixed execution deadline. The save service
 also has `TimeoutStartSec=infinity`: waiting behind a large restore must not
-cause systemd to kill the next save.
+cause systemd to kill the next save. The timer waits one minute after each save
+finishes (`OnUnitInactiveSec`), rather than counting from its start. Saves that
+take longer than a minute therefore do not turn into continuous back-to-back
+runs.
 
 The helper runs each plugin operation in an owned process group. It cleans up
 that group, including background spinners, on success, script failure, or a

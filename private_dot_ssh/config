@@ -17,3 +17,7 @@ Host syssec-gpu0
     Hostname 10.176.150.45
     Port 22
     User henryh@syssec.utdallas.edu
+
+Host syssec-gpu4
+    Hostname 10.182.153.169
+    User henryh@syssec.utdallas.edu

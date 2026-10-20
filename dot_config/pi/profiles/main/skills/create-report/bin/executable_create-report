@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+"""Render evidence reports and publish them through an owned tmux job."""
+
+import argparse
+import hashlib
+import html
+from html.parser import HTMLParser
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import ipaddress
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
+from urllib.request import ProxyHandler, build_opener
+import uuid
+
+
+PACKAGE = Path(__file__).resolve().parents[1]
+
+
+def command(argv, timeout=10):
+    result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise RuntimeError(f"{Path(argv[0]).name}: {detail}")
+    return result.stdout
+
+
+def write_json(path, value):
+    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+
+
+class AssetCollector(HTMLParser):
+    """Copy only document-linked local files; never expose a source directory."""
+
+    def __init__(self, source, root, output):
+        super().__init__(convert_charrefs=False)
+        self.source = source
+        self.root = root
+        self.output = output
+        self.parts = []
+        self.files = {}
+
+    def target(self, value):
+        parsed = urlsplit(value)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            return value
+        path = (self.source.parent / unquote(parsed.path)).resolve()
+        if not path.is_relative_to(self.root):
+            raise ValueError(f"Linked asset escapes --asset-root: {parsed.path}")
+        if not path.is_file():
+            raise ValueError(f"Linked asset is missing or not a file: {parsed.path}")
+        if path not in self.files:
+            digest = hashlib.sha256(str(path.relative_to(self.root)).encode()).hexdigest()[:12]
+            relative = Path("files") / digest / path.name
+            destination = self.output / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            self.files[path] = relative.as_posix()
+        return urlunsplit(("", "", quote(self.files[path]), parsed.query, parsed.fragment))
+
+    def start(self, tag, attrs, close):
+        markup = self.get_starttag_text()
+        for name, value in attrs:
+            if name not in {"src", "href", "poster"} or value is None:
+                continue
+            target = self.target(value)
+            if target == value:
+                continue
+            pattern = r"(?<![\w:-])(" + name + r"\s*=\s*)(?:\"[^\"]*\"|'[^']*'|[^\s>]+)"
+            replacement = html.escape(target, quote=True)
+            markup = re.sub(
+                pattern, lambda match: match[1] + '"' + replacement + '"',
+                markup, count=1, flags=re.I,
+            )
+        self.parts.append(markup)
+
+    def handle_starttag(self, tag, attrs):
+        self.start(tag, attrs, "")
+
+    def handle_startendtag(self, tag, attrs):
+        self.start(tag, attrs, " /")
+
+    def handle_endtag(self, tag):
+        self.parts.append(f"</{tag}>")
+
+    def handle_data(self, data):
+        self.parts.append(data)
+
+    def handle_entityref(self, name):
+        self.parts.append(f"&{name};")
+
+    def handle_charref(self, name):
+        self.parts.append(f"&#{name};")
+
+    def handle_comment(self, data):
+        self.parts.append(f"<!--{data}-->")
+
+    def handle_decl(self, decl):
+        self.parts.append(f"<!{decl}>")
+
+    def handle_pi(self, data):
+        self.parts.append(f"<?{data}>")
+
+
+def render(args):
+    source = args.source.expanduser().resolve(strict=True)
+    if not source.is_file():
+        raise ValueError("The Markdown source must be a file")
+    root = (args.asset_root or source.parent).expanduser().resolve(strict=True)
+    if not source.is_relative_to(root):
+        raise ValueError("The source must be inside --asset-root")
+    output = args.output.expanduser().resolve() if args.output else Path(
+        tempfile.mkdtemp(prefix="report-")
+    )
+    if output == source.parent or source.is_relative_to(output):
+        raise ValueError("Output must be separate from the source tree")
+    output.mkdir(parents=True, exist_ok=True)
+    marker = output / "_report.json"
+    if any(output.iterdir()):
+        owner = json.loads(marker.read_text()) if marker.is_file() else {}
+        if not isinstance(owner, dict) or owner.get("generator") != "create-report":
+            raise ValueError("Nonempty output is not owned by create-report")
+    else:
+        write_json(marker, {"generator": "create-report", "state": "incomplete"})
+    title = args.title or source.stem.replace("_", " ").replace("-", " ")
+    document = command([
+        "pandoc", str(source), "--from=gfm+footnotes+implicit_figures",
+        "--to=html5", "--standalone", "--toc", "--toc-depth=2",
+        "--metadata", f"title={title}",
+    ])
+    collector = AssetCollector(source, root, output)
+    collector.feed(document)
+    collector.close()
+    document = "".join(collector.parts)
+    version = hashlib.sha256()
+    for name in ("report.css", "report.js"):
+        data = (PACKAGE / "assets" / name).read_bytes()
+        version.update(data)
+        (output / name).write_bytes(data)
+    stamp = version.hexdigest()[:12]
+    document = document.replace(
+        "</head>", f'<link rel="stylesheet" href="report.css?v={stamp}">\n</head>'
+    ).replace(
+        "</body>", f'<script src="report.js?v={stamp}"></script>\n</body>'
+    )
+    (output / "index.html").write_text(document, encoding="utf-8")
+    metadata = {
+        "generator": "create-report",
+        "report_id": uuid.uuid4().hex,
+        "title": title,
+        "source": source.name,
+        "files": len(collector.files),
+        "output": str(output),
+        "theme_version": stamp,
+    }
+    write_json(marker, {k: v for k, v in metadata.items() if k != "output"})
+    return metadata
+
+
+def resolve_host(host):
+    try:
+        return {entry[4][0] for entry in socket.getaddrinfo(host, None)}
+    except socket.gaierror:
+        return set()
+
+
+def network(local):
+    if local:
+        return {"bind": "127.0.0.1", "hostname": "localhost", "dns_verified": True}
+    status = json.loads(command(["tailscale", "status", "--json"]))
+    identity = status.get("Self") or {}
+    if status.get("BackendState") != "Running" or not identity.get("Online"):
+        raise RuntimeError("Tailscale is not online; use --local for loopback only")
+    addresses = identity.get("TailscaleIPs") or []
+    bind = next((value for value in addresses if ipaddress.ip_address(value).version == 4), None)
+    if not bind:
+        raise RuntimeError("This machine has no Tailscale IPv4 address")
+    full = identity.get("DNSName", "").rstrip(".")
+    short = full.split(".")[0] if full else ""
+    short_addresses = resolve_host(short) if short else set()
+    full_matches = bool(full and bind in resolve_host(full))
+    magic = (status.get("CurrentTailnet") or {}).get("MagicDNSEnabled", False)
+    loopbacks = [value for value in short_addresses if
+                 ipaddress.ip_address(value).version == 4 and
+                 ipaddress.ip_address(value).is_loopback]
+    if short and (bind in short_addresses or (magic and full_matches and loopbacks)):
+        result = {"bind": bind, "hostname": short, "dns_verified": True}
+        if bind not in short_addresses:
+            result["loopback_alias"] = loopbacks[0]
+        return result
+    hostname = full if full_matches else bind
+    return {"bind": bind, "hostname": hostname, "dns_verified": hostname != bind}
+
+
+def host(args):
+    directory = args.directory.resolve(strict=True)
+
+    class Handler(SimpleHTTPRequestHandler):
+        def __init__(self, *values, **options):
+            super().__init__(*values, directory=str(directory), **options)
+
+        def list_directory(self, path):
+            self.send_error(404, "Directory listing is disabled")
+            return None
+
+        def end_headers(self):
+            self.send_header("Cache-Control", "no-cache")
+            super().end_headers()
+
+    with ThreadingHTTPServer((args.bind, args.port), Handler) as server:
+        alias = None
+        try:
+            if args.also_bind:
+                alias = ThreadingHTTPServer((args.also_bind, server.server_port), Handler)
+                threading.Thread(target=alias.serve_forever, daemon=True).start()
+            print(json.dumps({"bind": args.bind, "port": server.server_port}), flush=True)
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            if alias:
+                alias.shutdown()
+                alias.server_close()
+
+
+def serve(args):
+    helper = Path(os.environ.get("TMUX_JOBS_BIN", str(
+        PACKAGE.parent / "tmux-jobs" / "bin" / "tmux-jobs"
+    )))
+    origin = args.origin or os.environ.get("TMUX_PANE")
+    if not os.environ.get("TMUX") or not origin:
+        raise RuntimeError("Serving requires the original TMUX and TMUX_PANE connection")
+    if not helper.is_file() or not os.access(helper, os.X_OK):
+        raise RuntimeError("tmux-jobs is unavailable; set TMUX_JOBS_BIN to its executable")
+    connection = network(args.local)
+    result = render(args)
+    bind = connection["bind"]
+    with socket.socket() as probe:
+        probe.bind((bind, args.port))
+        port = probe.getsockname()[1]
+    host_command = [
+        str(Path(__file__).resolve()), "_host", "--directory", result["output"],
+        "--bind", bind, "--port", str(port),
+    ]
+    if connection.get("loopback_alias"):
+        host_command.extend(["--also-bind", connection["loopback_alias"]])
+    job = json.loads(command([
+        str(helper), "--origin", origin, "run", "--cwd", result["output"],
+        "--label", "create-report", "--", *host_command,
+    ]))
+    opener = build_opener(ProxyHandler({}))
+    ready_url = f"http://{bind}:{port}/_report.json"
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            with opener.open(ready_url, timeout=1) as response:
+                ready = json.load(response)
+            if ready.get("report_id") != result["report_id"]:
+                raise RuntimeError("Port is serving a different report")
+            break
+        except (OSError, ValueError):
+            if time.monotonic() >= deadline:
+                raise RuntimeError(f"Server did not become ready; inspect job {job}")
+            time.sleep(0.1)
+    result.update(connection)
+    result.update({
+        "port": port,
+        "url": f"http://{connection['hostname']}:{port}/",
+        "numeric_url": f"http://{bind}:{port}/",
+        "job": job,
+        "origin": origin,
+    })
+    with opener.open(result["url"] + "_report.json", timeout=3) as response:
+        if json.load(response).get("report_id") != result["report_id"]:
+            raise RuntimeError("Advertised hostname did not reach this report")
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="operation", required=True)
+    for name in ("render", "serve"):
+        sub = commands.add_parser(name)
+        sub.add_argument("source", type=Path, help="Markdown input")
+        sub.add_argument("--output", type=Path, help="Separate generated report directory")
+        sub.add_argument("--title", help="Report page title")
+        sub.add_argument("--asset-root", type=Path, help="Allowed root for linked local files")
+        if name == "serve":
+            sub.add_argument("--local", action="store_true", help="Bind loopback, not Tailscale")
+            sub.add_argument("--port", type=int, default=0, help="TCP port; 0 selects a free port")
+            sub.add_argument("--origin", help="Original tmux pane ID")
+    internal = commands.add_parser("_host", help=argparse.SUPPRESS)
+    internal.add_argument("--directory", type=Path, required=True)
+    internal.add_argument("--bind", required=True)
+    internal.add_argument("--port", type=int, required=True)
+    internal.add_argument("--also-bind", help=argparse.SUPPRESS)
+    args = parser.parse_args()
+    try:
+        if args.operation == "_host":
+            host(args)
+        else:
+            result = render(args) if args.operation == "render" else serve(args)
+            print(json.dumps(result, indent=2))
+    except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
+        print(f"create-report: {error}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

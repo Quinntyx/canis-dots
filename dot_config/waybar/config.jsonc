@@ -27,6 +27,7 @@
         "battery",
         "battery#bat2",
         "tray",
+        "custom/sunsetr-super",
         "custom/sunsetr",
         "custom/power"
     ],
@@ -190,6 +191,19 @@
         "on-click": "playerctl -a pause"
     },
 
+    // Separate toggle for the intense "super night" profile (static
+    // 3600K @ 60% until 04:30, back to chill scheduling afterwards).
+    "custom/sunsetr-super": {
+        "exec": "~/.config/waybar/sunsetr-toggle.py super-status",
+        "return-type": "json",
+        "interval": 5,
+        "on-click": "~/.config/waybar/sunsetr-toggle.py super-toggle",
+        "on-click-right": "~/.config/waybar/sunsetr-toggle.py super-off",
+        "exec-on-event": true,
+        "escape": true
+    },
+
+    // Main switch: pause the whole filter until 04:30, or resume it.
     "custom/sunsetr": {
         "exec": "~/.config/waybar/sunsetr-toggle.py status",
         "return-type": "json",

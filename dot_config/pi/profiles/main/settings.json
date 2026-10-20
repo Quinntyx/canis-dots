@@ -13,7 +13,8 @@
     "inco/glm-5.3-flash:fast",
     "opencode-zen-free/glm-5.3-flash-free",
     "opencode-zen-free/deepseek-v4.1-flash-free",
-    "openrouter/deepseek/deepseek-v4.1-flash-1017"
+    "openrouter/deepseek/deepseek-v4.1-flash-1017",
+    "inco/deepseek-v4.1-flash:fast"
   ],
   "providers": {
     "openrouter": {

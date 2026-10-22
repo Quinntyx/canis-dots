@@ -10,7 +10,8 @@ metadata:
 
 ## Input Contract
 
-- A prototype objective, existing or new repository, target branch and permitted effects.
+- A prototype objective, existing or new repository, target branch and permitted effects. New
+  projects are created by the `../../git/init-project/SKILL.md` flow, not by this procedure.
 - Known stack, external-service constraints, required behavior and actual deadline when supplied.
 - A usable baseline and checks appropriate to the behavior being built.
 - AgentPool capacity and worktree authority when delegating independent implementation.
@@ -36,12 +37,17 @@ metadata:
 
 ## Stage 2: Prepare
 
-1. Inspect the real framework, entrypoints, test discovery, repository remote and target baseline.
-   Establish the local run command and the smallest relevant behavioral check.
-2. Use one builder for a tightly coupled core. Choose parallel builders for genuinely independent
+1. For a new project, or an existing one without hosting, worktrees or test CI, run the
+   `../../git/init-project/SKILL.md` procedure instead of bringing up git hosting, the `dev`
+   worktree, the test workflow or the cwd move here. Resume this procedure at step 2 in the
+   initialized container once that flow reports a green baseline, or report its blocker and go to
+   Stage 5: Deliver.
+2. Inspect the real framework, entrypoints, test discovery, remote and target baseline. Establish
+   the local run command and the smallest relevant behavioral check.
+3. Use one builder for a tightly coupled core. Choose parallel builders for genuinely independent
    subsystems when their useful work exceeds coordination cost. Honor explicit assignment counts
    and available concurrency from `PI_SUBAGENTS_MAX_CONCURRENT`.
-3. Before substantial Forgejo implementation fan-out, verify working test CI, branch triggers,
+4. Before substantial Forgejo implementation fan-out, verify working test CI, branch triggers,
    runner availability and discovery of added tests. Obtain required green baseline checks at the
    exact SHA. With a usable baseline go to Stage 3: Build; otherwise go to Stage 5: Deliver with
    the preserved blocker. A small local build uses its relevant local checks and goes to Stage 3.

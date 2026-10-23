@@ -174,6 +174,13 @@ today, and semantically equivalent formulations.
    titles (e.g., "Hourly Worker - Overtime Pay") have repeatedly turned out to
    be real, graded, submitted assignments. Treat every Canvas-posted item as
    real until the user says otherwise, and ask when genuinely uncertain.
+1b. The inverse failure (2026-10-20): MANUALLY transcribed items from old
+   screenshots (stale F22 labels, wrong course number like ECS 3390) can be
+   entirely bogus — the ECS 2390 "Final Interview" never existed. Verify a
+   hand-transcribed assignment against the live Canvas course before
+   scheduling weeks of work around it; when the user disputes it, mark the
+   omn record `[INVALID]` with the reason and clear its due rather than
+   deleting it.
 2. Before claiming anything about an assignment's status (submitted, late,
    missed), check both stores first: absence of a Taskwarrior task proves
    nothing about what the user actually did offline.

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "keybinds": {
+    "focusLeft": [
+      "y",
+      "ArrowLeft"
+    ],
+    "focusRight": [
+      "o",
+      "ArrowRight"
+    ],
+    "focusUp": [
+      "e",
+      "ArrowUp"
+    ],
+    "focusDown": [
+      "n",
+      "ArrowDown"
+    ],
+    "createParent": [
+      "Shift+y"
+    ],
+    "createChild": [
+      "Shift+Enter",
+      "Shift+o"
+    ],
+    "createSiblingBefore": [
+      "Shift+e"
+    ],
+    "createSiblingAfter": [
+      "p",
+      "Shift+n"
+    ],
+    "edit": [
+      "i"
+    ],
+    "delete": [
+      "x",
+      "Delete"
+    ],
+    "undo": [
+      "u",
+      "Ctrl+z"
+    ],
+    "redo": [
+      "Ctrl+Shift+z",
+      "Ctrl+y"
+    ],
+    "toggleHelp": [
+      "?"
+    ],
+    "newMap": [
+      "Ctrl+n"
+    ],
+    "openMap": [
+      "Ctrl+o"
+    ],
+    "saveMap": [
+      "Ctrl+s"
+    ],
+    "saveMapAs": [
+      "Ctrl+Shift+s"
+    ]
+  }
+}

@@ -7,7 +7,8 @@
         "models": {
           "zai-org/GLM-5.3-Flash": {
             "maxContextLimit": "53.5%",
-            "nudgeGrowthTokens": 500000
+            "nudgeGrowthTokens": 500000,
+            "deferTools": true
           }
         }
       },
@@ -15,7 +16,8 @@
         "models": {
           "glm-5.3-flash:fast": {
             "maxContextLimit": "53.5%",
-            "nudgeGrowthTokens": 500000
+            "nudgeGrowthTokens": 500000,
+            "deferTools": true
           },
           "deepseek-v4.1-flash:fast": {
             "maxContextLimit": "53.5%",
@@ -27,7 +29,8 @@
         "models": {
           "glm-5.3-flash": {
             "maxContextLimit": "53.5%",
-            "nudgeGrowthTokens": 500000
+            "nudgeGrowthTokens": 500000,
+            "deferTools": true
           }
         }
       },

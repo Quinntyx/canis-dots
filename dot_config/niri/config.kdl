@@ -160,6 +160,11 @@ binds {
 
     Mod+Q repeat=false { close-window; }
 
+    // Force-kill the focused window's process (escalation when Mod+Q is ignored)
+    Alt+F4 hotkey-overlay-title="Force Close Focused Window" repeat=false {
+        spawn-sh "kill -9 $(niri msg focused-window | grep PID | awk '{print $2}')";
+    }
+
     // Window Focusing (Workman cluster + Cross Monitor)
     Mod+Y { focus-column-or-monitor-left; }
     Mod+N { focus-window-down; }

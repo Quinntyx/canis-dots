@@ -61,5 +61,19 @@
     "saveMapAs": [
       "Ctrl+Shift+s"
     ]
+  },
+  "insertKeybinds": {
+    "createParent": [
+      "Ctrl+y"
+    ],
+    "createChild": [
+      "Ctrl+o"
+    ],
+    "createSiblingBefore": [
+      "Ctrl+e"
+    ],
+    "createSiblingAfter": [
+      "Ctrl+n"
+    ]
   }
 }

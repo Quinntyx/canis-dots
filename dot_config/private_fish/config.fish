@@ -3,6 +3,9 @@
 # ==========================================
 set -gx SUDO_EDITOR helix
 
+# user-level installs: uv tools, gh, forge-git, cargo-style drop-ins
+fish_add_path $HOME/.local/bin
+
 # Silence the first-run greeting ("Welcome to fish..." / "Type help...")
 set -g fish_greeting
 

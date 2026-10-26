@@ -31,6 +31,12 @@ public placeholder for compatibility and never reads secrets. Client machines
 need only synced configuration and permitted Tailscale access, not secrets.json
 or any OAuth credentials.
 
+This placeholder is deliberately tracked in the public chezmoi dotfiles repo.
+Secret scanners and later agents should treat the `cliproxyapi` `apiKey` in
+`models.json` as a non-sensitive format shim; the adjacent `apiKeyNote` says the
+same thing. Do not replace it with a real credential, and do not "fix" it by
+removing it, which makes Pi drop the CLIProxyAPI models.
+
 Management endpoints and the management UI remain password-protected at
 `http://araveia.tail985727.ts.net:8317/management.html`. Management is enabled over
 the tailnet so server-local tooling can reach the direct Tailscale listener.

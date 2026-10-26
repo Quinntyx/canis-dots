@@ -282,6 +282,7 @@
     "cliproxyapi": {
       "baseUrl": "http://araveia.tail985727.ts.net:8317/backend-api",
       "api": "openai-codex-responses",
+      "apiKeyNote": "INTENTIONALLY PUBLIC NON-SECRET: unsigned format-only placeholder so Pi treats the tailnet CLIProxyAPI as logged in. Not a credential, no authorization value, safe to commit. See ~/.config/cliproxyapi/README.md.",
       "apiKey": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiY2xpcHJveHlhcGktdGFpbG5ldCJ9fQ.tailnet-no-auth",
       "models": [
         {

@@ -37,7 +37,9 @@ window#waybar {
 #battery,
 #clock,
 #tray,
-#custom-mpris {
+#custom-mpris,
+#custom-eat,
+#custom-drink {
     background: rgba(255, 244, 191, 0.96);
     color: #2e2a1d;
     padding: 0 9px;
@@ -85,8 +87,9 @@ window#waybar {
 
 #custom-power,
 #custom-sunsetr,
-#custom-sunsetr-super,
-#custom-reaper-route {
+#custom-reaper-route,
+#custom-eat,
+#custom-drink {
     background: rgba(255, 244, 191, 0.96);
     color: #2e2a1d;
     padding: 0 4px 0 2px;
@@ -107,7 +110,6 @@ window#waybar {
 
 #custom-power:hover,
 #custom-sunsetr:hover,
-#custom-sunsetr-super:hover,
 #custom-reaper-route:hover {
     background: rgba(242, 183, 5, 0.85);
 }
@@ -115,20 +117,6 @@ window#waybar {
 #custom-sunsetr {
     padding: 0 4px;
     font-family: "FiraCode Nerd Font Propo";
-}
-
-/* Super-night toggle: icon swaps state (circle -> lightning), plain ink. */
-#custom-sunsetr-super {
-    padding: 0 4px;
-    font-family: "FiraCode Nerd Font Propo";
-}
-
-#custom-sunsetr-super.super-off {
-    color: rgba(46, 42, 29, 0.35);
-}
-
-#custom-sunsetr-super.super-off:hover {
-    color: #2e2a1d;
 }
 
 #custom-mpris.playing {
@@ -166,6 +154,12 @@ window#waybar {
 
 #battery.critical {
     background: rgba(214, 87, 57, 0.95);
+    color: #fffaf0;
+}
+
+#custom-eat.critical,
+#custom-drink.critical {
+    background: rgba(255, 20, 20, 0.95);
     color: #fffaf0;
 }
 

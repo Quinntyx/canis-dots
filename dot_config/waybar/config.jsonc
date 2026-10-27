@@ -5,6 +5,8 @@
 
     "modules-left": [
         "clock",
+        "custom/eat",
+        "custom/drink",
         "sway/workspaces",
         "sway/mode",
         "sway/scratchpad"
@@ -27,7 +29,6 @@
         "battery",
         "battery#bat2",
         "tray",
-        "custom/sunsetr-super",
         "custom/sunsetr",
         "custom/power"
     ],
@@ -139,6 +140,27 @@
         "tooltip-format-disconnected": "Disconnected"
     },
 
+    "custom/eat": {
+        "format": "{}",
+        "exec": "~/.config/waybar/meal-water.py eat-status",
+        "return-type": "json",
+        "interval": 30,
+        "on-click": "~/.config/waybar/meal-water.py eat",
+        "on-click-middle": "~/.config/waybar/meal-water.py eat-status --help",
+        "exec-on-event": true,
+        "escape": true
+    },
+
+    "custom/drink": {
+        "format": "{}",
+        "exec": "~/.config/waybar/meal-water.py water-status",
+        "return-type": "json",
+        "interval": 30,
+        "on-click": "~/.config/waybar/meal-water.py water",
+        "exec-on-event": true,
+        "escape": true
+    },
+
     "custom/reaper-route": {
         "format": "{}",
         "align": 0.5,
@@ -191,19 +213,6 @@
         "on-click": "playerctl -a pause"
     },
 
-    // Separate toggle for the intense "super night" profile (static
-    // 3600K @ 60% until 04:30, back to chill scheduling afterwards).
-    "custom/sunsetr-super": {
-        "exec": "~/.config/waybar/sunsetr-toggle.py super-status",
-        "return-type": "json",
-        "interval": 5,
-        "on-click": "~/.config/waybar/sunsetr-toggle.py super-toggle",
-        "on-click-right": "~/.config/waybar/sunsetr-toggle.py super-off",
-        "exec-on-event": true,
-        "escape": true
-    },
-
-    // Main switch: pause the whole filter until 04:30, or resume it.
     "custom/sunsetr": {
         "exec": "~/.config/waybar/sunsetr-toggle.py status",
         "return-type": "json",

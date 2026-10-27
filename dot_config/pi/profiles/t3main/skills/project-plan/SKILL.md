@@ -1,7 +1,7 @@
 ---
 name: project-plan
 description: "Use when making or revising a software project plan, architecture, implementation
-  roadmap, or project-level ARCHITECTURE.md, AGENTS.md, and PLAN.md documents."
+  roadmap, ARCHITECTURE.md, or PLAN.md; for agent operating guidance use agent-repo-guidance."
 metadata:
   type: procedure
 ---
@@ -18,9 +18,8 @@ metadata:
 ## Output Contract
 
 - A grounded target, explicit architectural decisions, and a dependency-ordered executable plan.
-- Project-level direction in ARCHITECTURE.md, AGENTS.md, and PLAN.md unless established
-  equivalents
-  or the requested narrower deliverable select another document set.
+- Requirements/design and execution state in their established documents, normally ARCHITECTURE.md
+  and PLAN.md. Update AGENTS.md only when durable agent operating guidance actually changes.
 - Consistent distinctions between observed implementation, intended target, decisions, and open
   work.
 - A readable summary of the proposed system, important tradeoffs, next milestone, and real
@@ -83,9 +82,10 @@ metadata:
    direction,
    interfaces, state/data flows, failure handling, resource assumptions, and integration points.
    Distinguish the observed system from target decisions and explain the transition.
-3. Write durable agent guidance and final target requirements in AGENTS.md. Keep instructions
-   scoped
-   to the project and include the commands, conventions, or constraints an agent actually needs.
+3. Keep target product requirements and acceptance criteria in an established specification, or
+   ARCHITECTURE.md when no separate specification is warranted. AGENTS.md contains only durable
+   operating instructions and conditional pointers. If those instructions change, use
+   `../agent-repo-guidance/SKILL.md`; otherwise leave AGENTS.md alone.
 4. Write PLAN.md as ordered milestones with deliverables, prerequisite edges, relevant interfaces,
    acceptance checks, integration points, and meaningful completion conditions. Bind known paths
    and commands to the actual project; label proposed artifacts as proposed.
@@ -129,12 +129,14 @@ metadata:
 
 # Document ownership
 
-- ARCHITECTURE.md owns system design, structural decisions, rationale, boundaries, interfaces,
-  invariants, and the distinction between current implementation and intended target.
-- AGENTS.md owns durable engineering conventions, project-specific operating knowledge, and final
-  target requirements. It changes when those durable facts change.
-- PLAN.md owns high-churn execution state: milestones, ordering, progress, short-lived decisions,
-  blockers, pending checks, handoffs, and the next action.
+- An existing SPEC.md, requirements document, or equivalent owns product behavior and acceptance.
+  Without a separate specification, ARCHITECTURE.md owns concise target requirements alongside
+  system design, decisions, rationale, interfaces, invariants, and current-versus-target distinctions.
+- AGENTS.md owns durable engineering conventions, safety boundaries, actual verification commands,
+  and conditional pointers to project knowledge. Product scope and transient plans live elsewhere.
+- PLAN.md owns high-churn execution state: milestones, dependencies, progress, blockers, pending
+  checks, handoffs, and next actions. Milestone checks reference requirements/design rather than
+  maintaining a second competing specification.
 - Established project documents can fulfill these roles under different names. Preserve their
   conventions while keeping the roles distinct and references consistent.
 - A bounded plan may remain one artifact; the three-role distinction still separates facts,

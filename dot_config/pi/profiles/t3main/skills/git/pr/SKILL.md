@@ -53,11 +53,29 @@ metadata:
 3. Run the smallest relevant checks for the change and inspect the actual results. Separate
    observed behavior, inferred mechanism, assumptions, and unverified claims. Preserve existing
    unrelated edits and runtime jobs.
-4. For requested review fixes, use the authorized checkout or an isolated writer worktree. Follow
-   the repository's commit, push and integration policy within the task's effects. Keep unrelated
-   work and concurrent contributors' checkouts intact.
-5. Once evidence and checks are sufficient, proceed to Stage 3: Write the artifact. Check failures
-   remain explicit findings; they are repaired within scope or reported as unresolved.
+4. For requested review fixes, use the authorized checkout or T3-managed writer allocation from
+   the parent Git procedure. Follow commit/push/integration policy within actual task effects.
+   Keep unrelated work and concurrent contributors' checkouts intact.
+5. Once evidence is sufficient, requested splitting goes to Stage 2A: Split coherent changes;
+   other work goes to Stage 3: Write the artifact. Check failures remain explicit findings, repaired
+   within scope or reported as unresolved.
+
+## Stage 2A: Split coherent changes
+
+1. Partition the complete diff by independently useful outcomes, not arbitrary file/commit counts.
+   Identify shared prerequisites and whether separate PRs can be independent or need an explicit
+   stack. Retain requirements, tests, and base/head relationships for each part.
+2. Draft-only or planning scope produces a split plan and proposed PR text, then goes to Stage 5:
+   Verify and report. A split request does not silently authorize published-history rewrites or
+   force pushes. Resolve those effects explicitly if the requested result requires them.
+3. For authorized implementation, retain the original branch/SHA and use verified T3-allocated
+   workspaces. Apply only each selected change with its tests; preserve unrelated/concurrent work.
+   Do not create child worktrees in the shell or relocate the existing branch.
+4. Verify each part on its actual base, check the composed final result against the original
+   requested behavior, and account for omitted/duplicated hunks and dependencies. Verify scope and
+   tests separately for each proposed PR rather than assuming a green combined diff proves each.
+5. For each accepted part, repeat Stages 3 through 5 with its own base/head, artifact, and publication
+   authority. Return a coherent dependency/order summary; retain incomplete parts honestly.
 
 ## Stage 3: Write the artifact
 

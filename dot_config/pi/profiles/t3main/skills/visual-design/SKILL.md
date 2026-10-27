@@ -42,11 +42,11 @@ metadata:
 
 ## Stage 2: Interactive handoff
 
-1. Preserve the brief and current artifacts. For an explicitly requested interactive design
-   review, select a `design` role child (`../subagents/model-selection/SKILL.md` sets its tier)
-   and exchange mock iterations through its wake turns: each iteration is a new `delegate_task`
-   carrying the current artifacts' paths, the latest feedback and the approval state. Use the T3
-   preview tools to render and inspect mock states yourself between rounds.
+1. Preserve the brief/artifacts and use the requested available review interface. Self-contained
+   mockups can use T3 `html_preview` then `html_render` when presenting a visual is part of the task.
+   Use preview browser tools only with current browser-work/page/tab scope under
+   `../runtime-verification/SKILL.md`. Interactive design does not require a child automatically;
+   if delegation helps within scope, use the subagents route and a new task for each new review.
 2. If the requested interactivity cannot be delegated (live annotation while you wait), report the
    missing capability and finish with the preserved brief. Otherwise finish with the review
    outcome: approved version, iteration history and remaining decisions.
@@ -62,17 +62,19 @@ metadata:
 4. Match the implementation effort to the requested deliverable. Use existing framework and assets;
    build real navigation, selection, forms, focus, and state transitions for the primary task.
    Represent unavailable services with explicit local state and disclose the boundary in the report.
-5. Work directly for one design. If variants or concurrent contributors are part of the task,
-   give each writer an owned worktree and record its base revision and runnable command.
+5. Work directly for one design. Requested variants/concurrent same-repo contributors use T3-managed
+   writer allocation through the subagents procedure. Record baseline and runnable command; never
+   create worker worktrees in the shell. Preserve existing user and project state.
 6. Implement hierarchy, density, keyboard access, semantic controls, visible focus, contrast,
    reduced motion, and responsive layouts. Label actions consistently with their resulting state.
 7. Proceed to Stage 4: Render and exercise.
 
 ## Stage 4: Render and exercise
 
-1. Discover already exposed browser tools with `tool_search`. Inspect their schemas before use.
-   Use an existing local capture facility when available; otherwise inspect project preview and
-   capture commands. Start only owned preview processes and keep existing user sessions intact.
+1. Select the shared verification tier and permitted capture route from
+   `../runtime-verification/SKILL.md`. Use T3 preview tools only for current requested browser work
+   or a named page/tab; tool availability alone is not permission. Otherwise use existing approved
+   local capture commands. Do not install another automation stack; preserve user sessions.
 2. If a runnable capture path exists, continue Stage 4. Otherwise record the exact missing command
    or tool and proceed to Stage 5 with visual validation marked incomplete.
 3. Run the app and capture the requested page set at fixed viewport sizes and device scale. Wait
@@ -92,9 +94,9 @@ metadata:
 1. Verify the requested deliverable with the relevant checks. For runnable changes, run build and
    interaction checks. Associate captures with their revision, route, theme, and viewport; artifact
    reviews and design advice use the supplied evidence and describe any unrendered proposals.
-2. For runnable work or a requested comparison, write `visual-report.md` in the output directory
-   with relative image links and remaining capture links. For advice or a supplied-artifact review,
-   return the requested critique directly. Both paths continue at step 3.
+2. Requested comparisons or substantial retained evidence use `visual-report.md` with image links.
+   A focused change can use a short receipt with its decisive capture/check instead of another report
+   file. Advice and supplied-artifact reviews return the critique directly. Continue at step 3.
 3. For each design, describe observed workflow choices, fidelity, interaction completeness,
    accessibility, and visual tradeoffs. Tie judgments to rendered evidence and exercised behavior.
 4. For multiple variants, recommend one with reasons and identify useful elements from the others.
@@ -102,3 +104,18 @@ metadata:
    than numeric self-ratings as the quality evidence.
 5. Report changed paths, runnable preview command, checks, report location, and blocked validation.
    Release only owned preview resources when their useful lifetime ends.
+
+# Visual judgment
+
+- Hierarchy: one clear primary task/action, readable grouping, and subordinate secondary controls;
+  do not give every region equal weight or add decoration that obscures the workflow.
+- Typography and density: deliberate type/spacing scales, comfortable line lengths, consistent
+  alignment, and density suited to the product. Use real content to expose wrapping/overflow.
+- Color and material: tokens with semantic roles, sufficient contrast, and restrained emphasis.
+  Preserve product identity; a generic gradient/card treatment is not a design rationale.
+- Interaction: controls look and behave consistently in default, focus, hover, selected, disabled,
+  loading, empty, and error states relevant to the task. Check keyboard and reduced-motion paths.
+- Responsiveness: hierarchy and action reachability survive actual narrow/wide content and viewport
+  changes; resizing a desktop composition without changing its priorities is not enough.
+- Compare against the brief and baseline with concrete observed tradeoffs, not personal numeric
+  scores or claims that an unseen implementation is polished.

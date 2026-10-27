@@ -1,9 +1,8 @@
 ---
 name: git
 description: "Use when locating, cloning, forking, initializing, or mirroring repositories,
-  using branches or worktrees, committing, pushing, or drafting, filing, updating, or responding
-  to pull requests; also researching issue discussions, checking for duplicates, drafting, filing,
-  updating, or responding to repository issues."
+  selecting branches or worktrees, committing or pushing, or drafting, publishing, updating,
+  or responding to repository issues and pull requests."
 metadata:
   type: procedure
 ---
@@ -12,159 +11,114 @@ metadata:
 
 ## Input Contract
 
-- A repository identifier, URL, checkout, or current repository context and requested operation.
-- Git and authenticated host access: `fj` for `git.quinntyx.dev`, `gh` for GitHub.
-- Authorization appropriate to the requested side effects, as defined in Publication policy.
+- Repository identity or supplied checkout, requested operation, and authorized effects.
+- Git and appropriate authenticated hosting access: Forgejo or GitHub as selected by the task.
+- Current T3 project/thread binding and existing checkout ownership when worktrees are involved.
 
 ## Output Contract
 
-- A verified repository destination, checkout, branch/base, tracking, and requested result.
-- Personal repositories prefer Forgejo and use `~/docs/src/<repo>/main` as an ordinary clone.
-- Concurrent writers use separate sibling worktrees whose directory names equal their branches.
-- A concise report of completed outcomes and any incomplete publication or verification.
+- Verified repository, checkout, branch/base, tracking, and requested result.
+- Personal source defaults to a canonical Forgejo origin and `~/docs/src/<repo>/main` anchor.
+  A supplied matching checkout and the repository's actual default branch take precedence.
+- T3 owns managed thread/delegate worktree allocation; Git owns history and authorized publication.
+- A concise receipt with exact revisions and any pending operation. Unrelated work stays intact.
 
 # Entrypoint
 
-## Stage 1: Route the request
+## Stage 1: Route and bind authority
 
-1. Resolve the repository, operation, host instruction, and publication scope from the request.
-   Bind command variables to actual values and quote paths and identifiers before execution.
-2. Match specialized requests to the child below, read that file relative to this skill's
-   directory, execute its complete procedure, and return its outcome. This is mandatory dispatch:
-   children are read-through procedures rather than separately advertised commands. Basic Git
-   requests continue Stage 1 at step 3 without loading a child.
+1. Resolve operation, repository/host, existing checkout, branch/base, and effect ownership from the
+   request. Bind quoted command variables to actual values; preserve explicit local-only limits.
+2. Read the selected child relative to this skill, execute its procedure, and return its outcome:
    - New project initialization: `init-project/SKILL.md`.
-   - Server-side GitHub mirrors, mirror repairs, or Forgejo migration: `github-mirror/SKILL.md`.
-   - Drafting, publishing, revising, or responding to pull requests: `pr/SKILL.md`.
-   - Researching issue discussions, checking for duplicates, creating, drafting, updating,
-     or responding to repository issues: `issues/SKILL.md`.
-3. For `~/.local/share/chezmoi`, retain the existing `main` checkout and source-state layout.
-   Verify `main`; an unexpected branch ends with a report, preserving the checkout. Edit source
-   state, validate, then commit and push before applying when those
-   actions are assigned to this agent. An explicit coordinator handoff ends at validated source
-   changes. Report the completed lifecycle stages and finish here. For code repositories continue
-   to Stage 2: Resolve the repository.
+   - Server-side GitHub mirroring, repair, or migration: `github-mirror/SKILL.md`.
+   - PR drafting, publication, revision, splitting, or review responses: `pr/SKILL.md`.
+   - Issue research, duplicate checks, drafting, publication, revision, or responses: `issues/SKILL.md`.
+   Children are read-through routes, not independently advertised commands under Pi discovery.
+3. For chezmoi configuration, keep its existing `main` checkout and use `../edit-config/SKILL.md`.
+   Follow assigned source/publication/application ownership and return that receipt. Basic repository
+   operations continue to Stage 2: Resolve source.
 
-## Stage 2: Resolve the repository
+## Stage 2: Resolve source
 
-1. For a supplied existing checkout, verify its origin identity and primary worktree, bind
-   `checkout`, `target`, `primary`, and `container`, then proceed to Stage 4: Select the branch.
-   Otherwise continue Stage 2 at step 2.
-2. Normalize owner/repo before lookup. Bare names select `quinntyx` on Forgejo and `Quinntyx`
-   on GitHub; an explicit foreign owner remains intact. Strip a trailing `.git` and validate safe
-   segments. Check Git and the host CLI. Missing prerequisites end at Stage 6: Verify and report;
-   available tools continue Stage 2 at step 3. Use configured transport rewrites as found.
-3. Honor an explicit host/URL and verify it on that host. Otherwise query Forgejo first with
-   `fj repo view "$owner/$repo" -H https://git.quinntyx.dev`. A definite absence permits a GitHub
-   lookup with `gh repo view "$owner/$repo" --json nameWithOwner,url,defaultBranchRef`, after
-   normalizing the user's owner for GitHub. Successful lookup continues Stage 2 at step 4.
-   An access, network, or final lookup failure ends at Stage 6: Verify and report.
-4. Set `container="$HOME/docs/src/$repo"` for personal repositories or forks. Direct foreign
-   clones use `container="$HOME/docs/src/${owner}_$repo"`. Set `primary="$container/main"`.
-   Inspect only the expected container and supplied checkout; retain all existing content.
-5. Locate-only work verifies the expected checkout, binds `target="$primary"`, and proceeds to
-   Stage 6: Verify and report. Clone/fork work proceeds to Stage 3: Clone or fork. Existing
-   repository work proceeds to Stage 4: Select the branch. A missing or conflicting anchor ends
-   at Stage 6: Verify and report with the required destination decision, preserving existing files.
+1. A supplied checkout is checked for actual origin, branch, worktree layout, and existing changes.
+   Honor a verified matching checkout rather than relocating it to fit a naming preference.
+2. Otherwise normalize a safe owner/repo. Bare personal names prefer `quinntyx` on Forgejo, then
+   `Quinntyx` on GitHub after a definite not-found. Honor explicit foreign owners and hosts.
+   Access/network failures are not evidence of absence; end at Stage 6: Report when unresolved.
+3. Inspect only expected source paths. Personal anchors default to `~/docs/src/<repo>/main`;
+   direct foreign clones use `~/docs/src/<owner>_<repo>/main`. The directory name does not prove
+   the checked-out branch is `main`. Preserve the actual default and established branch association.
+4. Locate-only work goes to Stage 6: Report. An absent requested clone/fork goes to Stage 3:
+   Establish source. Existing matching source goes to Stage 4: Select workspace and branch.
 
-## Stage 3: Clone or fork
+## Stage 3: Establish source
 
-1. Verify the destination is absent or an existing clone of exactly the selected repository.
-   Reuse a matching clone at Stage 4: Select the branch. Report collisions before proceeding.
-2. An explicit fork request creates a fork on the selected contribution host. Use
-   `gh repo fork "$owner/$repo" --clone=false` for GitHub, or
-   `fj repo fork "$owner/$repo" -H https://git.quinntyx.dev` for Forgejo. Save the foreign
-   repository URL, verify the personal fork, and select it as `origin`. An ordinary clone request
-   retains the selected repository. Both paths continue at step 3.
-3. Create the container, then clone with the selected CLI:
-   `fj repo clone "$owner/$repo" "$primary" -H https://git.quinntyx.dev -S false` or
-   `gh repo clone "https://github.com/$owner/$repo" "$primary" --no-upstream`.
-   A successful clone continues at step 4. A failure ends with the retained partial path and error.
-4. For a genuine foreign fork, add its original repository as `upstream` when absent. Preserve and
-   report a conflicting remote for resolution. For personal Forgejo repositories with GitHub
-   mirrors, retain a single Forgejo `origin`; server-side mirrors handle GitHub publication.
-5. Verify the ordinary clone's `.git`, identity, and branch. Proceed to Stage 4: Select the branch.
-   Hosting migration, mirror creation, and visibility changes remain separate requested operations.
+1. Verify the destination is absent or already the selected repository; preserve collisions.
+   An explicit fork request may create its fork on the selected contribution host. A clone request
+   alone does not authorize a fork, migration, mirror, visibility change, push, or PR.
+2. Use T3 `t3_project_clone` for a new source anchor, passing the verified remote and destination.
+   Do not manufacture a child checkout in the shell or in a delegate brief. Missing T3 capability
+   ends with the precise blocker rather than a hidden alternate allocation route.
+3. Verify origin, actual default branch, tracking, and retained content. Genuine foreign forks keep
+   their original upstream; personal Forgejo repos use one canonical writable origin and server-side
+   mirrors. Preserve conflicting remote definitions for an explicit decision.
+4. Project registration is a separate local setup concern: use `t3_project_create` only when project
+   setup is assigned. It neither binds the current thread to that project nor starts a new thread.
+   Continue to Stage 4: Select workspace and branch.
 
-## Stage 4: Select the branch
+## Stage 4: Select workspace and branch
 
-1. Use the supplied checkout and its actual worktree layout for existing repository work. New
-   personal clones use the ordinary `main` anchor and sibling layout established in Stage 3. Set
-   `target` to the supplied task checkout or `primary`. Inspect `git -C "$primary" remote -v`,
-   `git -C "$primary" status --short --branch`, and
-   `git -C "$primary" worktree list --porcelain`. Preserve existing edits and branch associations.
-   A missing anchor ends at Stage 6: Verify and report; an established anchor continues at step 2.
-2. Locate/list-only requests proceed to Stage 6: Verify and report. Other requests continue
-   Stage 4 here. Check the actual task checkout's branch; use the primary when none was supplied.
-   For feature edits on `main`, ask whether to use `dev` and wait, unless work on `main` was
-   explicitly requested. An accepted `dev` destination proceeds to Stage 5: Attach the worktree;
-   an authorized current checkout proceeds to Stage 6: Verify and report.
-3. Newly named feature branches use `feat-<dash-delimited-description>` and default to base `dev`.
-   Their future PR target also defaults to `dev`; each override is independent. Preserve names
-   and bases supplied explicitly. Missing required branches require a destination decision before
-   resuming Stage 4. Report missing `main` or `dev` rather than manufacturing repository policy.
-4. For non-feature branch creation, preserve the established naming convention: the portion before
-   the last hyphen is the base; a name without a hyphen uses `main`. Existing branches retain their
-   commits and ancestry. An explicit base takes precedence over naming conventions.
-5. A requested destination branch proceeds to Stage 5: Attach the worktree. Work staying in its
-   authorized checkout proceeds to Stage 6: Verify and report. Branch changes use a new sibling
-   worktree or the destination's existing correctly named worktree.
+1. Inspect status, exact branch/upstream, and `git worktree list --porcelain`. Check
+   `t3_worktree_status` before any managed allocation; distinguish this thread's bound repository
+   from another repository reached by an absolute path.
+2. Retain an authorized existing task checkout. Locate/clone/commit/push work does not itself require
+   creating or switching branches. Do not force a remote's default `dev` checkout onto `main`.
+3. For personal feature branches, prefer `feat-<description>` based on existing `dev` unless task or
+   repository policy selects otherwise. Missing policy/base is a focused decision, not permission
+   to invent `main`/`dev`, change ancestry, or move another active checkout's branch.
+4. For an own-thread move within its bound project, use `t3_worktree_handoff` on a new branch after
+   checking eligibility, as the final call with a continuation prompt. It ends the live session;
+   do not confuse it with source setup or a cwd change in a subprocess.
+5. Concurrent same-repo writers use `delegate_task` with `isolation:'worktree'`; T3 allocates their
+   prepared checkouts from the coordinator's committed baseline. Read `../subagents/SKILL.md` for
+   delegation. A different bound project cannot be selected merely by putting its path in the brief.
+6. Only a user-requested new top-level thread uses `t3_thread_launch`, with the correct project and
+   explicit workspace strategy. Do not create a thread simply to bootstrap a repository.
+7. If T3 cannot allocate the required workspace, report that boundary; do not fall back to shell
+   worktrees or synthetic Pi session moves. With a ready workspace go to Stage 5: Execute.
 
-## Stage 5: Attach the worktree
+## Stage 5: Execute
 
-1. Bind `name`, `base`, and `target="$container/$name"`. Require a single safe path segment and
-   a successful `git check-ref-format --branch "$name"`. Keep each writer in its own worktree.
-2. Inspect registered worktrees and the target path. A correctly named worktree on the matching
-   branch is reused at step 7. An absent target continues at step 3. A collision ends with a report
-   for the user to resolve; existing checkouts retain their branch and folder association.
-3. Run `git -C "$primary" fetch origin` and query the exact branch with
-   `git -C "$primary" ls-remote --heads --exit-code origin "refs/heads/$name"`.
-   Success selects the existing branch path at step 4. Exit 2 selects step 4 for an existing local
-   branch or step 5 for a new branch. Other failures end with a report of incomplete lookup.
-4. For a remote branch, fetch its tracking ref explicitly when needed by a restricted refspec:
-   `git -C "$primary" fetch origin "refs/heads/$name:refs/remotes/origin/$name"`.
-   Create an absent local branch with `git -C "$primary" branch --track "$name" "origin/$name"`.
-   Preserve existing local commits; set a missing upstream to `origin/$name` only when it exists.
-   Resolve a conflicting upstream with the user. Attach using
-   `git -C "$primary" worktree add "$target" "$name"`, then continue at step 6.
-5. Resolve the requested base from its local branch first, otherwise `origin/$base`; report local
-   divergence. Creating absent `main` or `dev` requires an explicit creation request. A verified
-   base permits `git -C "$primary" worktree add -b "$name" "$target" "$base_ref"`, then step 6.
-   An absent base ends with a request for the intended base.
-6. A local-only request continues at step 7. Otherwise publish a newly created or local-only branch
-   with `git -C "$target" push -u origin "$name"`. An already published branch continues at step 7.
-   A failed publication retains the worktree and ends with its incomplete tracking status.
-7. Verify branch, path, and upstream. Repeat Stage 5 for remaining worktrees; otherwise proceed to
-   Stage 6: Verify and report. Publish requested worktree branches before concurrent work begins.
+1. Perform only the assigned Git operation. Before a commit, inspect the complete owned diff, run
+   applicable changed-file checks, and stage exact paths. Keep unrelated staged changes out.
+2. Commit only when assigned under Publication policy. A coordinator/source-only handoff preserves
+   validated changes without publication. A no-commit/no-push instruction overrides personal defaults.
+3. Before an authorized ordinary push, verify the exact remote, destination branch, local ancestry,
+   and tracking. Fetch/reconcile target movement without discarding concurrent work. Never force,
+   rewrite, prune, or merge into `main` without its own explicit scope.
+4. A failed/uncertain remote write is reconciled by reading the remote before retrying. Keep retained
+   source, branch, and original error; do not replace the checkout to hide failure.
+5. Continue to Stage 6: Report.
 
-## Stage 6: Verify and report
+## Stage 6: Report
 
-1. For incomplete work, report retained state and the precise unresolved prerequisite, then
-   finish. Completed work continues Stage 6 at step 2.
-2. Verify the selected checkout using `git -C "$target" status --short --branch`, remotes, and
-   `git -C "$primary" worktree list --porcelain`. For clones set `target="$primary"`.
-3. For published branches, verify the exact remote head and upstream `origin/$name`. Report absent
-   tracking honestly for local-only work. Check expected `main` and `dev` locally and on origin.
-4. State the host, absolute checkout, branch/base, tracking, and requested result. Use explicit tool
-   working directories or `git -C` for subsequent operations; shell `cd` is process-local.
+1. Verify actual checkout, branch/base, upstream, and task-owned status. For publication compare the
+   exact remote head to the accepted local SHA; an installed update or PR is a separate outcome.
+2. State host, absolute checkout, branch/ref, requested result, performed checks, and pending effects.
+   Missing tracking is expected for local-only work. Do not demand unrelated global cleanliness.
 
 # Publication policy
 
-- A clone or worktree request authorizes the requested branch publication, subject to local-only
-  instructions. Task commits and pushes on other feature branches require task authorization.
-- Existing `dev` permits requested task commits and ordinary pushes without another permission
-  prompt. Explicit no-commit, no-push, or local-only instructions govern the current task.
-- Merging into `main` requires explicit authorization. Work on an explicitly selected `main` keeps
-  its requested scope; implementation alone is distinct from opening a pull request.
-- Requested chezmoi configuration changes normally authorize source-state commits and ordinary
-  pushes on `main`, followed by apply. A coordinator-owned lifecycle leaves source changes ready.
-- Contribution work follows the task's repository, host, contribution rules, and target branches.
-  Clone-layout and personal-host defaults apply to checkout setup, independently of hosted issues
-  and pull requests, whose repository context is supplied by their task.
-- Respect configured transport rewrites on restricted machines while preserving canonical hosting.
-  Ordinary development pushes use the canonical writable origin, with server-side mirrors syncing
-  personal Forgejo repositories to GitHub.
-- Preserve unrelated edits, remote histories, and active worktrees. Destructive cleanup requires its
-  own scope; approved filesystem removal uses `trash`. Keep Git configuration changes repo-local.
-- Use bounded waits for remote operations. Jobs expected to exceed 10–15 seconds use dedicated
-  detached tmux windows with retained native output and exit status, preserving active user panes.
+- A clone or worktree request authorizes local preparation only, not branch publication. Push only
+  under an explicit delivery request or an applicable established repository convention.
+- In an existing personal `dev` checkout, requested implementation normally includes owned commits
+  and ordinary pushes unless local-only, no-push, or coordinator ownership narrows the task.
+- Requested chezmoi configuration normally includes owned commits/pushes on `main` and targeted apply;
+  `edit-config` owns the precise lifecycle and handoff exceptions.
+- Source implementation is distinct from PR/issue/comment publication, merging, hosting migration,
+  visibility changes, deployment, and installing into live profiles. Honor each task's actual scope.
+- Preserve histories, unrelated changes, worktrees, and active user processes. Approved filesystem
+  removals use recoverable `trash`; keep Git configuration changes repo-local.
+- Use canonical origins with configured transport rewrites intact. Long jobs use owned retained
+  execution with bounded waits and actual output/exit status; never kill by a broad name pattern.

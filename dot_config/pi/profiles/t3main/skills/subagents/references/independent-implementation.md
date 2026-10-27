@@ -2,15 +2,15 @@
 
 1. Inspect the repository, target branch and existing tests. Identify the behavior that must work
    and the acceptance checks that can demonstrate it. Establish a usable shared baseline once.
-2. For substantial Forgejo implementation workflows, establish test CI before builder fan-out.
-   Inspect `git remote -v`, workflow discovery, repository Actions enablement, runner availability,
-   branch triggers and test discovery. Preserve working automation when extending it. Obtain green
-   required jobs at the baseline SHA, or retain the blocker before launching dependent builders.
+2. Inspect existing test/CI discovery and required checks once at the baseline. Verify required
+   jobs when acceptance depends on them. Missing optional hosted CI is a limitation, not permission
+   to provision workflows/runners or block unrelated local checks. Preserve working automation.
 3. Decompose the request into useful subsystems. Give each builder the overall request, its
    objective, baseline, allowed effects and relevant acceptance checks. Launch builders with
    `isolation: 'worktree'` — each gets its own prepared checkout and branch from the baseline
    commit and discovers interfaces and cross-file changes within its owned workspace. Uncommitted
-   coordinator edits are invisible to them: commit or stash the baseline before launching.
+   coordinator edits are invisible to them: obtain an accepted committed baseline before dependent
+   launches. Do not stash unrelated work or assume a brief transfers uncommitted implementation.
 4. Use the actual requested child count. For an explicitly selected high-parallelism build, up to
    2C genuinely useful initial build items is a headroom policy, not a minimum. Otherwise launch
    the natural smaller roster. Treat later reviews and repairs as conditional work and preserve
@@ -25,8 +25,9 @@
 7. As a candidate settles (its completed `summary` plus its branch/worktree), perform scoped
    intermediate acceptance. Accept its required behavior with green applicable checks; land small
    fixes yourself, and launch a new repair `delegate_task` for the child's branch only when the
-   repair is substantial — never by editing a live child through `t3_thread_send`. Five
-   review/repair cycles is the default cap for this selected substantial implementation mode.
+   repair is substantial, after cancelling any replaced live run. Every new review/re-check is a
+   new task, not a message to the old child. Apply the shared verification ladder: no fixed review
+   rounds; two failed repairs of the same symptom require renewed diagnosis/escalation.
 8. Retain each accepted candidate's branch tip, worktree path, feature scope and evidence. Release
    integration when its actual prerequisites are accepted, while unrelated ready work continues.
 

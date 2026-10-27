@@ -31,6 +31,8 @@ metadata:
 2. Resolve the actual running build, branch, process, configuration, and entrypoint implicated by
    the symptom. Preserve existing user work and unrelated running instances.
 3. Translate the request into observable user journeys and identify the smallest decisive check.
+   Select a tier from Verification ladder using its concrete triggers, not model confidence or
+   requested effort. Record the tier and trigger briefly; repository-required checks remain a floor.
 4. When execution is available, continue to Stage 2: Reproduce. Otherwise, continue to Stage 3:
    Trace with the unavailable runtime explicitly recorded.
 
@@ -58,8 +60,9 @@ metadata:
 
 1. Modify the smallest coherent component that owns the incorrect behavior. Preserve the user's
    requested architecture and observable semantics across all affected callers.
-2. Give concurrent writers isolated worktrees and subsystem-level assignments when delegation
-   materially helps. Keep the current repository's branch and publication policy in force.
+2. When delegation materially helps, use the subagents procedure and T3-managed allocation for
+   concurrent same-repo writers. Verify the bound repository before selecting worktree isolation.
+   Keep branch, publication, and source/coordinator ownership within the actual request.
 3. Add a focused regression check when it captures a durable failure mode. Prefer an existing
    test path and a small smoke check for exploratory work. Continue to Stage 5: Verify.
 
@@ -82,6 +85,61 @@ metadata:
 3. Report blockers and remaining decisions. A focused repair gets a short outcome-led paragraph
    covering cause, decisive verification, and remaining uncertainty. Save detailed trajectories in
    the task workspace when they materially help.
+
+# Verification ladder
+
+This is the shared default for verification cost. Specialist skills add relevant surface checks;
+artifact-heavy specialist references are escalation routes, not a mandatory minimum for every task.
+Higher tiers retain the decisive checks from lower tiers and expand only implicated boundaries.
+
+## Tier 1: Focused
+
+- Default for a bounded, understood change with a local acceptance path and no Tier 2/3 trigger.
+- Inspect the owned diff, run the repository's applicable changed-file checks, and exercise the
+  smallest real affected entrypoint. For a durable logic repair, prove the regression fails before
+  and passes after when feasible. State unavailable runtime boundaries honestly.
+- UI claims need rendered evidence when appearance is material; source/build success alone does
+  not prove appearance. A small task needs the relevant capture, not a comparison campaign.
+- Keep a short command/result and revision receipt. No compulsory manifest, checksums, timed stream,
+  extra reviewer, CI provisioning, or multiple repair rounds merely to satisfy a generic ceremony.
+
+## Tier 2: Boundary regression
+
+- Escalate for changed public/API contracts; state/persistence or migrations; shared asynchronous,
+  process, network, or privilege boundaries; security-sensitive effects; configuration installation;
+  multiple interacting surfaces/platforms; uncertain ownership; or a regression with unclear scope.
+- Inventory affected callers/surfaces, test the relevant happy and failure/lifecycle paths, and
+  verify the real crossing plus one nearby unaffected path. For an installed update, bind source,
+  selected ref, installed revision, effective configuration, and activation separately.
+- Use an independent reviewer only for a consequential claim not settled by the available checks,
+  or when requested/repository-required. One scoped review is the default, not a fixed loop count.
+- If scope is initially unknown, begin with a short Tier 2 discovery pass. Remain here while any
+  trigger is unresolved; return to Tier 1 only after explicitly ruling those triggers out.
+
+## Tier 3: Forensic
+
+- Escalate for two unsuccessful repairs of the same symptom, unexplained nondeterminism, races,
+  timing/flicker/performance claims, contradictory runtime identity, or explicit forensic/replayable
+  evidence requirements. A high reasoning-effort setting alone does not select this tier.
+- Retain replayable inputs and the implicated timing/event/state trace. Use richer source/build
+  manifests, hashes, terminal raw streams, profiling, or independent reconstruction only where
+  they distinguish a hypothesis or establish provenance needed for the claim.
+- Bound each experiment by a hypothesis and acceptance criterion. Stop expanding evidence when
+  the symptom, affected boundaries, and causal claim are established. Repeated failed repairs call
+  for renewed diagnosis, not repeated identical tests or automatic reviewer relaunches.
+- Missing tools/access produce a precise blocked boundary. Never fabricate evidence, install an
+  alternate automation stack, or broaden authority to make the tier appear complete.
+
+# Browser evidence and permission
+
+- Use T3 preview tools only when the current request asks for browser work or names a page/tab.
+  A frontend edit or an evidence requirement is not by itself permission to use those tools.
+- Otherwise use an already available repository-approved local capture/runtime facility within
+  task scope. Do not install or switch automation systems merely to obtain a screenshot.
+- Supplied captures can support a review of those artifacts. Do not label them fresh verification
+  of a new build. If no permitted capture route exists, report visual verification as blocked.
+- Use permitted semantic/runtime evidence for interaction claims and actual images for appearance;
+  distinguish captured, inspected, deployed, and active-session states.
 
 # Design basis
 

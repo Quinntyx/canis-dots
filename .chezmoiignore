@@ -100,3 +100,8 @@ docs/host/forgejo/forgejo/gitea/conf/
 .pi/agent/session-move
 .pi/agent/session-store
 .pi/agent/models-store.json
+
+# syssec-canis has no mail installation; retain the skill source for mail-capable hosts.
+{{ if eq .chezmoi.hostname "syssec-canis" }}
+.config/pi/profiles/t3main/skills/aerc-email
+{{ end }}

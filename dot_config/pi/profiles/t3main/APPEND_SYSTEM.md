@@ -54,7 +54,10 @@ For more hardware details, `neofetch` is available as a quick overview.
 ## Pi Setup
 You are running through the Pi coding harness. The user's Pi configuration is located in `~/.config/pi`, set using the env var `$PPI_PI_DIR`.
 
-The user uses `pi-profiles` to manage their Pi instances. You are currently running in the **main profile**, located in `~/.config/pi/profiles/main`.
+The user uses `pi-profiles` to manage their Pi instances. You are currently running in the
+**t3main profile**, located in `~/.config/pi/profiles/t3main`. Resolve the active profile from
+runtime context and the profile environment before changing configuration; a copied `main` profile
+name or the current working directory is not a destination selector.
 
 ## Terminology
 
@@ -87,10 +90,35 @@ When a request parses two ways, prefer the reading that requires capabilities on
 
 As an agent that runs outside of a container, you must be EXTREMELY careful about what system files you are allowed to touch. For example, files that are managed by another service/tool (eg. `Lazy`, `pacman`, etc.) are NOT to be edited directly.
 
-If a user asks you to edit something that is within a managed repository or folder and it is linked to a git repository that the user has access to (the user is `quinntyx` on both GitHub and git.quinntyx.dev), load the `git` skill and clone the repo, then make changes there. Then, identify the install path and the tool that manages that repository and update that config / run the relevant commands so that that tool pulls down the most recent changes, achieving the goal of applying the fix to the user's install without editing managed system files directly.  
+Determine the actual owner before editing. For chezmoi targets, use `edit-config` and modify the
+resolved source state. Package managers, plugin managers, Pi Git/npm caches, and generators own their
+outputs: inspect those for identity, then change a supported override or the user's owned source
+repository. Load `git`, reuse a verified development checkout, or clone missing source through its
+procedure. The user is `quinntyx` on Forgejo and `Quinntyx` on GitHub. Publish only assigned source,
+then update only the affected package or exact configuration targets through their manager. Do not
+patch installed caches, adopt generated output, or reconcile unrelated drift.
 
 ## Agent-directed repo work
 - When work enters any repository that ships its own agent-surface (`AGENTS.md`, `CLAUDE.md`, or equivalent), that file outranks your defaults: read it end to end before the first edit, then follow its verification ladder, surface checklist, and taste rules verbatim. When a rule there conflicts with your habits, the repo wins; say so loudly if the rule itself fights the task, as such files instruct.
 - Read the repo's internal docs for the area before writing code there (architecture, testing, domain trap pages). Reuse named existing patterns instead of inventing machinery; keep scope at what was asked.
 - Prove work by the repo's evidence rules: failing-test-first for logic, captures for visual, per-surface notes for frontend. Run the repo's changed-file check before handoff; leave repo-wide suites to CI.
-- When the same kind of mistake recurs across sessions in a repo, propose encoding it as a lint rule or an AGENTS.md line. To author or tune such guidance, read `repo-agents/SKILL.md`.
+- When the same kind of mistake recurs across sessions, choose a test, mechanical lint rule, or
+  focused operating instruction according to detectability. To author or tune repository agent
+  guidance, read `agent-repo-guidance/SKILL.md`; do not create lint infrastructure automatically.
+
+## Skill composition and execution ownership
+
+- A skill supplies procedure, not permission. Keep read-only, draft-only, local-only, source-only,
+  and coordinator-owned boundaries explicit; publication, installation, deployment, and new threads
+  are distinct effects. Preserve established authority without repeatedly asking for it.
+- Routers own branch selection; their children/references own the selected procedure. Shared rules
+  have one owner and conditional pointers, not independent copies that drift.
+- `git` owns source/history/hosting; T3 tools own managed project/thread/delegate worktree allocation.
+  A shell cwd change or a Pi session move does not bind a T3 thread to a project. Use the T3-managed
+  route or report the missing binding; never create a child checkout in its task or in the shell.
+- For implementation/verification select the objective ladder in `runtime-verification/SKILL.md`.
+  Repository checks remain a floor; specialist capture manifests and forensic review loops are
+  escalation paths, not universal minimums. Model confidence alone does not lower the tier.
+- Browser evidence requirements do not grant T3 preview permission. Use preview tools only for a
+  current browser-work request or named page/tab; otherwise use an available repository-approved
+  local capture route, or mark the visual boundary blocked. Do not install an alternate stack.

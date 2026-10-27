@@ -60,15 +60,19 @@ metadata:
 
 ## Stage 2: Prepare
 
-1. Read the provider, model, option and runtime-mode list from `orchestrator_capabilities`.
-   Use `references/runtime.md` for the compact `delegate_task`/`task_status`/`task_cancel`/
-   thread-tool binding. Resolve each assignment's model and options per `model-selection/SKILL.md`.
-   Simple delegation may inherit this thread's settings when capable.
+1. For T3 execution or model-catalog selection, read the cached once-per-thread capabilities
+   listing. Use `references/runtime.md` for T3 tool bindings and `model-selection/SKILL.md` for
+   choices. Eligible native children may inherit this thread's documented provider/settings and
+   use the native lifecycle; do not manufacture T3 task identities for them.
 2. Establish the environment and baseline once in this thread. Check the actual execution path,
    test discovery and needed services. Give children ready inputs and scoped objectives.
-3. Let read-only children share this checkout (`isolation: 'shared'`). Give concurrent writers
-   `isolation: 'worktree'` — T3 creates a prepared checkout per child from this thread's commit;
-   uncommitted edits stay out, and a worktree child can deliver its own PR.
+3. Use the Runtime rules to choose native versus T3 execution. For T3 same-repo concurrent writers,
+   verify this thread's bound project, then use `isolation:'worktree'`: T3 allocates from the
+   coordinator's committed baseline, not arbitrary paths or uncommitted edits. Read-only children
+   can share. Explicitly prepared, distinct repositories may each have one exclusive writer using
+   shared mode with exact source-path ownership; isolation on the wrong T3 project is not useful.
+   Never create a child's checkout in the shell or its brief. A child PR still needs publication
+   authority; worktree allocation alone does not grant it.
 4. Resolve eligible model identities and supported effort per `model-selection/SKILL.md`. Apply
    explicit user choices before cost or diversity preferences. Carry the resolved role, model
    choice and relevant skill-entrypoint paths in each child's brief.
@@ -82,10 +86,11 @@ metadata:
 
 ## Stage 3: Execute
 
-1. Launch the useful children with `delegate_task`, `role` from implementation, research, review,
-   design, test or general, retaining each returned `taskId`. Background children default to
-   `mode:'async'`; use `mode:'wait'` only when this turn cannot proceed without the result, and pass a real `timeoutMs`
-   matching that wait boundary.
+1. Launch through the route selected by Runtime rules. Native same-provider/no-extra-settings
+   children must finish in this turn using that mechanism's normal join. For T3 delegation use
+   `delegate_task`, a meaningful role/title, and retain `taskId`. Prefer `mode:'async'` for background
+   work; `mode:'wait'` is only for a result needed in this turn, with a real wait boundary. Native
+   children do not acquire T3 task ids or use T3 lifecycle tools.
 2. Route according to the selected shape, then continue at step 3:
    - Lightweight delegation: one completion per useful assignment; see `references/delegation.md`.
    - Research: independent evidence questions and coordinator synthesis; see `references/research.md`.
@@ -96,15 +101,16 @@ metadata:
    - Review: distinguish feature acceptance from integrated behavior; see `references/review.md`.
 3. Consume completions as their wake turns arrive. Do not poll a running child with `task_status`,
    sleeps or watchers. For a start-only child this thread should otherwise go idle; when the turn
-   must stay Working, `t3_background_wait(taskId)` keeps this thread in Working until the child
-   completes (`waiting: false` clears it). Treat a wait timeout as an inspection point, not a
-   cancellation — the child keeps running and its result still arrives.
+   must stay Working on a Claude host, its supported `t3_background_wait` can retain Working;
+   other hosts follow the returned `next` instead. A wait timeout does not authorize status polling
+   or establish failure: the child remains live and its completion wake is still expected.
 4. Account for each `taskId` once, including failed and cancelled outcomes, in a short task record.
    Release only dependencies whose real acceptance checks pass; launch independent ready work
    immediately.
-5. Bound feedback loops by explicit counters and a useful acceptance criterion. Selected substantial
-   implementation workflows retain five scoped review/repair cycles and five final cycles as caps;
-   approval ends each loop immediately. Lightweight work uses only its relevant check.
+5. Use the objective ladder in `../runtime-verification/SKILL.md` for acceptance cost. One scoped
+   review is enough when needed; no route requires five scoped and five final rounds. Repair small
+   findings yourself. New delegate reviews/re-checks are new tasks and count against user limits.
+   Two failed repairs of the same symptom trigger renewed diagnosis/escalation, not identical loops.
 6. Case-local expected failures stay inspectable and unaffected work continues under a declared
    recovery policy. Shared-credential or infrastructure uncertainty propagates rather than being
    retried into the same error.
@@ -115,9 +121,10 @@ metadata:
 
 1. Verify the requested outcome, not just child self-reports. Check cited evidence for research,
    reproduce claimed diagnoses, and exercise changed behavior for implementation.
-2. For integrated code, validate the exact resulting commit and required CI jobs. On Forgejo,
-   establish working test CI before substantial implementation fan-out. Treat pending or missing
-   jobs as unresolved evidence. Include newly added tests in discovery.
+2. For integrated code, validate the exact resulting revision and repository-required checks/CI.
+   Verify configured CI when the task depends on it; do not provision hosting/runners just to fan
+   out ordinary work. Pending required jobs are unresolved, while absent optional CI is a stated
+   limitation rather than permission to expand scope. Include new tests in actual discovery.
 3. Compare delivered scope with the actual request. If acceptance passes, go to Stage 5: Retain or
    finish. Otherwise return actionable observed failures to Stage 3: Execute while repair remains
    authorized and within its cap; at exhaustion go to Stage 5 with an explicit blocker.
@@ -130,8 +137,10 @@ metadata:
 2. For active work, report the verified outcome, current blocker and concrete resume point. A
    finished delegate keeps its result: `task_status` reads it; a still-running delegate keeps its
    wake.
-3. Do not start a replacement delegate for work you replace or no longer need: stop it with
-   `task_cancel(taskId, reason)`. Never use `t3_thread_interrupt` on a child's thread id.
+3. Before replacing still-live T3 work, cancel its run with `task_cancel(taskId, reason)`; cancel
+   work no longer needed as well. A completed task retains its result. New reviews/re-checks use
+   new delegates within the original limits. Never interrupt a child's thread with the top-level
+   `t3_thread_interrupt` tool.
 4. Report outcomes first, then relevant checks and open limits. Keep internal orchestration detail
    in the durable record unless it is necessary to resume or understand a blocker.
 
@@ -139,6 +148,6 @@ metadata:
 
 - `model-selection/SKILL.md` selects child models, capability tiers and heterogeneous rosters.
 
-- Read the matching reference before executing a selected route. Every reference also runs
-  independently.
-- Every reference carries its own contract; this skill supplies general coordination when needed.
+- Read the matching reference before executing a route. These references inherit this skill's
+  authority, runtime, workspace, lifecycle, and acceptance contract; they are not standalone skills.
+- `model-selection/SKILL.md` owns model routing, not execution permission or a separate lifecycle.

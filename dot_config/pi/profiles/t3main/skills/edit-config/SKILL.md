@@ -1,8 +1,7 @@
 ---
 name: edit-config
-description: "Use whenever the user asks to edit a configuration file or dotfile,
-  or whenever you create or modify any config, rcfile, profile, or dotfile for
-  any reason."
+description: "Use when creating, changing, or removing persistent configuration, dotfiles,
+  rcfiles, application settings, or Pi profile files, including managed-source changes."
 metadata:
   type: procedure
 ---
@@ -11,130 +10,112 @@ metadata:
 
 ## Input Contract
 
-- A request to change, create, or remove any user configuration, dotfile, rcfile,
-  application setting, Pi profile file, or similar persistent machine
-  configuration - regardless of whether chezmoi currently manages it.
-- Access to the chezmoi source repository at `~/.local/share/chezmoi` when the
-  target turns out to be managed or is being adopted into management.
-- The destination path of the target file or directory.
-- Explicit approval before adding any secret or machine-specific value to version
-  control.
+- Requested configuration change, exact destination paths, active host/profile, and permitted effects.
+- Access to the owning source and manager; chezmoi source normally lives at `~/.local/share/chezmoi`.
+- Publication/application ownership: this agent, a coordinator, or an explicit source-only handoff.
+- Approval before tracking secrets or nonportable machine-specific values.
 
 ## Output Contract
 
-- For managed targets: every change made in `~/.local/share/chezmoi`, never
-  directly in the live destination; committed and pushed before
-  `chezmoi apply`; clean `git status`, empty `chezmoi diff` and `chezmoi status`
-  afterward.
-- For adopted targets: the same lifecycle as managed targets, beginning from the
-  current live content imported into source state.
-- For genuinely unmanaged targets: a direct live edit plus a report stating that
-  the path is outside chezmoi and why it was left unmanaged.
-- Secrets and runtime state always stay out of the tracked source tree through
-  `.chezmoiignore`.
-- No edited configuration is ever left as an untracked or modified-but-uncommitted
-  source-state change; grouping into logical commits happens within the same run.
+- Changes in the authoritative source, with validated rendering and only owned targets applied.
+- For an assigned complete chezmoi lifecycle: owned changes committed and pushed before application.
+- For source-only, no-push, or coordinator scope: validated source changes and pending effects named.
+- Task paths clean after completed application; unrelated source changes and live drift untouched.
+- A concise receipt distinguishing source, publication, application, and runtime validation.
 
 # Entrypoint
 
-## Stage 1: Determine management status
+## Stage 1: Establish ownership and scope
 
-1. Run `chezmoi source-path -- <destination-path>` for the exact target.
-2. Branch on the result:
-   - Target is managed: proceed to Stage 2 with the resolved source path.
-   - Target is not managed: proceed to Stage 2A (adoption decision).
+1. Read the target and relevant neighboring source, instructions, and manager configuration.
+   Record exact task-owned paths and baseline changes; never broaden them to make global status clean.
+2. Query `chezmoi managed --path-style absolute -- "$target"` for the exact destination and inspect
+   source/external declarations. Use `chezmoi source-path -- "$target"` to locate an established
+   source, not as proof of management: it can calculate a path that does not exist.
+3. Classify the owner using Other managers below. A chezmoi target goes to Stage 2: Edit source.
+   A package/plugin/generated target goes to Stage 1A: Follow the owning manager. A genuinely
+   unmanaged personal configuration goes to Stage 1B: Decide adoption. Unclear ownership ends at
+   Stage 5: Report with the missing evidence; it never defaults to a direct edit.
 
-## Stage 2: Classify secrets and runtime state
+## Stage 1A: Follow the owning manager
 
-1. Inspect the target's source file and neighboring source files before editing.
-2. Classify every component as tracked configuration, secret, or runtime state.
-3. Never place credentials, tokens, private keys, refresh tokens, or private feed
-   URLs in the source repository.
-4. Keep secrets in dedicated destination files where practical and add those
-   destination-relative paths to `~/.local/share/chezmoi/.chezmoiignore`.
-5. Add caches, sessions, logs, generated databases, cloned repositories, token
-   stores, and other runtime state to `.chezmoiignore` when they belong inside an
-   otherwise managed tree.
-6. Stop and ask the user if a single file mixes secrets with configuration and
-   cannot be split safely.
-7. Proceed to Stage 3.
+1. Locate the user's editable declaration, override, or owned upstream repository. Inspect installed
+   files for identity only. Read the Git procedure before repository setup or publication.
+2. Make the authorized change in that source and use the manager's supported update mechanism.
+   Keep secrets out of process arguments and logs. Do not install missing software; report its
+   user-run setup command or other prerequisite.
+3. Verify the selected installed revision/effective configuration, then go to Stage 5: Report.
+   With coordinator ownership, stop at validated source and name the remaining update instead.
 
-## Stage 2A: Decide whether to adopt the target
+## Stage 1B: Decide adoption
 
-1. Classify the target as durable personal configuration or machine-local
-   transient state, using its contents, location, and lifetime so far.
-2. Adopt when the target is configuration the user would expect on another
-   machine: application config, editor/shell/tool settings, Pi profile files.
-3. Do not adopt caches, session data, downloaded artifacts, generated databases,
-   or credentials.
-4. Branch on the decision:
-   - Adopting: import the current live content into
-     `~/.local/share/chezmoi` using correct source naming attributes (`dot_`,
-     `private_`, `executable_`, `symlink_`), exclude secret and runtime paths via
-     `.chezmoiignore` per Stage 2 rule 4-5, then proceed to Stage 3.
-   - Not adopting: edit the live destination file directly, skip Stages 3
-     through 5, confirm the edit works, and report that the path is deliberately
-     outside chezmoi management.
+1. Consider adoption only for durable personal configuration that belongs on the intended machines.
+   Generated output, downloaded packages, credentials, caches, sessions, and databases stay unmanaged.
+2. If adoption is authorized, import the current live content deliberately with correct source
+   attributes and narrow exclusions, then go to Stage 2: Edit source. Do not sweep a whole directory
+   into management. Otherwise make only an authorized direct edit to genuinely unmanaged content,
+   validate it, and go to Stage 5: Report explaining why it remains unmanaged.
 
-## Stage 3: Edit the source state
+## Stage 2: Edit source
 
-1. Edit files only under `~/.local/share/chezmoi`; for adoption edits, begin from
-   the freshly imported live content.
-2. Preserve chezmoi source naming attributes such as `dot_`, `private_`,
-   `executable_`, and `symlink_`.
-3. Do not use a live destination copy to overwrite source changes unless the user
-   explicitly wants that live drift preserved; when live content is newer than
-   source because the owning tool rewrote it, treat live as authoritative and
-   bring it into source deliberately.
-4. Validate the changed configuration with the application's syntax or validation
-   tools where they exist.
-5. Run `git -C ~/.local/share/chezmoi diff --check` and inspect the complete Git
-   diff.
-6. Proceed to Stage 4 only when the source changes are correct and contain no
-   secrets.
+1. Change only the resolved source paths. Preserve chezmoi attributes, templates, permissions, and
+   unrelated edits. Reconcile relevant live drift deliberately; do not overwrite source from live
+   simply because a tool recently rewrote it.
+2. Keep credentials and runtime state outside tracked source. Add narrow destination-relative
+   exclusions to `.chezmoiignore` when needed. Existing committed secrets require an explicit
+   revocation/history-cleanup decision, not merely an ignore entry.
+3. Use host/profile templates or capability gates for genuine machine differences. Check the current
+   host and a relevant alternate render without exposing unrelated data or secrets.
+4. Run application syntax checks and inspect the owned diff. Run `git diff --check` in source.
+   Validate only the relevant rendered destinations and supporting declarations.
+5. A validated self-owned complete lifecycle goes to Stage 3: Publish. Source-only, coordinator,
+   no-commit, or no-push scope goes to Stage 5: Report with the appropriate stages pending.
+   Failed validation stays in Stage 2 for repair or ends at Stage 5 with a precise blocker.
 
-## Stage 4: Commit and push
+## Stage 3: Publish
 
-1. Stage only the intended source-state changes belonging to this task.
-2. Review the staged paths and staged diff.
-3. Commit with a concise message describing the affected configuration.
-4. Push the current branch to its configured upstream.
-5. Confirm `git -C ~/.local/share/chezmoi status --short --branch` shows no
-   unpushed commit; leave unrelated pre-existing dirty files untouched rather
-   than sweeping them into this task's commits.
-6. If unrelated dirty source-state files from earlier work are present, report
-   them explicitly and ask whether to commit them; never leave files you touched
-   yourself uncommitted.
-7. Proceed to Stage 5 only after the push succeeds. Do not apply an unpushed
-   config change.
+1. Read `../git/SKILL.md` for assigned publication, then verify the intended source branch/upstream.
+   Stage exact task paths, review their staged diff, and commit only those paths. Existing unrelated staged content must not enter this commit.
+2. Push the assigned branch normally and verify its remote SHA. Preserve concurrent changes and
+   unrelated untracked files; do not ask to clean them up or include them for cosmetic cleanliness.
+3. A verified push goes to Stage 4: Apply owned targets. A failed/uncertain push goes to Stage 5:
+   Report with application pending, after checking whether the remote accepted the commit.
 
-## Stage 5: Apply and verify
+## Stage 4: Apply owned targets
 
-1. Run `chezmoi apply`; when unrelated live drift blocks a full apply, apply the
-   specific changed targets by path instead of forcing the conflicting ones.
-2. Run the relevant application validation again when applying can alter rendered
-   content, permissions, links, or templates.
-3. Run `chezmoi diff` and `chezmoi status` and require empty output for the paths
-   this task changed.
-4. If those commands still report drift in changed paths, return to Stage 1,
-   reconcile deliberately, commit and push, and apply again.
-5. Report the commit, push result, apply result, and final clean checks.
+1. For each exact owned destination, inspect `chezmoi diff -- "$target"`, then run
+   `chezmoi apply -- "$target"`. List individual files rather than a parent directory containing
+   another agent's work. A broad apply requires a separately authorized whole-configuration task.
+2. Changes to shared templates, ignore rules, or externals require an explicit affected-target list.
+   Review it before applying; a shared declaration is not permission to reconcile all drift.
+   Inspect applicable hooks too. For file-only work exclude unassigned scripts with
+   `--exclude=scripts`; run a necessary authorized hook deliberately, not as an unrelated side effect.
+3. For removals, confirm the exact target and source ownership. Ignoring a path or deleting its
+   source does not remove an existing destination. Use supported manager removal or authorized
+   recoverable cleanup; do not use a global apply as a deletion mechanism.
+4. Re-run relevant rendered syntax/effective-configuration checks. Require empty output from
+   `chezmoi diff -- "$target"` and `chezmoi status -- "$target"` for owned managed targets.
+   Explicitly ignored/removed targets are verified by their intended absence instead.
+5. Task-owned drift returns to Stage 2 for deliberate reconciliation. Passing checks go to Stage 5:
+   Report. Unrelated drift is outside scope and does not block completion.
 
-# `.chezmoiignore` Rules
+## Stage 5: Report
 
-- The ignore file is `~/.local/share/chezmoi/.chezmoiignore`.
-- Its paths describe destination entries relative to the chezmoi destination
-  root, normally `$HOME`.
-- Blank lines and lines beginning with `#` are documentation and do not define
-  patterns.
-- Directory and wildcard patterns may exclude generated subtrees or classes of
-  machine-local files.
-- An ignored destination is omitted from chezmoi's desired target state, so
-  `chezmoi apply` does not create, replace, or remove it.
-- Keep patterns as narrow as possible so adjacent non-secret configuration
-  remains managed.
-- Treat `.chezmoiignore` as tracked policy: review, commit, and push every change
-  to it.
-- Ignoring a path does not remove a secret already committed to Git history. Stop
-  and report any discovered committed secret so it can be revoked and removed
-  through an explicit cleanup process.
+1. State changed source/destination paths, source owner, commit/push result where assigned, exact
+   applied targets, checks, and any pending reload or other lifecycle effect.
+2. Distinguish a source handoff from applied configuration and actual running behavior. Mention
+   unrelated drift only if it affects the task; do not turn its presence into new work.
+
+# Other managers
+
+- Package managers own installed application files and libraries. Use supported user overrides or
+  change the package's owned source; do not patch installed files or adopt them into chezmoi.
+- Plugin managers and Pi's Git/npm package manager own fetched plugins, extensions, and skill caches.
+  Change an owned fork and its installation declaration, then update only that package through its
+  manager. Record the installed revision rather than assuming a successful pull means activation.
+- Generated files belong to their generator, schema, template, or runtime settings. Change that
+  source or a documented override; preserve generated state unless regeneration is assigned.
+- Symlinks and wrappers can cross ownership boundaries. Resolve the actual target and declarations
+  before choosing a source. A missing chezmoi entry does not mean the file is safe to edit directly.
+- `.chezmoiignore` describes destination-relative paths and is tracked policy. Ignored entries are
+  omitted from desired state; they are neither secret-history cleanup nor automatic file deletion.

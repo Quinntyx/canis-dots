@@ -3,3 +3,14 @@
     type = "archive"
     url = "https://github.com/tmux-plugins/tmux-resurrect/archive/cff343cf9e81983d3da0c8562b01616f12e8d548.tar.gz"
     stripComponents = 1
+
+# Upstream-owned skills: no locally edited copies. Refresh through chezmoi, not hand patches.
+[".config/pi/profiles/t3main/skills/wrangler/SKILL.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/cloudflare/skills/main/skills/wrangler/SKILL.md"
+    refreshPeriod = "168h"
+
+[".config/pi/profiles/t3main/skills/freya/SKILL.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/marc2332/freya/main/plugins/freya/skills/freya/SKILL.md"
+    refreshPeriod = "168h"

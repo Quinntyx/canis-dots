@@ -9,7 +9,7 @@
   providers, models, options (such as effort settings) and runtime modes. Call it again only after
   an error or a user-named provider change. Pass child model/option overrides in `target`:
   `target.model`, `target.options` (list of `{id, value}` objects or a map). Given values override
-  inherited ones; `[]` or `{}` clears to inherited. A named provider not in the list is unavailable:
+  inherited ones; `[]` or `{}` clears options. A named provider not in the list is unavailable:
   say so, never silently fall back.
 - Make no checkout for a child in the shell or inside the task text. Checkouts are T3's job through
   `isolation: 'worktree'`.
@@ -25,7 +25,7 @@
   the child's setup, not an execution label.
 - `isolation`: `'shared'` (default) runs at the parent checkout — right for read-only and
   non-conflicting children. `'worktree'` creates a new prepared checkout from the parent commit on
-  its own branch; the child can open its own PR; uncommitted parent edits stay out of it.
+  its own branch; uncommitted parent edits stay out. PR publication still requires task authority.
 - `mode`: `'async'` (default) returns immediately; the child's completion arrives as a wake turn.
   `'wait'` blocks only when this turn cannot proceed without the result; default wait timeout is
   10 minutes and a timeout does not cancel the child — the result still arrives later.
@@ -42,9 +42,9 @@
 - `task_status(taskId)` reads one delegated task: `workState` is `working`, `waiting_for_children`
   or `result_available`; `summary` is the final result and reading it marks it delivered. On a
   provider-throttle retry, resume exactly where the interrupted step left off.
-- `t3_background_wait([taskId], waiting)` keeps this thread in Working while background children
-  run; `waiting: false` clears it. Do not use it for work left running on purpose (dev servers,
-  watchers) — that work belongs to the environment, not a child.
+- On a Claude host, supported `t3_background_wait([taskId], waiting)` can retain Working while
+  background children run; `waiting:false` clears it. Other hosts follow `next`. Do not use it for
+  intentionally retained dev servers/watchers, which are environment resources rather than children.
 - Read a child thread with `t3_thread_read(threadId)` when you need its transcript rather than its
   final summary; in a reply, name the thread as its `link` verbatim.
 
@@ -70,5 +70,8 @@
   when a selected model cannot execute.
 - `timeoutMs` in `mode:'wait'` expresses an operational wait boundary, not the child's lifetime
   limit. Delivery deadlines belong in the brief.
-- Read-only assignments share the parent checkout. Concurrent writers own `isolation: 'worktree'`
-  children. Select CI and integration policy in proportion to the task's real dependencies.
+- Same-repo concurrent writers use T3 worktree isolation after verifying the bound project.
+  Distinct coordinator-prepared repositories may each have one exclusive shared-mode writer with
+  exact path ownership. A path in a brief does not change the repository T3 isolates.
+- These are T3 bindings under the parent contract. Native eligible children use their native join,
+  not T3 task-status/cancel tools. Select checks through the shared verification ladder.

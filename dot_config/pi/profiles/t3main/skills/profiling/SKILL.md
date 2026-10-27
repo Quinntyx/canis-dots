@@ -101,9 +101,11 @@ metadata:
 
 # Capture selection
 
-- Browser or Electron UI: discover existing DevTools tools and inspect their schemas; record the
-  Performance timeline with relevant screenshots, interactions, main-thread work, frames, and GPU
-  tracks. Save the trace and correlate input events with the next visible update.
+- Browser or Electron UI: use a permitted existing profiler/capture route under
+  `../runtime-verification/SKILL.md`. T3 preview tools require current browser-work or named page/tab
+  scope. Otherwise use available repository-approved local tracing; do not install alternate
+  automation. Capture relevant interactions, main-thread work, frames/GPU tracks and screenshots
+  when available. Save the trace and correlate inputs with the next visible update.
 - JavaScript CPU: invoke Node with `--cpu-prof` and an explicit `--cpu-prof-dir` before the entry
   script. Inspect the emitted `.cpuprofile` by total and self cost; capture event-loop delay when
   responsiveness is the symptom. Keep startup and steady-state windows identified.

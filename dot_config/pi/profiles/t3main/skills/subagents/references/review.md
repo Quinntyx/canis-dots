@@ -15,9 +15,10 @@
    `delegate_task` for a child's retained branch only when the repair is substantial. Track the new
    child and revision, revalidate changed evidence, and re-review the actual repaired tip. Every
    new review or re-check is a new `delegate_task`, never a `t3_thread_send` to the prior child.
-6. Use five review/repair cycles as the cap in selected substantial implementation workflows.
-   Finish at first approval. At cap exhaustion preserve the candidate and report the blocker.
-   Lightweight checks need only the feedback necessary for their actual acceptance decision.
+6. Apply the parent verification ladder and actual launch budget. A focused review finishes when
+   its acceptance questions are settled; no fixed five-round or extra final-review ritual. After
+   two unsuccessful repairs of the same symptom, renew diagnosis and escalate the implicated
+   boundary. Preserve unresolved candidates honestly when authority/budget is exhausted.
 7. Keep review comments appropriate to repository readers: actionable finding, evidence and
    requested correction or acceptance. Put private execution details in the coordinator ledger.
 

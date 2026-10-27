@@ -1,8 +1,8 @@
 ---
 name: terminal-ui
-description: "Use when implementing terminal or TUI interfaces, fixing terminal rendering,
-  scrolling, streaming or animation behavior, or testing those interactions in a real terminal,
-  including Pi TUIs."
+description: "Use when implementing terminal or TUI interfaces, repairing terminal rendering,
+  scrolling, streaming, animation, or input behavior, or testing these interactions in a real
+  terminal, including Pi TUIs."
 metadata:
   type: procedure
 ---
@@ -11,147 +11,90 @@ metadata:
 
 ## Input Contract
 
-- A terminal application, requested implementation or symptom, checkout and permitted side effects.
-- The actual entrypoint, build and configuration, resolved from task and repository instructions.
-- Expected visible behavior and reproduction input; derive missing checks from the request.
-- A terminal-capable environment and permission to launch an isolated application instance.
-- Target geometry, themes, terminal protocols and trace sources selected for the current task.
+- Application/checkout, requested behavior or symptom, expected interaction, and permitted effects.
+- Actual build/entrypoint/configuration and relevant repository instructions.
+- Terminal-capable runtime and authority to launch an isolated instance; otherwise name that limit.
 
 ## Output Contract
 
-- A focused implementation or diagnosis, with the original interaction exercised in the application.
-- A private, task-owned evidence directory outside the repository and installed skill tree.
-- A run manifest binding source/build identity, argv, environment, PTY geometry and event trace.
-- Completion tuple: manifest/source identity; timed raw output; event index with screens/metadata;
-  exit/restoration provenance; separate `checksums.json` and successful digest verification.
-- Boundary assertions, cursor/viewport state and check results tied to that tuple.
-- A report separating deterministic tests, observed terminal behavior and unverified boundaries.
-- Source delivery and cleanup within task authority; publication follows its chosen policy.
+- Focused implementation or diagnosis with relevant deterministic checks and real interaction.
+- Evidence proportional to the selected verification tier, bound to the actual runnable source.
+- A short receipt distinguishing modeled tests, observed terminal state, and unverified emulator
+  appearance/protocol boundaries. Publication and cleanup stay within task ownership.
 
 # Entrypoint
 
-## Stage 1: Bind the target and evidence
+## Stage 1: Bind scope and tier
 
-1. Open `references/capture.md` with the read tool and read it fully before allocating any run.
-   Resolve it relative to this skill's root, not the checkout. Then read project instructions,
-   checkout status, build commands and the rendering/input owner. Resolve the implicated process,
-   including launch wrappers and loaded modules.
-2. Record the repository HEAD, complete dirty patch and hashes of relevant untracked source. Record
-   dependency lock hashes, runtime versions and the build command. Bind the built executable or
-   loaded source paths to these inputs; capture a digest of the actual runnable artifact.
-3. Allocate one private evidence directory per run using `references/capture.md`. Record its owner,
-   run token, absolute checkout, application state directory and authorized external effects.
-   Keep application state in a task-owned location using the application's documented controls.
-4. Resolve installed `bash`, `tmux`, `script`, `scriptreplay` and a programmatic controller. Inspect
-   their local help/manpages and the project's existing terminal tests. The reference uses tmux
-   and util-linux syntax. Available capture tools continue to Stage 2: Define the trace. Missing
-   tools continue to Stage 6: Deliver with the missing dependency and a verified user-run install
-   command appropriate to the machine; installation remains a separate authorized action.
+1. Read project guidance, current changes, rendering/input owners, actual entrypoint, build, and
+   wrappers. Preserve user processes, state directories, terminal panes, and unrelated edits.
+2. Select the objective ladder in `../runtime-verification/SKILL.md`. A bounded layout/input fix
+   starts with its focused checks; state/lifecycle/resize interactions select boundary regression;
+   unexplained timing/flicker, repeated repairs, or identity uncertainty selects forensic capture.
+3. Record source revision plus relevant dirty changes, runnable path/build, terminal geometry, and
+   minimal expected interaction. Keep credentials/runtime state out of evidence.
+4. Select an existing permitted terminal test/capture route. Missing software is a user prerequisite,
+   not permission to install another automation stack. Available runtime goes to Stage 2: Reproduce;
+   unavailable execution goes to Stage 5: Deliver with the exact blocked boundary.
 
-## Stage 2: Define the trace
+## Stage 2: Reproduce and localize
 
-1. Convert the request into observable assertions and a minimal ordered event trace. Specify initial
-   state, input bytes or logical events, stream chunks, readiness, expected screens and exit.
-   Bind random seeds and clock controls supported by the application. Set a bounded readiness wait.
-2. Record columns and rows, terminal/emulator and multiplexer versions, `TERM`, `COLORTERM`, locale,
-   color depth, theme identity/digest, screen mode, negotiated protocols and application options.
-   Record capability replies or their absence when the behavior depends on terminal negotiation.
-3. Select representative content from the failing input or a small authorized, sanitized real trace.
-   Record provenance and the sanitization mapping. Retain chunk boundaries, event order, pauses and
-   state transitions that affect the bug. Store only the selected trace in the private workspace.
-4. Select the smallest decisive boundary set and one nearby unaffected path. Use the coverage rules
-   below to choose geometry, Unicode, scroll, stream and animation states. State each expected
-   invariant, comparison method and tolerance before changing the implementation. For each selected
-   geometry, include completion and subsequent redraw as well as active streaming. Specify expected
-   cells and blank remainder across the affected rows so stale delimiters, suffixes and wrapped
-   residue fail acceptance even when streaming width and cursor position pass.
-5. For a repair, continue to Stage 3: Observe and localize with the failing build. For new terminal
-   functionality, continue to Stage 4: Implement with the expected journey and baseline behavior.
+1. Use an isolated owned instance through the real application entrypoint, not only a framework
+   simulator. Define observable expected cells/cursor/viewport behavior and bounded readiness.
+2. Exercise the reported input at its geometry. Retain the decisive screen/cell capture or
+   interaction result, command/sequence, actual loaded build, and relevant errors.
+3. At Tier 2 include implicated wrap/resize/Unicode/scroll/lifecycle boundaries and one nearby
+   unaffected path. Keep stream chunk order or timing only where it changes the observed behavior.
+4. At Tier 3 read `references/capture.md` completely before allocating the forensic run. It owns the
+   replayable trace, timed raw output, source/runnable manifest, indexed screens/events, restoration
+   provenance, and checked digests. Those artifacts are not required for Tier 1/2 completion.
+5. Follow input decoding, state, layout, invalidation, scheduling, and terminal writes to the first
+   supported divergence. Use a focused experiment rather than inferring a cause from a screenshot.
+6. An authorized repair with a supported cause goes to Stage 3: Implement. Review-only or blocked
+   execution goes to Stage 5: Deliver with evidence and uncertainty.
 
-## Stage 3: Observe and localize
+## Stage 3: Implement
 
-1. Launch the actual application through its documented integrated entrypoint in the owned PTY.
-   Use `references/capture.md` for startup, raw recording, event injection and boundary capture.
-   Run long build/controller commands in detached owned job windows with retained output and status.
-   An installed background-jobs helper can supervise them; the capture procedure itself is
-   standalone.
-2. Execute the chosen trace. At each decisive transition retain the event index, observed geometry,
-   cursor and viewport state, a screen capture and the corresponding timed ANSI output interval.
-   Wait for a state/readiness signal with a deadline; record elapsed waits and timeout failures.
-3. Compare the observation with the expected invariant. Follow input decoding, state update, layout,
-   invalidation, render scheduling and terminal writes until the first supported divergence.
-   Distinguish application scrolling, terminal scrollback, output and terminal interpretation.
-4. Use a focused experiment to discriminate the causal hypothesis. Record contrary evidence and
-   terminal limitations. Authorized implementation with a supported cause continues to Stage 4:
-   Implement. A review-only request or unavailable execution continues to Stage 6: Deliver.
+1. Read the installed framework's relevant docs/types/source. For Pi-specific changes read
+   `references/pi-tui.md` and its applicable installed API references before choosing interfaces.
+2. Fix the owning transition while preserving input, theme, lifecycle, and terminal cleanup behavior.
+   Add a focused discovered regression check; prove failure on the faulty behavior when feasible.
+3. Control clocks/events in deterministic tests for animation or streaming. A modeled backend must
+   implement relevant semantics; recording emitted arguments alone does not validate them.
+4. Rebuild and record the changed runnable identity, then go to Stage 4: Verify.
 
-## Stage 4: Implement
+## Stage 4: Verify
 
-1. Read the installed framework's relevant API and local source before selecting exact interfaces.
-   Modify the component that owns the incorrect transition; preserve established input, theme,
-   lifecycle and terminal cleanup contracts. Pi-specific depth is in `references/pi-tui.md`.
-2. Add proportionate deterministic checks using the project's existing test path. Control time and
-   inject events at the owning layer. Assert state, display-cell widths, focus, cursor, viewport and
-   emitted operations as relevant. Verify the check is discovered and fails on the faulty behavior.
-3. For animation, sample both sides of start, loop seam, state handoff, completion and cancellation.
-   Derive clock points from the current duration/frame logic, including delayed or coalesced ticks.
-   Compare successive cell/style states with a declared continuity rule and allowed deltas. Retain
-   the expected and observed values; choose cadence and algorithm from this application.
-4. Rebuild the runnable target. Record the resulting source and build identities again, including
-   changed dirty files and lockfiles. Continue to Stage 5: Verify the integrated run.
+1. Launch the repaired build and repeat the original interaction. Confirm it actually loaded the
+   changed source/build. Observe completion and a subsequent redraw when stale cells are implicated.
+2. Run the selected boundary checks and repository-required checks. For shrink/wrap bugs compare
+   affected full rows, including expected blank remainder, not just cursor position or final width.
+3. Match the claim to the evidence. tmux cells establish tmux's interpretation, not another emulator's
+   font/glyph/protocol behavior. Inspect the actual target emulator when that boundary is the claim.
+4. At Tier 3 complete/seal the capture reference's evidence tuple and verify its links/digests.
+   At Tier 1/2 retain the concise source/build, sequence, geometry, decisive observations, checks,
+   and exit/restoration result; do not escalate solely because a checksum manifest is absent.
+5. Passing relevant checks goes to Stage 5: Deliver. An observed failure returns to Stage 2 for
+   diagnosis; two unsuccessful repairs of the same symptom escalate under the shared ladder.
 
-## Stage 5: Verify the integrated run
+## Stage 5: Deliver
 
-1. Launch a fresh instance from the exact repaired build with a fresh evidence directory. Verify
-   loaded paths/build identity in the running application; reproduce Stage 2's entrypoint and trace.
-2. Capture the real PTY output and terminal state at the selected boundaries. Repeat the decisive
-   path and nearby unaffected path. Exercise the selected resize, theme and lifecycle transitions
-   while the affected component is active. Capture completion and redraw before application exit
-   at each selected geometry; compare full affected rows, including blank cells, with Stage 2's
-   expectations. Separately retain exit status and final cursor, screen and input restoration.
-3. Run the deterministic regression and applicable project checks. Reconcile their results with the
-   actual terminal capture. A framework simulator proves its modeled behavior; a passing simulator
-   and an unobserved application run remain separate findings.
-4. Inspect boundary screens and raw operations/timing, including transient erase/redraw intervals.
-   For emulator-specific appearance, inspect the real target emulator and retain its screenshot or
-   recording plus version/geometry. tmux cell captures establish tmux's interpretation, not glyph
-   appearance or support for every protocol in another emulator.
-5. Verify that source and runnable digests still match the launched identities. Complete and seal
-   the run using `references/capture.md`; reopen every component of the Output Contract's completion
-   tuple and verify event/frame links and checksums. Screens alone cannot establish completion.
-   Changed identities return to Stage 4: Implement for a fresh build and exact-revision run.
-   Otherwise, a failed invariant returns to Stage 3: Observe and localize with the new evidence.
-   Otherwise, a complete tuple and passing selected checks continue to Stage 6: Deliver as verified;
-   missing tuple evidence continues to Stage 6: Deliver as incomplete, naming the missing artifacts.
-
-## Stage 6: Deliver
-
-1. Report implemented behavior or findings, causal evidence and the evidence directory. Copy actual
-   HEAD, dirty-source and runnable digests from the verified manifest; state any unobserved identity
-   rather than replacing a recorded revision with a placeholder. Report the completion tuple's
-   paths and verification result, actual trace, geometry/theme coverage and checks run.
-2. Separate observed fixes, test-only coverage, unavailable terminal boundaries and remaining work.
-   A blocked run reports the precise prerequisite and retains the trace for resumption.
-3. Retain evidence and completed job output for the handoff. Finish the owned PTY after graceful
-   application exit as described in the capture reference. Record any active process and resume
-   identity when completion is blocked; cleanup targets only the verified task-owned resources.
+1. Lead with observed behavior or findings, causal evidence, selected coverage, checks, and remaining
+   limits. Link richer artifacts only when produced; never report a missing boundary as verified.
+2. Gracefully stop only the owned instance when its useful lifetime ends. Retain diagnostic output
+   and any blocked run's resume identity. Verify terminal cursor/screen/input restoration relevant
+   to the affected application; do not kill user panes or broad process-name matches.
 
 # Boundary selection
 
-- Geometry: use the reported size and the nearest relevant wrap/overflow threshold on each side.
-  Include live shrink and expansion while the affected state is active; verify SIGWINCH reached it.
-- Unicode: use affected wide glyphs, combining sequences and grapheme clusters at the relevant cell
-  edge. Assert visible column widths and cursor placement with the framework's width model, then
-  observe the target emulator where its width interpretation or glyph rendering is implicated.
-- Cursor/focus: verify the intended focused input, hardware cursor location/visibility and focus
-  handoffs. Include paste and negotiated keyboard/mouse sequences when they drive the defect.
-- Scrolling: test the relevant top/bottom boundary, scroll-away anchor, return-to-end behavior and
-  content/viewport relationship during redraw and resize. Capture normal and alternate screens when
-  the affected application supports both paths; record terminal scrollback separately.
-- Streaming: preserve chunk timing and partial Unicode/ANSI/parser boundaries when relevant. Check
-  pending, partial, completed, cancelled and failed states, plus redraw after stream termination.
-- Animation: retain deterministic boundary checks plus timed integrated output through multiple
-  cycles and state handoffs. Measure suspected stalls/flicker from the actual trace. Select an
-  explicit acceptable transition delta rather than equating identical frames with correctness.
-- Themes: exercise the reported palette and a contrasting supported appearance where cache or color
-  invalidation is implicated. Record terminal default-color replies separately from selected theme.
+- Geometry: the reported size and nearest relevant wrap/overflow thresholds; live shrink/expansion
+  only where implicated. Verify the application received the resize.
+- Unicode: affected wide/combining/grapheme sequences near the relevant edge; distinguish framework
+  width assertions from observed emulator rendering.
+- Cursor/focus: active input, location/visibility, handoff, and affected paste/keyboard/mouse protocol.
+- Scroll: top/bottom, scroll-away anchor, return-to-end, redraw, and relevant normal/alternate modes.
+- Stream: implicated chunk/parser boundaries, completion/cancellation/failure, and subsequent redraw.
+- Animation: deterministic start/seam/handoff/completion/cancel boundaries plus real timed observation
+  where continuity, flicker, or latency is claimed. Select an explicit acceptable transition rule.
+- Theme: affected palette plus a contrasting supported appearance when cache/color invalidation is
+  implicated; terminal default-color replies and selected application theme are different inputs.

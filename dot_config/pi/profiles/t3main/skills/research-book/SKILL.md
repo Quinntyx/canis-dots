@@ -173,15 +173,16 @@ metadata:
 
 ## Stage 7: Inspect rendered pages
 
-1. Discover the available browser tools or project browser runtime and inspect its supported
-   actions. For mdBook, start the verified local preview command from `references/mdbook.md` on
-   loopback in a retained background job. Record its URL and owned process handle. Other formats
-   use their actual renderer preview. An unavailable preview or browser proceeds to Stage 8:
-   Deliver with inspection blocked; available tools continue Stage 7 at step 2.
-2. Open the actual built pages. Check every chapter for navigation, citations, missing assets,
-   browser errors, and rendered equations. Wait for the installed engine's typesetting completion
-   and fonts; use that engine version's documented readiness mechanism and observable rendered
-   content.
+1. Select a permitted capture/runtime route under `../runtime-verification/SKILL.md`. T3 preview
+   tools require current browser-work or named page/tab scope; book authoring alone does not grant
+   it. Otherwise use an existing repository-approved local renderer/capture facility without
+   installing another automation stack. For mdBook use the verified loopback command from
+   `references/mdbook.md` only when needed, retaining owned process identity. Unavailable visual
+   execution goes to Stage 8 with that boundary blocked; available execution continues here.
+2. Inspect the actual built pages at representative chapter/layout types and every central or
+   structurally distinct equation surface. Keep the prior site-wide automated link/asset checks;
+   do not require manual screenshots of every similar chapter. Expand coverage when a defect or
+   distinct rendering path warrants it. Wait for fonts and the actual engine's typesetting readiness.
 3. Compare central and structurally distinct equations with source pages and authored math.
    Inspect inline and display layout, multi-line alignment, matrices, subscripts, special symbols,
    numbering, and references wherever present. Confirm intended math became rendered math rather

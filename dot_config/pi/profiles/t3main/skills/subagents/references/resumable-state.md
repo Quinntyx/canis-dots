@@ -22,9 +22,11 @@
    (`t3_thread_list` / `t3_thread_read`) before deciding whether a launch is missing: a lost wake
    does not undo a finished child. For an uncertain hosted write, inspect the remote issue/comment/
    PR and capture its receipt before scheduling another attempt.
-3. Read each child's true terminal state from `task_status`: `result_available` means its summary
-   is retrievable; `working` means it is still live. A timeout or lost wake never establishes that
-   a child failed — reconcile before replacing it. Cancel and relaunch are separate decisions.
+3. After a child's completion wake, use `task_status` to consume its final summary once. A task
+   without a completion wake is still live/unknown; do not probe `task_status` to discover completion.
+   Use the bounded thread/launch reconciliation above only for genuinely uncertain identities,
+   never as a polling loop. A timeout or lost response is not failure. Preserve its wake or follow
+   the returned `next`; cancel/relaunch are separate, explicitly recorded decisions.
 4. Continue retained work with a new `delegate_task` whose brief carries the prior child's summary,
    artifacts and open questions; retain the returned new `taskId`. There are no resumable sessions:
    continuation is brief-merging, so keep summaries dense.

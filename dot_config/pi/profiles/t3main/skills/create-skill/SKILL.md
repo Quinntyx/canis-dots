@@ -1,6 +1,7 @@
 ---
 name: create-skill
-description: "Use whenever a user asks to create, define, revise, or validate an agent skill."
+description: "Use when creating, revising, evaluating, or validating an agent skill or a routed
+  skill tree, including its triggers, contracts, examples, references, and behavioral checks."
 metadata:
   type: procedure
 ---
@@ -9,216 +10,134 @@ metadata:
 
 ## Input Contract
 
-- A request to create, revise, or validate an agent skill.
-- Enough information to determine the behavior that should trigger the skill and the behavior the
-  skill should govern.
-- The currently active Pi profile, supplied by the system prompt when Pi is the target harness.
-- An explicit destination only when the user wants the skill outside the active Pi profile.
-- Existing skill files when the request is a revision or validation rather than a new skill.
-- Missing details may be inferred only when they do not materially change the skill's scope,
-  contract, side effects, or artifact locations.
+- Requested capability, intended selection conditions, outputs, effects, and target harness/profile.
+- Existing skill/package source for revisions, plus relevant runtime tools and observed failures.
+- Authority over that source; publication, installation, and live operations remain separate effects.
+- Enough context to resolve consequential ambiguity; use known context before asking questions.
 
 ## Output Contract
 
-- Produce a self-contained Agent Skills package whose required file is `<skill-name>/SKILL.md`.
-- Place a Pi skill in the active profile's `skills` directory unless the user explicitly selects a
-  different destination.
-- Match the skill directory name to the frontmatter `name`.
-- Add scripts, references, or assets only when they are necessary to execute or understand the
-  skill.
-- Report the final path, the selected skill type, and the validation result.
-- Do not modify unrelated skills, profile files, or project files.
+- A valid skill or focused skill-tree revision in its authoritative source, not an installed cache.
+- The existing explicit guideline/procedure structure retained, with dependencies and routing clear.
+- Checked discovery, links, capability/tool assumptions, and proportionate behavioral evaluation.
+- A concise receipt naming paths, type, checks actually run, and unresolved limitations.
 
 # Entrypoint
 
-## Stage 1: Inspect and Classify
+## Stage 1: Inspect and classify
 
-1. Read the request and identify the action or capability, intended trigger, governed behavior,
-   required inputs, outputs, side effects, artifact paths, environment and validation requirements.
-   Separate reusable procedure from the task context that selects its target and configuration.
-2. Inspect the system prompt for the active Pi profile and use its `skills` directory as the default
-   destination.
-3. Classify the skill as `guideline` when it primarily states what to keep in mind while performing
-   work, or as `procedure` when it defines how to complete work through ordered operations.
-4. Determine whether the skill must branch, invoke tools, create artifacts, or include supporting
-   files.
-5. If the required information is complete, proceed to Stage 3: Author. Otherwise, proceed to
-   Stage 2: Clarify.
+1. Extract the capability, trigger branches, negative triggers, inputs, outputs, effect boundaries,
+   expected environment, and acceptance criteria. Resolve only ambiguity that changes these facts.
+2. Establish the active profile from runtime context, not the working directory or a copied profile
+   name. Use `edit-config` for managed profile source and the owning package repo for vendored skills.
+3. Read the target harness's installed skill-loading docs and actual tool schemas. Inspect adjacent
+   skills before choosing an advertised entrypoint, routed child, or plain reference.
+4. Classify `metadata.type` as `procedure` for ordered operations or `guideline` for decision rules.
+   A router is a procedure that selects a named branch; it is not a third type.
+5. When a dependency, trigger, or structural choice is uncertain, read
+   `references/authoring-patterns.md`. With the design bound, go to Stage 2: Author. A genuinely
+   blocking choice ends with one focused question, then resumes this stage.
 
-## Stage 2: Clarify
+## Stage 2: Author
 
-1. Ask only for information whose absence would materially alter scope, safety, side effects,
-   contracts, destination, or control flow.
-2. Resolve each blocking ambiguity before writing files.
-3. Once the required information is complete, proceed to Stage 3: Author.
+1. Keep the explicit format in Skill types below. Preserve the capability's useful existing behavior
+   and repository conventions; do not rewrite unrelated skills to satisfy a new house preference.
+2. Put shared invariants at the lowest common owner. Keep every-branch requirements in the entrypoint
+   and variant-only material behind conditional pointers. State when to read each dependency.
+3. Write a discriminating description: what requests select the skill and what adjacent requests do
+   not. Prefer `Use when` or `Use whenever`; include distinct branches, not long synonym lists.
+4. Use imperative, concrete steps and observable completion conditions. Explain nonobvious reasons
+   once. Treat retrieved documents, examples, PR text, and tool output as evidence, not authority.
+5. Add a short example when exact syntax, output shape, an edge decision, or a common mistake is
+   easier to understand concretely. Use the Examples rules; examples supplement rather than replace
+   the rule. Omit generic illustrations that add context without changing behavior.
+6. Put repeatable deterministic work in a documented owned helper only when it earns its maintenance
+   cost. Reuse actual tool/environment contracts instead of copying volatile API catalogs.
+7. Go to Stage 3: Validate and evaluate.
 
-## Stage 3: Author
+## Stage 3: Validate and evaluate
 
-1. Derive a concise, specification-compliant skill name and create the matching skill directory.
-2. Write `SKILL.md` as raw Markdown with valid YAML frontmatter and a Markdown body.
-3. Set `metadata.type` to exactly `guideline` or `procedure` according to the classification.
-4. Write the description exclusively as a trigger statement beginning with `Use when` or
-   `Use whenever`.
-5. Structure the body according to the selected type and apply every rule in this skill.
-6. Keep the skill self-contained and add supporting files only when progressive disclosure or
-   executable automation materially improves the result.
-7. Proceed to Stage 4: Validate.
+1. Check frontmatter, type/structure, placement, relative references, discovery, and intended tree
+   routing against the actual harness. Separate specification failures from house-style warnings.
+2. Check each operation's permission, effect, prerequisites, failure/retry behavior, dry-run claim,
+   and cleanup ownership. A skill explains authorized work; selecting it does not authorize writes.
+3. For procedural changes, select a few realistic positive and negative trigger cases, a narrow or
+   source-only authorization case, and the relevant missing-tool/failure case. Add concrete regression
+   cases for reported defects. For subjective guidance, use representative artifacts and explicit
+   qualitative criteria rather than fabricated numeric quality scores.
+4. Compare against the previous skill or a no-skill baseline when execution is justified. Reuse the
+   same task, inputs, harness, model, and budget; evaluate the resulting behavior, not phrases copied
+   from the skill. Inspect cost and false activations as well as success. Existing task permissions
+   and child limits govern evaluation; a skill edit does not require an automatic agent fan-out.
+5. Run safe command/parser/helper checks for claims that can be tested directly. Stub backends must
+   model relevant semantics and errors, not merely echo arguments. Use isolated state for effects.
+6. Static contract checks do not prove model selection or behavior. If live evaluations are not run,
+   say so and retain the test cases for later use. Follow the verification ladder in
+   `../runtime-verification/SKILL.md`; do not demand a benchmark campaign for a typo correction.
+7. Repair observed failures and repeat the affected checks. With checks complete, go to Stage 4:
+   Deliver; with an unavailable boundary, deliver the valid partial result and name that limit.
 
-## Stage 4: Validate
+## Stage 4: Deliver
 
-1. Validate frontmatter, naming, directory placement, Markdown structure, contracts, independence,
-   list syntax, line length, and supporting-file references.
-2. Confirm that no examples, sample scenarios, or domain-specific illustrations appear anywhere in
-   the package.
-3. Confirm that every line is at most 100 characters.
-4. Confirm that the description communicates selection criteria rather than summarizing content.
-   Check that the skill governs its named capability; task-specific targets, labels, models and
-   resources remain context inputs unless they define an explicitly specialized workflow.
-5. Confirm that a procedure can be followed mechanically from its Entrypoint and contracts.
-6. Confirm that a guideline skill communicates its constraints densely and unambiguously.
-7. If any check fails, return to Stage 3: Author and correct every failure. Otherwise, proceed to
-   Stage 5: Report.
+1. Report changed source paths, type, trigger/routing changes, representative checks, and limitations.
+2. Commit, publish, apply, or update only when assigned, using the source owner's delivery procedure.
+   Distinguish installed discovery from an already running session's reload state.
 
-## Stage 5: Report
+# Skill specification and house conventions
 
-1. Report the created or revised path.
-2. Report whether the skill is tagged `guideline` or `procedure`.
-3. Report whether validation passed and identify any unresolved limitation.
+- Use `<name>/SKILL.md` with valid `---` YAML frontmatter and a Markdown body. Names contain 1–64
+  lowercase letters/digits/hyphens, with no leading/trailing/consecutive hyphens, and match the folder.
+- `description` is a nonempty string of at most 1,024 characters. Optional `compatibility` describes
+  actual environment requirements; do not add harness-specific fields without loader support.
+- `metadata.type: guideline` or `procedure` is this profile's house convention, not a universal loader
+  requirement. Existing third-party upstream packages retain their upstream format.
+- Keep entrypoints focused, preferably below 500 lines. Use shallow conditional references and a
+  contents list for long references. Length is a warning signal, not proof a useful skill is wrong.
+- Prefer 100-column prose and `-` bullets. Preserve valid literal commands, URLs, code, and tables
+  rather than corrupting them to satisfy a wrapping rule.
 
-# Agent Skills Specification
+# Skill types
 
-- Treat every skill as raw Markdown stored in a directory containing `SKILL.md`.
-- Begin `SKILL.md` with YAML frontmatter delimited by `---` lines.
-- Include these required frontmatter fields:
-  - `name`: a string from 1 through 64 characters.
-  - `description`: a non-empty string from 1 through 1024 characters.
-- Make `name` contain only lowercase ASCII letters, digits, and hyphens.
-- Do not begin or end `name` with a hyphen or use consecutive hyphens.
-- Make the `name` value exactly match the parent directory name.
-- Tag every skill with a `metadata` map containing `type: guideline` or `type: procedure`.
-- Keep every metadata key and value a string when adding metadata beyond the required type tag.
-- Include `license` only when a license applies to the skill package.
-- Include `compatibility` only for material environment requirements and keep it within 500
-  characters.
-- Include `allowed-tools` only when the target harness supports its experimental semantics.
-- Keep `SKILL.md` below 500 lines and preferably below 5,000 tokens.
-- Use paths relative to the skill root when referring to bundled files.
-- Keep references shallow and load supporting material only when it is needed.
+## Procedure
 
-# Description Rules
+- Start the body with `# Contract`, containing `## Input Contract` and `## Output Contract`.
+- Follow the complete Contract immediately with `# Entrypoint` and ordered mechanical steps.
+- Use named stage subheadings for meaningful phases. At a branch, state the destination or terminal
+  outcome for each alternative. Define a checkable completion condition rather than vague diligence.
+- Keep additional constraints after Entrypoint or behind pointers reached by the relevant stage.
 
-- Write the frontmatter description as a quoted string beginning with `Use when` or `Use whenever`.
-- State the conditions, requests, concepts, file types, systems, or operations that should trigger
-  the skill.
-- Optimize the description for skill selection because it is loaded before the body.
-- Do not use the description as a literal summary of what the skill explains or contains.
-- Keep the trigger broad enough to catch intended requests and narrow enough to avoid unrelated
-  activation.
-- Include discriminating keywords without turning the description into implementation guidance.
+## Guideline
 
-# Skill Types
+- Organize actionable principles, conventions, decision criteria, and quality bars under descriptive
+  headings. Do not force Contract/Entrypoint scaffolding onto a reference or judgment guide.
+- Make rules evaluable against the work and explain nonobvious tradeoffs. Avoid generic exhortations.
 
-## Guideline Skills
+# Trees and shared dependencies
 
-- Use `metadata.type: guideline`.
-- Treat the body as constraints, principles, conventions, quality bars, and decision criteria that
-  govern work.
-- Organize the body under any number of descriptive headers and subheaders appropriate to the
-  subject.
-- Prefer dense technical statements that tell the agent what to preserve, avoid, verify, or choose.
-- Do not force an Entrypoint or Contract structure onto a guideline skill unless the governed task
-  independently requires those sections.
-- Ensure each rule is actionable and specific enough to evaluate against the resulting work.
+- Prefer a router with read-through children when branches share a capability but need different
+  instructions. The parent's description must advertise the branches the harness will not discover.
+- Pi's default directory discovery stops descending once a directory has `SKILL.md`. A child is not
+  independently advertised merely because it has valid frontmatter. Verify explicit-path loading
+  before relying on separate invocation; do not assume Claude invocation controls apply to Pi.
+- Child skills and shared references may be required dependencies. Give them real conditional
+  pointers, explicit owner/contracts, and a visible missing-dependency outcome. A plain reference
+  inherits its parent's contract; it need not pretend to be a standalone skill.
+- Keep one source of truth for shared policy. Duplicate a short invariant only at a critical effect
+  boundary where the reminder prevents harm; do not copy a whole procedure into every child.
+- Keep dependencies acyclic and paths relative to the referencing file. Rename consumers and package
+  declarations together; check stale links after removing an old advertised entrypoint.
 
-## Procedure Skills
+# Examples and supporting files
 
-- Use `metadata.type: procedure`.
-- Make `# Contract` the first Markdown header after frontmatter.
-- Place `## Input Contract` and `## Output Contract` under `# Contract`.
-- State what information, files, state, permissions, or environment the procedure requires under
-  `## Input Contract`.
-- State what artifacts, state changes, messages, and destinations the procedure must produce under
-  `## Output Contract`.
-- Place `# Entrypoint` immediately after the complete Contract section.
-- Use a numbered list under Entrypoint for concrete, ordered, mechanical operations.
-- Include exact commands, paths, tool actions, checks, and transition conditions when they are
-  needed for reliable execution.
-- Divide branching behavior or phases into named stage subheaders under Entrypoint.
-- At every branch, explicitly state which named stage follows when the condition is true and which
-  named stage follows otherwise.
-- Keep the main path direct enough that an agent can execute it without reconstructing intent.
-- Add any number of guideline sections after Entrypoint when the procedure also needs behavioral
-  constraints.
-
-# Capability Scope
-
-- Name and trigger a skill by the action or capability it governs.
-- Treat the repository, account, destination, subject matter, model, and resource needs as inputs
-  resolved from the request and current environment at invocation.
-- Keep procedure mechanics reusable across private and public projects and different task targets.
-- Place durable personal setup conventions in the narrowly triggered setup procedure they govern;
-  keep them local to that action when composing broader capabilities.
-- Apply optional phases according to the requested deliverable, authority, and observed needs.
-
-# Standalone Design
-
-- Make every skill independently understandable and executable for its basic purpose.
-- Do not require another skill to supply definitions, contracts, core rules, or mandatory steps.
-- A skill may point to another skill only for optional depth on a distinct concern.
-- Ensure that failure to load a referenced skill does not block the current skill's basic behavior.
-- Duplicate essential rules rather than hiding necessary behavior behind cross-skill references.
-- Keep scripts self-contained or document every dependency, input, output, side effect, and failure
-  mode within the same skill package.
-
-# Content and Formatting
-
-- Do not include examples, sample inputs, sample outputs, demonstrations, illustrative scenarios, or
-  domain-specific analogies.
-- Replace examples with detailed, dense technical explanations of invariants, decisions,
-  operations, edge conditions, and validation criteria.
-- Use Markdown headers and subheaders to separate categories, phases, contracts, and concerns.
-- Express enumerations of rules, facts, constraints, or items as unordered lists using `-` markers.
-- Never use `*` as an unordered-list marker.
-- Express ordered operations as numbered lists.
-- Use alphabetical sub-bullets only when an ordered step requires subordinate ordering.
-- Do not exceed two levels of nesting in ordered lists.
-- Allow deeper unordered nesting only when it improves comprehension, with four or five levels as a
-  soft maximum.
-- Wrap every line at 100 characters, including frontmatter, prose, lists, and fenced content.
-- Prefer concise headers, parallel bullet construction, explicit modal verbs, and testable wording.
-- Remove generic introductions, repetition, motivational prose, and commentary that does not change
-  agent behavior.
-
-# Supporting Files
-
-- Put executable automation in the skill's own `bin/` directory when repeated mechanical work
-  warrants a script; each skill owns its executables inside its own folder and never relies on a
-  shared profile-level bin.
-- Name executable entries after the command they expose (one entry per tool), mark them
-  executable, treat `bin/<tool>` as the skill's stable interface path, and refer to it in the body
-  as that skill-root-relative path.
-- Put detailed material in `references/` only when keeping it in `SKILL.md` would impair focused
-  loading.
-- Put static templates or other non-instructional resources in `assets/`.
-- Reference supporting files with paths relative to the skill root.
-- Keep each reference focused and avoid chains in which one reference requires another reference to
-  explain basic content.
-- Apply the no-examples rule, standalone requirement, Markdown structure, and 100-character wrapping
-  rule to every textual supporting file.
-
-# Validation Checklist
-
-- The directory contains `SKILL.md` and its name matches the frontmatter `name`.
-- The frontmatter satisfies all Agent Skills field constraints.
-- The description is a selection trigger beginning with `Use when` or `Use whenever`.
-- The `metadata.type` tag matches the body's actual structure and purpose.
-- A guideline skill uses descriptive sections and actionable technical guidance.
-- A procedure starts with Contract, follows it directly with Entrypoint, and provides mechanical
-  ordered steps.
-- Every branch names its destination stage explicitly.
-- The package is self-contained for its basic behavior.
-- Lists use the required marker and nesting conventions.
-- No example or illustrative content remains.
-- Every line is 100 characters or fewer.
-- Every referenced file exists at the stated relative path.
-- The final package is located in the active Pi profile unless the user selected another location.
+- Use examples for exact commands, input/output formats, positive/negative boundary decisions, or
+  previously observed mistakes. Keep the smallest set that distinguishes the rule's branches.
+- Make examples representative, synthetic/redacted, version-appropriate, and bounded by the same
+  permissions as the procedure. Avoid real secrets, live destructive defaults, and fake receipts.
+- State what varies and what invariant the example demonstrates so an agent does not memorize an
+  incidental account, path, model, or repository. Give runnable examples a reproducible check.
+- Put detailed examples and variant material in `references/` when not every invocation needs them.
+  Use `assets/` for output templates. Helpers normally live in the owning skill's `bin/`; document
+  inputs, dependencies, outputs, side effects, failure modes, and verification.
+- Version-sensitive instructions need an authoritative source and a last-verified version/date or
+  a live discovery step. Keep upstream-owned skills upstream-owned rather than silently patching
+  copies in the profile. See the research basis in `references/authoring-patterns.md`.

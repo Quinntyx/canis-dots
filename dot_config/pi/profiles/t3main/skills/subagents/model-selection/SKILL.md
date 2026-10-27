@@ -31,8 +31,10 @@ metadata:
    defaults — the T3 `delegate_task` `role` values (`implementation`, `research`, `review`,
    `design`, `test`, `general`) name the routing; this policy selects model and effort on top.
 2. Distinguish producing candidates, collecting evidence and deciding final acceptance.
-3. Set the minimum tier from Capability tiers before considering preferred models or diversity.
-   Complexity, uncertainty and consequences govern this floor independently of task size.
+3. Set the minimum capability tier before considering preferred models or diversity. Complexity,
+   uncertainty, and consequences govern this floor independently of task size. Select verification
+   cost separately through `../../runtime-verification/SKILL.md`; a strong model or high effort
+   neither removes required checks nor mandates forensic artifacts.
 4. Preserve explicit model, variant and effort choices. A choice below the needed floor requires an
    explicit scope adjustment or capable acceptance path; surface the mismatch before assigning
    consequential authority. An explicitly requested identity is used exactly as requested, or the
@@ -95,9 +97,10 @@ metadata:
    changed model or variant launches a fresh child whose brief states the prior lineage. Broader
    review-loop caps remain owned by the surrounding workflow. Frontier-level scope raises the
    floor at once.
-4. For unavailable models, recompute eligibility in Stage 2 using the actual failure. For
-   authorized repairs return to Stage 3 with the revised floor. For accepted work or exhausted
-   repair authority, go to Stage 5: Record.
+4. For an unavailable selected model/provider, report the actual failure and prepare alternatives
+   without launching a substitute unasked. User-authorized selection changes return to Stage 2.
+   Authorized repairs retain explicit model choices and return to Stage 3; accepted work or
+   exhausted authority goes to Stage 5: Record.
 
 ## Stage 5: Record
 
@@ -133,7 +136,9 @@ metadata:
 
 # Current model roster
 
-- The tier mapping below is the maintained default. The live truth for availability is
+- Maintained personal routing preference, reviewed 2026-10-27; not an independently measured
+  benchmark ranking or a guarantee of capability on every task. Revise from observed acceptance
+  outcomes, not model names alone. The live truth for availability is
   `orchestrator_capabilities`; a mapped identity absent from the listing is treated as
   unavailable, and an unmapped family is qualified conservatively before use at a tier.
 - Focused tier: GLM 5.3 Flash, DeepSeek V4.1 Flash, MiMo V2.6 Flash when listed.

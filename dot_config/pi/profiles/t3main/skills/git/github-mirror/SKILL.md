@@ -10,7 +10,8 @@ metadata:
 
 ## Input Contract
 
-- Named personal repositories, requested creation/migration/repair scope, and visibility.
+- Named personal repositories, requested creation/migration/repair scope, and source/destination
+  visibility. A private source additionally requires approved server-side source authentication.
 - Git, authenticated `fj` on `git.quinntyx.dev` as `quinntyx`, and `gh` as `Quinntyx`.
 - Forgejo API credentials in `~/.local/share/forgejo-cli/keys.json` at
   `hosts["git.quinntyx.dev"].token`, read into memory and sent through the authorization header.
@@ -19,8 +20,9 @@ metadata:
 
 ## Output Contract
 
-- Forgejo is canonical and mirrors to `ssh://github.com/Quinntyx/<repo>.git` server-side, using
-  interval `8h0m0s` and `sync_on_commit: true`.
+- Forgejo is canonical and mirrors to `ssh://github.com/Quinntyx/<repo>.git` server-side with
+  matching intended visibility, interval `8h0m0s`, and `sync_on_commit: true`. No private source
+  passes through a public intermediate repository.
 - Verified completed synchronization with empty `last_error` and matching branch/tag heads.
 - Personal local clones use one canonical Forgejo `origin`; genuine foreign-fork upstreams retain
   their role. Report transport rewrites separately from canonical hosting.
@@ -44,10 +46,13 @@ metadata:
 
 ## Stage 2: Establish both repositories
 
-1. For an explicitly requested GitHub-only migration, run
-   `fj repo migrate "https://github.com/Quinntyx/$repo" "quinntyx/$repo" -s github`
-   with `-H https://git.quinntyx.dev`. Verify the imported Git refs and visibility. This migrates
-   Git data; issue, PR, release, and settings migration requires its own scope.
+1. For an explicitly requested GitHub-only migration, verify source visibility before creating
+   anything. Use the installed client's or Forgejo migration API's verified schema to set the
+   destination visibility explicitly. A private source needs approved source credentials delivered
+   in memory through the supported API/header mechanism, never URL/argv/logs. Do not assume the
+   forge server inherits the local `gh` login. Missing source authentication or visibility controls
+   ends with a prerequisite; do not try an unauthenticated/public intermediate migration. Verify
+   imported refs and visibility. Issues, PRs, releases, and settings require their own scope.
 2. For a forge-only repository, create the empty GitHub destination using
    `gh repo create "Quinntyx/$repo"` with `--private` or `--public` matching Forgejo.
 3. For two absent repositories or migration outside the authorized scope, end with the required

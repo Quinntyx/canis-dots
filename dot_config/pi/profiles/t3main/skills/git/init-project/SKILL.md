@@ -1,7 +1,7 @@
 ---
 name: init-project
-description: "Use when asked to initialize a new project or bootstrap a personal repository
-  with Forgejo hosting, a GitHub mirror, language initialization, tests, and worktrees."
+description: "Use when initializing a software project or bootstrapping a personal repository,
+  including requested Forgejo hosting, GitHub mirroring, tests/CI, and T3 project registration."
 metadata:
   type: procedure
 ---
@@ -10,142 +10,122 @@ metadata:
 
 ## Input Contract
 
-- An explicit project-creation request, repository name, language/framework, and visibility.
-- Authenticated `fj` access as `quinntyx` on `git.quinntyx.dev`, `gh` as `Quinntyx`, Git, and
-  the selected stack's initializer and test tools. Resolve material missing choices with the user.
-- Creation scope includes two hosted repositories, a server-side mirror, scaffold and test CI,
-  initial commit/push on `main`, published `dev` worktree, and a current-session cwd move.
-- Existing Forgejo runner capacity suitable for the selected toolchain and action runtime.
+- Project/repository identity, stack, requested local or hosted deliverable, and relevant visibility.
+- Actual stack tools and, for hosted delivery, authenticated Forgejo/GitHub access and CI capacity.
+- Existing T3 project/thread context and any supplied source path; preserve partial prior work.
+- Authority for each requested hosted effect. A local initialization or plan does not create two
+  repositories, publish branches, relocate a thread, or start a new thread implicitly.
 
 ## Output Contract
 
-- Canonical Forgejo repository and same-visibility GitHub mirror under the user's accounts.
-- Server-side push mirror to `ssh://github.com/Quinntyx/<project>.git`, interval `8h0m0s`, with
-  `sync_on_commit` true and verified matching remote heads.
-- Ordinary clone at `~/docs/src/<project>/main`, a sibling `dev` worktree, and one local Forgejo
-  `origin`. Both branches track origin and initially share the scaffold-and-CI commit.
-- A real passing test suite and Forgejo Actions test workflow. Initial commit subject is exactly
-  `initial commit`; both hosts default to `main`.
-- Current Pi cwd becomes `~/docs/src/<project>` through supported `/move` dispatch, or the report
-  gives the precise user command and marks that step pending.
+- A working source scaffold, real discovered behavioral test, reproducibility files, and honest checks.
+- A T3 project registered against the ordinary source anchor when registration is assigned.
+- For hosted personal bootstrap: canonical Forgejo repository, same-visibility server-side GitHub
+  mirror, accepted initial commit, published `main`/`dev` refs, and exact-revision CI/mirror receipts.
+- No pre-created development worktree or Pi session relocation. T3 allocates thread/delegate
+  worktrees later against the registered project and committed source baseline.
 
 # Entrypoint
 
-## Stage 1: Resolve and preflight
+## Stage 1: Bind the project and effects
 
-1. Bind the requested project, package/module identity, stack, project kind, and visibility. Ask
-   for material missing choices, then resume Stage 1. Validate the repository as one safe path
-   segment and the package/module name against its stack's rules.
-2. Bind `container="$HOME/docs/src/$project"`, `primary="$container/main"`, and
-   `development="$container/dev"`. Require an absent container, including dangling symlinks.
-   Existing content ends with a collision report; an authorized recovery proceeds at Stage 8.
-3. Check `command -v` for Git, host CLIs, and stack tools. Verify host identities and runner access.
-   Missing prerequisites end with a user-run setup command; otherwise continue Stage 1.
-4. Read the Forgejo token in memory from `~/.local/share/forgejo-cli/keys.json`, at
-   `hosts["git.quinntyx.dev"].token`. Use API base `https://git.quinntyx.dev/api/v1` and an
-   `Authorization: token ...` HTTP header. Keep credentials in memory and redacted from output.
-5. Query `GET /repos/quinntyx/{project}` and
-   `gh repo view "Quinntyx/$project" --json nameWithOwner,isPrivate,defaultBranchRef`.
-   Two definite not-found responses permit step 6. An existing repo requires a recovery decision
-   at Stage 8; an access or network failure ends with a prerequisite report.
-6. Verify an actual eligible Forgejo Actions runner label, action runtime, and toolchain support.
-   Establish whether this Pi instance exposes a supported `/move` dispatcher. Retain a user-command
-   handoff when dispatch is unavailable. Proceed to Stage 2: Create hosting.
+1. Resolve stack, safe one-segment name, package/module identity, source destination, local/hosted
+   scope, visibility, and registration ownership. Personal anchors default to
+   `~/docs/src/<project>/main`; retain an explicit or established source path.
+2. Read relevant existing instructions and inspect exact destination/hosting state. A truly new
+   source continues here. A matching partial setup goes to Stage 7: Resume or report. Conflicting
+   content is preserved and ends there with the concrete reuse decision.
+3. Use actual tool availability and official initializer/testing guidance. Missing installed software
+   is a user prerequisite, not permission to install a toolchain. Resolve material missing choices
+   before mutation, then continue Stage 1.
+4. Hosted scope requires verified host accounts, visibility, runner labels/runtime, and mirror
+   credentials suitable for private sources when applicable. Local-only work skips host checks.
+   Establish safe secret handling through the configured clients, never credential arguments/logs.
+5. With hosted scope go to Stage 2: Establish hosting. With local-only scope go to Stage 3:
+   Initialize source. Planning-only returns the proposed lifecycle at Stage 7 without effects.
 
-## Stage 2: Create hosting
+## Stage 2: Establish hosting
 
-1. Create the empty forge repository using `POST /user/repos` with `name`, chosen `private`
-   Boolean, `auto_init: false`, and `default_branch: main`.
-2. Create the empty GitHub repository with `gh repo create "Quinntyx/$project"` and the selected
-   `--public` or `--private` flag. Re-read both repositories and verify ownership, visibility,
-   and emptiness. Each successful write continues here; a failed write ends at Stage 8: Recovery.
-3. Read `GET /repos/quinntyx/{project}/push_mirrors` and require an unambiguous destination.
-   Create the server-side mirror with `POST /repos/quinntyx/{project}/push_mirrors`, using
-   `remote_address: ssh://github.com/Quinntyx/{project}.git`, `interval: 8h0m0s`, and
-   `sync_on_commit: true`. Use the forge server's established GitHub credentials.
-4. Enable Actions with `PATCH /repos/quinntyx/{project}` and `enable_actions: true`, then verify.
-   Consult the installed OpenAPI schema or repository settings UI if its API differs. Success
-   proceeds to Stage 3: Initialize the clone; an incomplete write proceeds to Stage 8: Recovery.
+1. Read `../github-mirror/SKILL.md` for preservation, visibility, private-source authentication, and
+   server-side mirror setup. This branch owns hosting; do not duplicate or bypass its safeguards.
+2. Create/reuse the authorized empty Forgejo source and same-visibility GitHub mirror only after
+   definite absence or verified compatible partial state. Canonical identity is
+   `git.quinntyx.dev/quinntyx/<project>`; mirrors run server-side, not as a second local origin.
+3. Establish push mirror destination `ssh://github.com/Quinntyx/<project>.git`, interval `8h0m0s`,
+   and `sync_on_commit: true`. Verify actual host capabilities and existing server credentials.
+   Enable Actions only within the hosted bootstrap scope.
+4. Re-read hosting state after writes. An uncertain response is reconciled before retrying.
+   Verified empty hosting goes to Stage 3: Initialize source; a blocker goes to Stage 7.
 
-## Stage 3: Initialize the clone
+## Stage 3: Initialize source
 
-1. Create the container and run
-   `fj repo clone "quinntyx/$project" "$primary" -H https://git.quinntyx.dev -S false`.
-   Verify an ordinary `.git`, an empty clone with unborn HEAD, and only canonical Forgejo `origin`.
-   Success continues here; a collision, populated clone, or failed clone proceeds to Stage 8.
-2. Set the proven unborn HEAD with `git -C "$primary" symbolic-ref HEAD refs/heads/main`.
-3. Retrieve the selected stack's official initializer and testing instructions. Execute its
-   initializer in `primary`, explicitly supplying package/module identity and disabling nested Git
-   initialization where supported. The scaffold lives directly in `main`, retaining the clone Git.
-4. Add stack-appropriate ignore rules, reproducibility files, a pinned toolchain where appropriate,
-   and at least one real behavioral test. Keep credentials, environments, dependencies, and build
-   outputs outside tracked content. Proceed to Stage 4: Configure and run tests.
+1. For hosted source use `t3_project_clone` with the verified canonical URL and chosen empty anchor.
+   For local-only source initialize Git at the selected empty source root on `main`. This is source
+   bootstrap, not creation of a managed thread/delegate worktree. Preserve all path collisions.
+2. Verify origin where applicable, empty/unborn state, and source root. Set an unborn hosted HEAD to
+   `main` only after proving it is empty; never switch populated branches by assumption.
+3. Run the official stack initializer in the source root, supplying actual package identity and
+   avoiding nested Git. Add appropriate ignores/lockfiles/toolchain metadata and a real test through
+   the requested behavior. Follow `../../agent-repo-guidance/SKILL.md` only for requested repository
+   agent foundations; do not invent custom lint rules or an internal-docs tree automatically.
+4. Go to Stage 4: Validate scaffold and CI.
 
-## Stage 4: Configure and run tests
+## Stage 4: Validate scaffold and CI
 
-1. Create `.forgejo/workflows/test.yml` for pushes and ordinary `pull_request` events on `main`
-   and `dev`. Select the verified runner label and the same test command used locally.
-2. Use explicit absolute action URLs pinned to reviewed immutable commits. Match action runtimes
-   to the runner and disable persisted checkout credentials. Provision the selected toolchain,
-   install dependencies reproducibly, and run actual discovered tests with failure propagation.
-3. Validate YAML using a parser that preserves `on` as a key. Check runner label, event filters,
-   dependency lock handling, and action compatibility. Keep workflow scope to requested testing.
-4. Run the stack's real dependency installation and test commands locally. Require discovered
-   tests and successful results. Failures return to Stage 3 for scaffold repairs or Stage 4 for
-   workflow repairs; successful tests proceed to Stage 5: Publish main.
+1. Run actual discovered tests and the relevant format/lint/type checks. Record commands, results,
+   and missing boundaries. A zero-test success is not a passing behavioral suite.
+2. For hosted scope write `.forgejo/workflows/test.yml` with pushes on all working branches and
+   ordinary pull requests targeting the actual integration branches. Feature-branch pushes need
+   tests too; do not limit push events to `main`/`dev`.
+3. Use the verified runner label, reproducible dependency installation, actual test command,
+   immutable reviewed action URLs, and disabled persisted checkout credentials. Validate YAML with
+   an `on`-preserving parser and check action/toolchain runtime compatibility.
+4. Failed checks return to Stage 3 or this stage for scoped repair. Passing checks go to Stage 5:
+   Commit and publish. A source-only/coordinator boundary instead goes to Stage 7 with a handoff.
 
-## Stage 5: Publish main
+## Stage 5: Commit and publish
 
-1. Review all intended source, tests, workflow, ignores, and lockfiles. Stage only the scaffold
-   content; inspect the staged diff and run `git -C "$primary" diff --cached --check`.
-2. Run `git -C "$primary" commit -m "initial commit"`, then
-   `git -C "$primary" push -u origin main`. Success continues here; failure proceeds to Stage 8.
-3. Record `initial_sha`, exactly one commit, the exact subject, clean status, and `origin/main`.
-   Set the forge default branch to `main` if needed using `PATCH /repos/quinntyx/{project}`.
-4. Inspect the Forgejo Actions test run for this exact SHA with a bounded wait. Success proceeds
-   to Stage 6: Publish dev. Failed, absent, or queued tests proceed to Stage 8: Recovery, with CI
-   accurately marked incomplete. A repair after publication is an additional reported commit.
+1. Review/stage only owned scaffold paths, inspect the staged diff, and run `git diff --cached --check`.
+   Commit the initial scaffold with `initial commit` when committing is assigned. Explicit no-commit
+   scope goes to Stage 7 with source ready. Local-only work skips remote writes and goes to Stage 6.
+2. For hosted bootstrap push `main` to canonical origin and verify the exact SHA's real CI result.
+   Create the requested `dev` ref at that accepted SHA and publish it without allocating a worktree;
+   an ordinary branch ref is not a T3 workspace. Respect explicit narrower branch policy.
+3. Verify both remote heads and configured defaults. Use the mirror procedure to reconcile refs
+   safely and confirm completed sync, empty error, and matching accepted SHAs on both hosts.
+4. Missing/failed/pending CI or mirror completion stays explicitly pending at Stage 7. Verified
+   hosted delivery goes to Stage 6: Register and hand off.
 
-## Stage 6: Publish dev
+## Stage 6: Register and hand off
 
-1. Verify initialized `main` and `origin/main` match `initial_sha`; require absent `dev` path and
-   branch. Unexpected state proceeds to Stage 8: Recovery; otherwise continue here.
-2. Run `git -C "$primary" worktree add -b dev "$development" main`, then
-   `git -C "$development" push -u origin dev`. Verify the same SHA, clean status, `origin/dev`,
-   and stable branch-to-folder associations. A failure proceeds to Stage 8; success continues here.
-3. Verify the exact `dev` push's Forgejo test run. A successful run proceeds to Stage 7: Verify and
-   move; failed or incomplete CI proceeds to Stage 8: Recovery.
+1. Query/reuse any existing T3 project for the verified source root. When registration is assigned,
+   use `t3_project_create` with explicit `workspaceRoot` and truthful saved scripts from the scaffold.
+   Do not invoke its no-workspace convenience bootstrap over an already initialized source tree.
+2. Registration does not change this thread's project binding or cwd. Keep source work explicit with
+   absolute tool paths or `git -C`; report a ready project rather than claiming the thread moved.
+3. Same-project own-thread worktree moves belong to `t3_worktree_handoff`, after
+   `t3_worktree_status`, as a final call with a continuation prompt. It cannot rebind an unrelated
+   scratch thread to a new project. Do not attempt shell worktrees or Pi session-command substitutes.
+4. Delegates in the bound project use `delegate_task(isolation:'worktree')`; T3 chooses their
+   prepared checkout from the coordinator's committed baseline. New top-level project threads use
+   `t3_thread_launch` with explicit workspace strategy only when the user requests a new thread.
+   If this thread belongs elsewhere, report that boundary rather than silently launching one.
+5. Go to Stage 7: Resume or report.
 
-## Stage 7: Verify and move
+## Stage 7: Resume or report
 
-1. Request `POST /repos/quinntyx/{project}/push_mirrors-sync`. Poll mirror state within a bounded
-   wait for completed synchronization and empty `last_error`. Queue acceptance alone is pending.
-2. Compare both remote branch SHAs on both hosts to the initialized commit. Set GitHub's default
-   branch with `gh repo edit "Quinntyx/$project" --default-branch main`; re-read both hosts and
-   verify default branches, visibility, mirror options, remotes, paths, and tracking.
-3. Verified hosting proceeds at step 4. A mismatch or timeout proceeds to Stage 8: Recovery.
-4. Dispatch `/move <absolute-container-path>` through a supported current-instance command API.
-   A successful dispatch continues at step 5. An unavailable or canceled dispatch ends with the
-   exact command for the user and a pending cwd result. This is a session move preserving history;
-   `session_move` provides diagnostics, and shell `cd` changes only its subprocess.
-5. Verify active Pi cwd from fresh runtime context. A matching container completes the procedure;
-   otherwise report the pending `/move` handoff. Report URLs, paths, commit, tracking, local tests,
-   hosted CI, mirror timestamp/errors, and cwd result concisely.
+1. Report source/project identity, actual branch refs, checks, and requested completed effects.
+   Include CI/mirror/registration receipts only when performed; keep missing effects explicit.
+2. For resumption inspect retained source, hosted state, refs, visibility, mirror, CI, and registered
+   workspace before continuing the first incomplete stage. Never repeat an uncertain create blindly.
+3. Preserve repositories, worktrees, running jobs, and user changes on failure. Deliver the precise
+   next action; destructive cleanup or new scope requires its own authorization.
 
-## Stage 8: Recovery
+# Ownership
 
-1. Record the first failed stage and retained repositories, mirror, commits, worktrees, CI, and
-   session state. Preserve partial state and finish with the incomplete outcome.
-2. An explicit resume request starts here: re-read ownership, visibility, commits, origin, paths,
-   mirror destination, and CI. A matching retained state resumes its named incomplete stage;
-   conflicting state ends with the exact decision required from the user.
-
-# Execution conventions
-
-- Use concrete, quoted identifiers in commands and resolved paths in HTTP routes and JSON fields.
-- Keep long operations in dedicated detached tmux windows, with retained native output and exit
-  status, bounded monitoring, and active user panes preserved.
-- Match stack tooling to the selected framework: standard initializer, declared test dependencies,
-  reproducible install, real test discovery, and a common local/CI test command.
-- Required external tools and runner provisioning are user prerequisites. Existing repositories,
-  histories, active worktrees, global settings, and server credentials remain intact on failure.
+- Git/hosting procedures own source identity, history, branch refs, publication, and mirroring.
+- T3 project setup owns registration and saved scripts against the canonical source root.
+- T3 thread/delegate tools own managed worktree allocation and binding; a filesystem cwd change
+  does not perform that binding. Initializing source does not allocate speculative worker worktrees.
+- This agent owns scoped checks and receipts. A coordinator may retain publication/application
+  ownership; initialization does not grant unrequested remote or session-management effects.

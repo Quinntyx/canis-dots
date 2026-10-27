@@ -83,9 +83,11 @@ metadata:
 
 ## Stage 4: Apply owned targets
 
-1. For each exact owned destination, inspect `chezmoi diff -- "$target"`, then run
-   `chezmoi apply -- "$target"`. List individual files rather than a parent directory containing
-   another agent's work. A broad apply requires a separately authorized whole-configuration task.
+1. For each exact owned file inspect `chezmoi diff -- "$target"`, then run
+   `chezmoi apply --exclude=scripts -- "$target"`. List individual files rather than a parent
+   containing another agent's work. For a missing owned parent, create only its directory entry
+   first with `chezmoi apply --recursive=false --exclude=scripts -- "$owned_parent"`, shallowest
+   first. Do not recurse through it to create one file. Broad apply needs whole-configuration scope.
 2. Changes to shared templates, ignore rules, or externals require an explicit affected-target list.
    Review it before applying; a shared declaration is not permission to reconcile all drift.
    Inspect applicable hooks too. For file-only work exclude unassigned scripts with

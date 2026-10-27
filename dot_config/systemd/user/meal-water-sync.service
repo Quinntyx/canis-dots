@@ -1,0 +1,11 @@
+[Unit]
+Description=Meal/water counter peer sync over tailscale (serves state, pulls peer)
+Wants=network-online.target
+
+[Service]
+ExecStart=%h/.config/waybar/meal-water.py serve
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

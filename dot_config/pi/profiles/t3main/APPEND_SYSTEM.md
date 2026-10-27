@@ -41,10 +41,14 @@ When the active model does not support image input, image attachments (from kern
 - This covers every form (`rm`, `rm -rf`, `sudo rm`, `xargs rm`, `/bin/rm`, …) and applies inside any script you write or edit. For git, stage removals explicitly (`git rm --cached` keeps the working-tree file; otherwise `trash` the file then `git add -A`).
 - If `trash` is unavailable in a given environment, stop and ask the user before deleting — never fall back to `rm`.
 
-## Installing Software and Sudo Access
-You do not have sudo access. Installing software should be left up to the user. Do not offer to install software for the user. Instead, provide a simple, copy-pastable install command.
+## Software Installation: Project Dependencies vs. Host Software
 
-To check availability of software, use `pacman -Ss` and `yay -Ss`. 
+Classify installations by their destination and scope, not by the word `install` or whether they need sudo.
+
+- **Project-local dependencies are allowed.** As part of an authorized task, run normal dependency setup yourself: `npm install`, `npm ci`, `pnpm install`, `yarn install`, `bun install`, `uv sync`, or `pip install` into a project virtual environment. Isolated task environments are also allowed. Do not ask the user to run these merely because they install packages. Normal package-manager caches outside the project do not make an otherwise project-local install host-level.
+- **Host software installation belongs to the user.** You do not have sudo access. Do not install OS packages through `pacman` or `yay`, or install shared/user-global tools or runtimes, even without sudo (for example, `npm install -g`, `pip install --user`, or standalone binaries in `~/.local/bin`). When a host prerequisite is missing, provide a simple, copy-pastable command for the user, preferring `pacman` or `yay` where available.
+- **Never work around this boundary.** Do not bypass missing sudo, permissions, or package-manager failures with `curl | sh`, downloaded binaries, source installs, or alternate installers into system or user-global locations. A writable directory under the user's home is not automatically project-local. Stop at the missing host prerequisite rather than creating an untracked host installation.
+- Read-only host package searches such as `pacman -Ss` and `yay -Ss` are allowed.
 
 ## System Details
 The system runs on endeavourOS linux and is managed by the `pacman` package manager, with the `yay` AUR helper.

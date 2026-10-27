@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Report existing Blender and device-inspection executables without changing state."""
+
+import json
+import shutil
+import subprocess
+import sys
+
+
+def main():
+    names = ("blender", "nvidia-smi", "rocm-smi", "rocminfo", "nsys", "renderdoccmd")
+    paths = {name: shutil.which(name) for name in names}
+    result = {
+        "executables": paths,
+        "blender_version": None,
+        "blender_usable": False,
+        "render_devices": "unverified; enumerate within the selected Blender engine",
+        "mcp": "unverified; discover already registered tools in the calling Pi session",
+    }
+    if paths["blender"]:
+        try:
+            query = subprocess.run(
+                [paths["blender"], "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            result["blender_usable"] = query.returncode == 0
+            result["blender_version"] = query.stdout.splitlines()[0] if query.stdout else None
+            if query.returncode:
+                result["error"] = query.stderr.strip() or f"exit {query.returncode}"
+        except (OSError, subprocess.TimeoutExpired) as error:
+            result["error"] = str(error)
+    else:
+        result["error"] = "Blender executable is missing from PATH"
+    print(json.dumps(result, indent=2))
+    return 0 if result["blender_usable"] else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

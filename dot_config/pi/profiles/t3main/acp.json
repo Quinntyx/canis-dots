@@ -1,0 +1,46 @@
+{
+  "delegate": false,
+  "compress": {
+    "nudgeGrowthTokens": 50000,
+    "providers": {
+      "bitdeer": {
+        "models": {
+          "zai-org/GLM-5.3-Flash": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000,
+            "deferTools": true
+          }
+        }
+      },
+      "inco": {
+        "models": {
+          "glm-5.3-flash:fast": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000,
+            "deferTools": true
+          },
+          "deepseek-v4.1-flash:fast": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000
+          }
+        }
+      },
+      "opencode-go": {
+        "models": {
+          "glm-5.3-flash": {
+            "maxContextLimit": "53.5%",
+            "nudgeGrowthTokens": 500000,
+            "deferTools": true
+          }
+        }
+      },
+      "openrouter": {
+        "models": {
+          "deepseek/deepseek-v4.1-flash-1017": {
+            "enabled": false
+          }
+        }
+      }
+    }
+  }
+}

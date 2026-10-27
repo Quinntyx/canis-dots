@@ -7,11 +7,11 @@ Prefer using a Python kernel over sequences of ordinary tool calls whenever the 
 - loops, bounded concurrency, aggregation, and structured comparisons;
 - tasks where large intermediate tool results can remain inside Python.
 
-Use the generated Python helpers (`read`, `grep`, `glob`, `find`, `ls`, and `ptc.*`) rather than invoking internal RPC methods. Await asynchronous helpers, keep intermediate results inside Python, and return only the compact result needed for the conversation.
+Provision a kernel with `provision_kernel`, then run code with `exec_cell` (recorded in the notebook) or `scratch_run` (unrecorded). Inside a cell, use ordinary Python — `pathlib`, `subprocess`, `json`, `re`, `np`/`pd`/`plt` — and keep intermediate results inside Python, returning only the compact result needed for the conversation. There is no Python-to-host-tool bridge: native tools such as `read`, `grep`, `find`, and `bash` are not callable from Python, and Python code is not exposed as a native tool call.
 
 Use direct tools instead for a single simple lookup, one-file inspection, or precise file mutations where programmatic composition provides no benefit. Do not force code execution onto trivial tasks.
 
-Never use `python3 -c` or `python3 << 'EOF'` heredocs. Use the PTC tool instead. 
+Never use `python3 -c` or `python3 << 'EOF'` heredocs. Use `exec_cell` or `scratch_run` on a provisioned kernel instead.
 
 ## Numerical analysis and plotting
 Use a python kernel whenever the user requests a chart or when visualizing tabular/numerical data would materially help identify distributions, trends, outliers, clusters, or relationships.
@@ -20,16 +20,16 @@ Python packages `np` (NumPy), `pd` (pandas), and `plt` (matplotlib.pyplot) are a
 
 Matplotlib automatically uses the non-interactive 'Agg' backend. Open figures created with `plt.figure()`, `plt.plot()`, `plt.bar()`, `plt.scatter()`, etc. are automatically captured as PNG image attachments upon completion. Leave figures open until execution finishes.
 
-Prefer reading datasets (CSV, Parquet, JSON) directly inside Python using `pd.read_csv(...)`, `pd.read_parquet(...)`, or `ptc.read_text(...)` rather than reading raw tabular files into chat context.
+Prefer reading datasets (CSV, Parquet, JSON) directly inside Python using `pd.read_csv(...)`, `pd.read_parquet(...)`, or `pathlib.Path(...).read_text()` rather than reading raw tabular files into chat context.
 
-When the active model does not support image input, image attachments (from PTC plots or read image files) are automatically summarized by another model. Return relevant compact textual statistics alongside figures.
+When the active model does not support image input, image attachments (from kernel plots or read image files) are automatically summarized by another model. Return relevant compact textual statistics alongside figures.
 
 ## Tooling defaults (hard rules)
-- "Analyze / compare / audit / parity" tasks START in a Python notebook — never open with `ls`/`cat`/`find`. Read candidates with `ptc.read_many`, parse, and return a compact comparison.
+- "Analyze / compare / audit / parity" tasks START in a Python notebook — never open with `ls`/`cat`/`find`. Read candidates in the kernel, parse, and return a compact comparison.
 - DO NOT USE `grep` or `rm`. They are blocked by system policy. Prefer `rg` and `trash`. Also note that `rg` is recursive by default, and the `-r` flag is replace instead. 
-- Never chain `ls` → `cat` → `find` in bash when you'll touch more than 2 files. That is the signal to switch to PTC mid-task, not after being asked.
-    - Never run broad `find` / `ls --recursive` over trees that may contain `node_modules`, `.git`, `repos/`, or other vendor dirs. Filter first (`rg --files -g '!node_modules'`, `glob(..., '-g', '!node_modules')`, or `ptc.find_files`) and keep output compact. Never run `find` or `rg` on directories with lots of files, like `/home`, `~/docs`, `~/docs/src`, etc.
-- Searching from `bash`: use `rg` (ripgrep), not `grep` / `find -name`. The PTC `grep()` helper already wraps ripgrep — keep the two consistent.
+- Never chain `ls` → `cat` → `find` in bash when you'll touch more than 2 files. That is the signal to switch to a kernel cell mid-task, not after being asked.
+    - Never run broad `find` / `ls --recursive` over trees that may contain `node_modules`, `.git`, `repos/`, or other vendor dirs. Filter first (`rg --files -g '!node_modules'`, or a kernel cell using `pathlib`/`os.walk`) and keep output compact. Never run `find` or `rg` on directories with lots of files, like `/home`, `~/docs`, `~/docs/src`, etc.
+- Searching from `bash`: use `rg` (ripgrep), not `grep` / `find -name`. Inside a kernel, use Python (`re`, `pathlib`) — there is no `grep()` helper.
 - Never run Python via `python3 -c` or `python3 << EOF` heredocs in bash. Use an IPython kernel directly instead — it executes in a real IPython runtime, so parsing, data work, and scripts stay inside Python rather than shell-quoting or heredoc plumbing.
 
 ## Output discipline

@@ -279,6 +279,35 @@
         }
       ]
     },
+    "cliproxyapi-ambassator": {
+      "baseUrl": "https://desktop-2ka6tgu.tail227a29.ts.net:8443/v1",
+      "api": "openai-responses",
+      "models": [
+        {
+          "id": "gpt-6.1-sol",
+          "name": "GPT-6.1 Sol (Ambassator)",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 272000,
+          "maxTokens": 128000,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": "low",
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    },
     "cliproxyapi": {
       "baseUrl": "http://araveia.tail985727.ts.net:8317/backend-api",
       "api": "openai-codex-responses",

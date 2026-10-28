@@ -9,3 +9,4 @@
 .config/pi/profiles/main/extensions/pi-opencode-zen-free
 .config/pi/profiles/subagents/extensions/pi-opencode-zen-free
 .config/pi/profiles/main/deepseek-router.json
+.local/bin/claude-ambassator-api-key

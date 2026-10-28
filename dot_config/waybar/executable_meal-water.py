@@ -16,20 +16,22 @@ Behavior:
   and the first eat click of the day is breakfast. No sleep window: a new day
   simply starts red, and a severely overdue timer resets to a good state on
   the next click. Red styling only -- no notifications.
-- Peer sync (see the Tailscale section in the code): canis <-> araveia pull
-  each other's state over HTTP on the tailscale network every couple of
-  minutes and merge newest-wins, so a click on either machine converges on
-  both. An offline peer never blocks anything; state catches up on the next
-  pull. Role detection is by hostname substring; other hosts run standalone.
+- Peer sync (see the Tailscale section in the code): every machine running
+  this config on the tailnet serves its state and pulls all online peers,
+  merging newest-wins -- no canonical server, no fixed peer list. An offline
+  peer never blocks anything; its clicks converge on the next successful
+  pull. Other tailnet devices are skipped (they don't answer the port).
 """
 
 import json
 import os
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -48,32 +50,44 @@ STATE_PATH = (
 SYNC_MARKER_PATH = STATE_PATH.with_suffix(".sync")
 
 # --- Tailscale peer sync -----------------------------------------------------
-# Both machines run the same chezmoi config; this script decides its role from
-# the hostname. Each machine serves its state over HTTP (see `serve`, run as a
-# systemd --user service) and periodically pulls the peer's state, merging
-# newest-wins per counter. If the peer is down, the pull fails silently and
-# retries on a later tick -- counters keep working standalone in the meantime.
+# Fully symmetric P2P: every machine running this config on the tailnet serves
+# its state over HTTP (see `serve`, run as a systemd --user service) and pulls
+# every other machine's state, merging newest-wins per counter. No machine is
+# canonical; peers are discovered dynamically from `tailscale status` each
+# cycle (online nodes only; nodes without this config fail the port probe and
+# are skipped). Nodes going offline or coming online never matter: an
+# unreachable peer is skipped silently and its clicks converge on the next
+# successful cycle.
 SYNC_PORT = 43017
 SYNC_EVERY = timedelta(minutes=2)
-SYNC_TIMEOUT = 3  # seconds
-
-def _hostname_role() -> str | None:
-    h = socket.gethostname().lower()
-    if "canis" in h:
-        return "canis"
-    if "araveia" in h:
-        return "araveia"
-    return None
-
-HOSTNAME_ROLE = _hostname_role()
-PEER_NAMES = {"canis": "araveia", "araveia": "canis"}
+SYNC_TIMEOUT = 3  # seconds, per peer fetch
 
 
-def peer_name() -> str | None:
-    """Tailscale MagicDNS name of the peer machine, or None when standalone."""
-    if HOSTNAME_ROLE is None:
-        return None
-    return PEER_NAMES[HOSTNAME_ROLE]
+def tailnet_peers() -> list[str]:
+    """MagicDNS hostnames of online tailnet peers, excluding this machine.
+
+    Returns [] when tailscale is unavailable -- everything degrades to
+    standalone operation without touching local state.
+    """
+    try:
+        proc = subprocess.run(
+            ["tailscale", "status", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        status = json.loads(proc.stdout)
+    except Exception:
+        return []
+    self_name = (status.get("Self") or {}).get("HostName", "")
+    peers = []
+    for peer in (status.get("Peer") or {}).values():
+        if not peer.get("Online"):
+            continue  # offline nodes are skipped instantly
+        name = peer.get("HostName", "")
+        if name and name != self_name:
+            peers.append(name)
+    return peers
 
 
 def now() -> datetime:
@@ -211,11 +225,7 @@ def _save_sync_marker(marker: dict) -> None:
         pass
 
 
-def fetch_peer_state() -> dict | None:
-    peer = peer_name()
-    if peer is None:
-        return None
-    url = f"http://{peer}:{SYNC_PORT}/state"
+def _fetch_state(url: str) -> dict | None:
     try:
         with urllib.request.urlopen(url, timeout=SYNC_TIMEOUT) as resp:
             return json.loads(resp.read())
@@ -224,10 +234,8 @@ def fetch_peer_state() -> dict | None:
 
 
 def maybe_sync(force: bool = False) -> bool:
-    """Pull the peer's state and merge if the throttle allows. Returns True if
-    the local state file changed."""
-    if peer_name() is None:
-        return False
+    """Pull every online tailnet peer's state and merge newest-wins into the
+    local state file. Returns True if the local state file changed."""
     marker = _load_sync_marker()
     last = marker.get("last_attempt")
     if (
@@ -239,17 +247,27 @@ def maybe_sync(force: bool = False) -> bool:
     marker["last_attempt"] = now().isoformat(timespec="seconds")
     _save_sync_marker(marker)
 
-    data = fetch_peer_state()
-    if data is None:
+    urls = [f"http://{name}:{SYNC_PORT}/state" for name in tailnet_peers()]
+    if not urls:
         return False
-    marker["last_success"] = now().isoformat(timespec="seconds")
-    _save_sync_marker(marker)
 
     local = load_state()
-    try:
-        merged = merge_states(local, data.get("state", {}))
-    except Exception:
+    merged = local
+    any_success = False
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for data in pool.map(_fetch_state, urls):
+            if not isinstance(data, dict) or not isinstance(data.get("state"), dict):
+                continue
+            any_success = True
+            try:
+                merged = merge_states(merged, data["state"])
+            except Exception:
+                continue
+    if not any_success:
         return False
+
+    marker["last_success"] = now().isoformat(timespec="seconds")
+    _save_sync_marker(marker)
     if merged != local:
         save_state(merged)
         return True

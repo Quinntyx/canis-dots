@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+try {
+  const auth = JSON.parse(
+    fs.readFileSync(path.join(os.homedir(), ".config/pi/agent/auth.json"), "utf8"),
+  );
+  const credential = auth["cliproxyapi-ambassator"];
+  if (credential?.type !== "api_key" || typeof credential.key !== "string" || !credential.key.trim()) {
+    throw new Error("missing credential");
+  }
+  process.stdout.write(credential.key.trim());
+} catch {
+  process.stderr.write("Ambassator API key unavailable in ~/.config/pi/agent/auth.json\n");
+  process.exitCode = 1;
+}

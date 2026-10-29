@@ -2,8 +2,9 @@
 name: parametric
 description: "Use when a part or assembly must conform to stated requirements — parametric
   design with build123d in Python: dimension-driven solids built from specified dimensions,
-  tolerances, fits, and interface geometry, exported as STEP/STL and verified by measurement.
-  Organic, appearance-driven modeling, sculpting, rendering, and animation select the
+  tolerances, fits, and interface geometry, exported as STEP/STL, verified by measurement, and
+  documented with explicit first-angle technical drawing views when requested. Organic,
+  appearance-driven modeling, sculpting, rendering, and animation select the
   non-parametric branch (`../non-parametric/SKILL.md`)."
 metadata:
   type: procedure
@@ -29,6 +30,8 @@ metadata:
 - Measured verification against the brief's acceptance set: each requirement reported as
   target, measured value, margin, and pass/fail, including solid validity and round-trip
   agreement.
+- When requested, a first-angle multiview technical drawing sheet with the acceptance set's
+  dimensions — explicit view types, not photorealistic renders.
 - `cad-report.md` covering the parameter table, requirement checks, versions, commands,
   artifact paths, and verification limits.
 - Capability-limited output explicitly identifies which stages ran and which remain pending.
@@ -47,7 +50,7 @@ metadata:
    is an ephemeral route that fetches only into uv's cache; use it when fetching is acceptable
    for the task, otherwise report the missing capability and leave installation to the user
    (for example `uv pip install --user build123d`).
-3. A probed environment proceeds to Stage 2: Plan. A missing capability ends at Stage 6: Report
+3. A probed environment proceeds to Stage 2: Plan. A missing capability ends at Stage 7: Report
    with the pending artifacts.
 
 ## Stage 2: Plan the parameter set
@@ -62,7 +65,7 @@ metadata:
    or mesh and probe bounding boxes and sections — instead of trusting stated numbers.
 4. State units and axis conventions explicitly (build123d models millimeters by default).
    Inspection-only work proceeds to Stage 4: Verify by measurement, and then returns findings
-   from Stage 6: Report without exporting. Part creation proceeds to Stage 3: Build.
+   from Stage 7: Report without exporting. Part creation proceeds to Stage 3: Build.
 
 ## Stage 3: Build the parametric solid
 
@@ -86,7 +89,7 @@ metadata:
    nonzero when any requirement fails.
 3. Rerun Stage 3 with adjusted parameters until every modeled requirement passes. Requirements
    that are not geometry (finish, strength, appearance) stay unverified and are reported as such
-   in Stage 6.
+   in Stage 7.
 4. Creation work proceeds to Stage 5: Export and round-trip check.
 
 ## Stage 5: Export and round-trip check
@@ -100,9 +103,29 @@ metadata:
 3. When a visual check is requested, export STL and use the non-parametric branch's render
    pipeline (`../non-parametric/SKILL.md`). The numeric acceptance set remains the part's
    completion condition.
-4. Proceed to Stage 6: Report.
+4. Proceed to Stage 6: Technical drawing when a sheet is requested, otherwise to Stage 7: Report.
 
-## Stage 6: Report
+## Stage 6: Technical drawing (when requested)
+
+1. When the deliverable includes an engineering sheet rather than a photorealistic render, run
+   the owned helper with the Stage 1 interpreter:
+   `python3 bin/part-drawing.py --part <exported STEP> --out part-sheet.svg --name <part>
+   --dims part-dims.json`. It projects a fixed, explicit first-angle view set — front,
+   top placed below the front view, the left-hand view placed right of front, plus an
+   isometric — with hidden-line removal, dimension callouts, a center mark, and a title block
+   stating scale, units, and projection (verified against build123d 0.13.0, 2026-10-28).
+   Convert the SVG to PNG with `rsvg-convert` when a raster is requested.
+2. Dimension callouts come from the Stage 2 parameter table: one annotation per requirement,
+   labeled with its target value, in model millimeters (linear between two points; diameters on
+   the view whose circular face is planar to the sheet). Drawings draw no decorative dimensions;
+   a callout set that differs from the acceptance set goes back to Stage 2 first.
+3. The helper fixes the view set deterministically instead of letting the model pick camera
+   settings: orthographic by construction, first-angle placement, with mis-specified annotations
+   exiting nonzero rather than silently altering the sheet. Photorealistic
+   renders remain the non-parametric branch's pipeline.
+4. Proceed to Stage 7: Report.
+
+## Stage 7: Report
 
 1. For created parts, write `cad-report.md`: the parameter table, a requirement table with
    target, measured, margin, and pass/fail per item including unverified requirements, script

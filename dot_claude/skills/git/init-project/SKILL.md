@@ -22,7 +22,7 @@ metadata:
 - A T3 project registered against the ordinary source anchor when registration is assigned.
 - For hosted personal bootstrap: canonical Forgejo repository, same-visibility server-side GitHub
   mirror, accepted initial commit, published `main`/`dev` refs, and exact-revision CI/mirror receipts.
-- No pre-created development worktree or Pi session relocation. T3 allocates thread/delegate
+- No pre-created development worktree. T3 allocates thread/delegate
   worktrees later against the registered project and committed source baseline.
 
 # Entrypoint
@@ -105,7 +105,7 @@ metadata:
    absolute tool paths or `git -C`; report a ready project rather than claiming the thread moved.
 3. Same-project own-thread worktree moves belong to `t3_worktree_handoff`, after
    `t3_worktree_status`, as a final call with a continuation prompt. It cannot rebind an unrelated
-   scratch thread to a new project. Do not attempt shell worktrees or Pi session-command substitutes.
+   scratch thread to a new project. Use managed thread tools rather than shell worktrees.
 4. Delegates in the bound project use `delegate_task(isolation:'worktree')`; T3 chooses their
    prepared checkout from the coordinator's committed baseline. New top-level project threads use
    `t3_thread_launch` with explicit workspace strategy only when the user requests a new thread.

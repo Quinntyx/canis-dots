@@ -54,7 +54,7 @@ metadata:
 4. Existing branches and narrower source/coordinator scope are valid. Do not require a branch push
    merely to begin editing, or redirect an assigned source branch without a reason.
 5. Ready source goes to Stage 3: Develop. A repository/project binding mismatch goes to Stage 7 with
-   a source handoff; it does not authorize a new top-level thread or Pi session relocation.
+   a source handoff; it does not authorize a new top-level thread.
 
 ## Stage 3: Develop and verify source
 
@@ -109,7 +109,7 @@ metadata:
 3. Exercise the relevant installed startup/acceptance boundary in isolated representative storage.
    Record discovery/startup/behavior separately from live-session activation. Use a supported active
    reload/restart only when available and in scope; otherwise report that a fresh session is needed.
-4. T3 binding is not changed by shell `cd` or Pi `/move`. This procedure does not start a new thread.
+4. T3 binding is not changed by shell `cd`. This procedure does not start a new thread.
    For requested project/thread allocation follow init-project's T3 ownership route, then report.
 
 ## Stage 7: Report

@@ -113,14 +113,6 @@
       "revision": "129f07307e601a081bb80761fdaf4a966a33c17e"
     },
     {
-      "name": "@quinntyx/pi-session-quota",
-      "declaration": "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev",
-      "source": "~/.config/pi/profiles/t3main/git/git.quinntyx.dev/quinntyx/pi-session-quota",
-      "version": "0.1.0",
-      "ref": "dev",
-      "revision": "e13b201f914fa10f24de57b77c89f09d9fd5ea72"
-    },
-    {
       "name": "pi-continue",
       "declaration": "git:git.quinntyx.dev/quinntyx/pi-continue@main",
       "source": "~/.config/pi/profiles/t3main/git/git.quinntyx.dev/quinntyx/pi-continue",
@@ -299,14 +291,6 @@
       "source": "~/.config/pi/profiles/t3main/skills/wrangler",
       "files": 1,
       "treeSha256": "dce455f820801c060407808bbe9de45a0a814d7bee87bd8277acca669e9a7a53"
-    },
-    {
-      "name": "notebook-workflow",
-      "kind": "claude-adaptation",
-      "source": "~/.config/pi/profiles/t3main/git/git.quinntyx.dev/quinntyx/pi-pycells/skills/notebook-workflow",
-      "files": 1,
-      "treeSha256": "9608d327adc637aedf495c89a80ace10e3f51d61fc60b7a3b9ff384b8660af6d",
-      "revision": "0a27749380314f0593abfa455704fd336b06e10b"
     },
     {
       "name": "librarian",
@@ -1714,7 +1698,7 @@
     },
     {
       "path": "dot_claude/skills/git/init-project/SKILL.md",
-      "sha256": "fa572b1f457b2c40e84d1b3766d828513db4fd52e4224bced02d751e9e603c69"
+      "sha256": "03629c4cb31a77347749ac1856e71330720ae8381938649b9ffbb408010c7aff"
     },
     {
       "path": "dot_claude/skills/git/issues/SKILL.md",
@@ -1742,7 +1726,7 @@
     },
     {
       "path": "dot_claude/skills/pi-plugin/SKILL.md",
-      "sha256": "b91aca1c3e5f29bc175bdba0923628630f9abe50d8ce9dd81e413d23c63209cc"
+      "sha256": "0dcecd28d97a5e1d1bc5c97714ef3755f5f58857354297f53685f4694a398234"
     },
     {
       "path": "dot_claude/skills/profiling/bin/executable_profile-run",
@@ -1818,11 +1802,7 @@
     },
     {
       "path": "dot_claude/skills/visual-design/SKILL.md",
-      "sha256": "be0063d592a5875140f263ed7714780d434432ed1f0e9f08176e13e8e0628a04"
-    },
-    {
-      "path": "dot_claude/skills/notebook-workflow/SKILL.md",
-      "sha256": "517f21c7ce091644a33f90723c99b6567588c5ae188e8348406b80cb932852c5"
+      "sha256": "589e5ff79baece843fbadeeaf9dc84e65083f64ea072cc6407167c39faadc9ca"
     },
     {
       "path": "dot_claude/skills/librarian/LICENSE",

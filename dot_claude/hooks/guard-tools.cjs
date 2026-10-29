@@ -21,7 +21,7 @@ function policyReason(event) {
   if (RM.test(command)) return '`rm` is blocked. Use `trash <path>` for recoverable deletion; if trash is unavailable, stop and ask. Git removals should use `git rm --cached` or trash followed by staging.';
   const search = command.match(SEARCH);
   if (search) return `${search[2]} is blocked. Use rg for text searches and rg --files -g '<glob>' for file discovery. git grep and git log --grep= remain allowed.`;
-  if (HEREDOC.test(command) || INLINE.test(command)) return 'Inline Python (-c or a stdin heredoc) is blocked. Use a verified notebook MCP if available; otherwise Write a .py file and run it with Bash. Native NotebookEdit edits cells but does not execute them. Do not retry to bypass this rule.';
+  if (HEREDOC.test(command) || INLINE.test(command)) return 'Inline Python (-c or a stdin heredoc) is blocked. Write a .py file and run it with Bash using an existing project runtime. Do not retry to bypass this rule.';
   return null;
 }
 module.exports = { policyReason };

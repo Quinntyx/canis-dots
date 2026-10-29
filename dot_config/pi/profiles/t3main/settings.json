@@ -51,7 +51,6 @@
     "git:git.quinntyx.dev/quinntyx/pi-update-command",
     "git:git.quinntyx.dev/quinntyx/pi-idle-time@dev",
     "git:github.com/Quinntyx/billion-context-pi@dev",
-    "git:git.quinntyx.dev/quinntyx/pi-session-quota@dev",
     "git:git.quinntyx.dev/quinntyx/pi-continue@main",
     "git:git.quinntyx.dev/quinntyx/pi-codex-disconnect-retry@main",
     "git:git.quinntyx.dev/quinntyx/pi-opencode-zen-free@v0.2.0"

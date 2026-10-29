@@ -126,8 +126,8 @@ metadata:
 - For requested T3 HTML showback discover `html_preview` then `html_render`; supply actual HTML.
   These are MCP capabilities, not Claude built-ins. With no renderer, deliver the artifact and
   state the presentation boundary. Native `Artifact` has different account/publication semantics.
-- Use an existing project/image runtime for comparisons; no persistent Python kernel or automatic
-  figure attachment is assumed. Keep viewport, scale, theme, data, readiness, and revision matched.
+- Use an existing project/image runtime for comparisons and inspect its saved output. Keep
+  viewport, scale, theme, data, readiness, and revision matched.
 - For generated imagery or image edits discover an already configured generator and verify its
   output contract. Native image Read, browser screenshots, HTML, and Blender are not substitutes
   for that API. Use licensed existing assets or report the missing generation capability.

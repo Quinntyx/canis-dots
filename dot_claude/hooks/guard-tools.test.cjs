@@ -14,6 +14,11 @@ for (const command of ['trash x', 'rg pattern file', 'rg --files -g "*.md"', 'gi
 for (const tool_name of ['Write','Edit','NotebookEdit']) {
   test(`protects .env through ${tool_name}`, () => assert.ok(policyReason({tool_name,tool_input:{file_path:'/tmp/.env.local',notebook_path:'/tmp/.env.ipynb'}})));
 }
+test('inline Python guidance uses saved scripts without retired notebook services', () => {
+  const reason = policyReason({tool_name:'Bash',tool_input:{command:'python3 -c "print(1)"'}});
+  assert.match(reason, /\.py file/);
+  assert.doesNotMatch(reason, /notebook|kernel|MCP/i);
+});
 test('does not prohibit reading env files', () => assert.equal(policyReason({tool_name:'Read',tool_input:{file_path:'/tmp/.env'}}), null));
 test('unrelated tool is untouched', () => assert.equal(policyReason({tool_name:'Agent',tool_input:{}}), null));
 test('normal edits work', () => assert.equal(policyReason({tool_name:'Edit',tool_input:{file_path:'/tmp/config.json'}}), null));

@@ -12,19 +12,15 @@
 - Follow `~/.claude/skills/edit-config/SKILL.md` for persistent configuration. Claude has no Pi
   profile selector. Resolve Pi's active profile only when Pi is the requested configuration target.
 
-## Programmatic analysis and notebooks
+## Programmatic analysis
 
 - Prefer programmatic aggregation for bulk conversion, repeated file work, scans, grouping and
   comparisons. Keep large intermediate results in local artifacts; return compact counts/tables.
-- For a notebook task read the notebook-workflow skill. Prefer an existing persistent notebook MCP
-  if actually configured; otherwise use the project's existing runner through Bash and NotebookEdit.
-  NotebookEdit only edits cells. Separate Bash processes do not preserve Python variables.
-- No Pi kernel tools, preimported np/pd/plt, automatic figure attachments, namespace inspection or
-  private cell-review cards are assumed. Report a missing runner rather than claiming execution.
-- Write Python into a `.py` file before running it. Never use Python `-c` or stdin heredocs. For a
-  numerical chart use an existing Python/project runtime, save an image and inspect the actual file.
-- One simple lookup does not need a notebook. If a preferred runtime is unavailable, use a saved
-  script or another existing suitable programmatic runtime and state the relevant limitation.
+- Write Python into a `.py` file before running it with an existing project runtime through Bash.
+  Never use Python `-c` or stdin heredocs. For a numerical chart save an image and inspect the file.
+- Native NotebookEdit remains available for editing notebook cells; editing is not execution.
+- One simple lookup does not need a script. If a preferred runtime is unavailable, use another
+  existing suitable programmatic runtime and state the relevant limitation.
 
 ## File and command safety
 
@@ -109,9 +105,8 @@
   grant browser permission; use an existing repo-approved capture route or report that boundary.
 - Respect tab ownership and server-versus-desktop reachability. A page's exposed tools provide data
   only, not agent deliverable creation/display. Close owned temporary check tabs when finished.
-- Image generation, Pi codemode, reversible ACP compression/cache accounting and Pi session-move
-  have no assumed native equivalent. See MIGRATION.md for gaps; use supported services only after
-  discovery, not pretend tool names or manual transcript surgery.
+- Image generation and Pi codemode have no assumed native equivalent. See MIGRATION.md for gaps;
+  use supported services only after discovery, not pretend tool names.
 
 ## User intent and communication
 

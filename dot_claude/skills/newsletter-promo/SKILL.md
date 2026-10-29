@@ -1,6 +1,6 @@
 ---
 name: newsletter-promo
-description: Turn a newsletter edition into a 12-20 second promo clip for LinkedIn, Instagram or X that drives people to read and subscribe. Hook question, three proof frames from the edition, then the newsletter name and where to read it. Use when someone says "promo for my newsletter", "trailer for this edition", "get people to my Substack", "teaser video" or "promote this issue".
+description: Turn a newsletter edition into a 12-20 second promo clip for LinkedIn, Instagram or X that drives people to read and subscribe. Hook question, three proof frames from the edition, then the newsletter name and where to read it. Use when someone wants a promo, trailer or teaser for a newsletter issue, such as "promo for my newsletter", "trailer for this edition", "get people to my Substack" or "promote this issue". For a product launch use launch-video; for an animated cover GIF use loop-cover.
 ---
 
 # Newsletter promo, built in code

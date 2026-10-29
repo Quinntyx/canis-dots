@@ -1,6 +1,6 @@
 ---
 name: brand-intake
-description: The setup step every other skill in this pack reads. A short interview plus 3 to 5 reference frames becomes two files in your project, brand.md (who you are, what you sell, your assets) and MOTION.md (your colours, type, timing and motion rules), plus a rule in CLAUDE.md so Claude reads them before it animates anything. Use at the start of any motion project, or when someone says "set up my brand", "brand intake", "build my motion design system", "make it look like my brand", "onboard me", "write my MOTION.md" or drops a batch of brand frames into chat.
+description: The setup step every other skill in this motion-graphics pack reads. A short interview plus 3 to 5 reference frames becomes two files in the project, brand.md (who you are, what you sell, your assets) and MOTION.md (your colours, type, timing and motion rules), plus a rule in its CLAUDE.md so Claude reads them before it animates anything. Use at the start of a motion-graphics or video project, or when someone says "brand intake", "build my motion design system", "write my MOTION.md" or drops brand frames into chat to set up animations. For UI design, visual identity or layout work that is not video, use visual-design.
 ---
 
 # Brand intake

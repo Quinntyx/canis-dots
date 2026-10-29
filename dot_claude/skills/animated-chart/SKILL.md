@@ -1,6 +1,6 @@
 ---
 name: animated-chart
-description: Make a looping animated chart for LinkedIn or a newsletter in code with Claude Code. Bars that become a line, a number that counts up, a before and after. Every value stays exactly as given. Use when someone says "animate my chart", "animated graph", "make my results move", "stat animation" or wants a data graphic that loops.
+description: Make a looping animated chart clip (MP4 or GIF) for LinkedIn or a newsletter in code with Claude Code. Bars that become a line, a series that builds, a before and after. Every value stays exactly as given. Use when someone wants their own data turned into a motion video or GIF for a post, such as "animate my chart", "animated graph", "make my results move" or "stat animation". For a single headline number use milestone-reveal; for a static, interactive or dashboard chart use dataviz.
 ---
 
 # Animated chart, built in code

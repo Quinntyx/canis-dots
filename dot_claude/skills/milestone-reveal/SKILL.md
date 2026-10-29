@@ -1,6 +1,6 @@
 ---
 name: milestone-reveal
-description: Make a 12-second looping milestone clip in code with Claude Code. Thousands of tiny points drift like a night sky, pull together into your real number (followers, subscribers, revenue, customers), a line draws underneath and the label settles in. Premium, not a party. Use when someone says "milestone video", "celebrate 10k followers", "animate my subscriber count", "number reveal", "particle number animation" or wants to mark a result on LinkedIn or Instagram.
+description: Make a 12-second looping milestone clip in code with Claude Code. Thousands of tiny points drift like a night sky, pull together into one real number (followers, subscribers, revenue, customers), a line draws underneath and the label settles in. Premium, not a party. Use when someone wants to celebrate a single milestone number, such as "milestone video", "celebrate 10k followers", "animate my subscriber count", "number reveal" or "particle number animation". For a chart or several values use animated-chart; for a particle logo use motion-effects.
 ---
 
 # Milestone reveal, built in code

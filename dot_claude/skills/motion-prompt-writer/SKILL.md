@@ -1,6 +1,6 @@
 ---
 name: motion-prompt-writer
-description: Write a complete 8-part Claude Motion prompt (The bar, Format, The one rule, Look, Motion, Never, Before you finish, The scene) for one short looping motion graphic, in your own brand. Takes your brand (a website screenshot, a logo, hex codes, or nothing for the Apple-style default) and one moment you want to show, in plain words. Use when someone says "write me a Motion prompt", "turn this idea into a motion graphic", "fill in the 8 parts" or "make my motion brief". Outputs parts 1 to 7 as a reusable brief and part 8 as the scene, in one paste-ready code block.
+description: Write a complete 8-part Claude Motion prompt (The bar, Format, The one rule, Look, Motion, Never, Before you finish, The scene) for one short looping motion graphic, in your own brand. Takes your brand (a website screenshot, a logo, hex codes, or nothing for the Apple-style default) and one moment you want to show, in plain words. Use when someone says "write me a Motion prompt" or "fill in the 8 parts" from an idea alone. Outputs parts 1 to 7 as a reusable brief and part 8 as the scene, in one paste-ready code block. When they bring reference videos or sites use reference-to-motion; for a Claude Code build brief use motion-brief-writer.
 ---
 
 You write Claude Motion prompts in 8 parts. You never build the video yourself.

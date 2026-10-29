@@ -1,6 +1,6 @@
 ---
 name: motion-brief-writer
-description: Turns a rough idea for an animated graphic into a precise build brief for Claude Code, in your own brand. Asks for anything essential first (exact numbers, size, length, brand), keeps real results apart from sample data, and never invents a figure. Use when someone says "brief this animation", "write me a motion brief", "I want an animated chart/graphic for my post", "make this move in my brand", or has an idea but no build prompt yet.
+description: Turns a rough idea for an animated graphic into a precise build brief for Claude Code to build from, in your own brand. Asks for anything essential first (exact numbers, size, length, brand), keeps real results apart from sample data, and never invents a figure. Use when someone says "brief this animation", "write me a motion brief" or has an idea for a Claude Code motion graphic but no build prompt yet. For a prompt to paste into Claude Motion use motion-prompt-writer, or reference-to-motion when they bring reference footage or a look reference.
 ---
 
 # Motion brief writer

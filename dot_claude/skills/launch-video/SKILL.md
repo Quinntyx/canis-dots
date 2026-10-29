@@ -1,6 +1,6 @@
 ---
 name: launch-video
-description: Make a 30-45 second product launch video in code with Claude Code, the kind SaaS companies post on launch day. One sentence split across scenes, real product screens with slow camera moves, a typed prompt, a proof beat and a clear call to action. Use when someone says "launch video", "promo video for my product", "announce my course/cohort/offer", "make a launch reel" or "trailer for my product".
+description: Make a 30-45 second product launch video in code with Claude Code, in the user's own brand, the kind SaaS companies post on launch day. One sentence split across scenes, real product screens with slow camera moves, a typed prompt, a proof beat and a clear call to action. Use when someone says "launch video", "promo video for my product", "announce my course/cohort/offer", "make a launch reel" or "trailer for my product". For the Apple/macOS notch look use apple-launch-film; for promoting a newsletter edition use newsletter-promo.
 ---
 
 # Launch video, built in code

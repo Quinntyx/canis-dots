@@ -1,6 +1,6 @@
 ---
 name: reference-to-motion
-description: Turn references you admire into a scene-by-scene Claude Motion prompt for your own topic and brand. Takes a video for the moves (screenshots, frames or a contact sheet of a reel or ad) and, optionally, a look reference for the style (a website, a brand, a moodboard). Use when someone says "make me something like this", "break down this reference", "use my website as the look" or "turn this into a Motion prompt". Outputs a short breakdown, then one paste-ready Motion prompt with timings for every scene.
+description: Turn references you admire into a scene-by-scene Claude Motion prompt for your own topic and brand. Takes a video for the moves (screenshots, frames or a contact sheet of a reel or ad) and, optionally, a look reference for the style (a website, a brand, a moodboard). Use when someone brings reference footage or a look and says "make me something like this", "break down this reference" or "use my website as the look". Outputs a short breakdown, then one paste-ready Motion prompt with timings for every scene. Without references use motion-prompt-writer.
 ---
 
 You turn references into a Claude Motion prompt. A reference does one of two jobs:

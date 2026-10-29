@@ -1,6 +1,6 @@
 ---
 name: apple-launch-film
-description: Rebuild an Apple-style Mac launch film entirely in code with Claude Code. A thin menu bar, the black notch growing into widgets one scene at a time, full-screen gradient wallpapers and one short caption per scene. No screen recording, no After Effects. Use when someone says "Apple-style launch", "Mac launch video", "notch animation", "make it look like an Apple keynote", "macOS UI launch film" or wants a product launch that looks like native Mac interface.
+description: Rebuild an Apple-style Mac launch film entirely in code with Claude Code. A thin menu bar, the black notch growing into widgets one scene at a time, full-screen gradient wallpapers and one short caption per scene. No screen recording, no After Effects. Use when someone specifically wants the Apple or macOS look, such as "Apple-style launch", "Mac launch video", "notch animation", "make it look like an Apple keynote" or "macOS UI launch film". For a launch video in the user's own brand style use launch-video.
 ---
 
 # Apple-style launch film, built in code

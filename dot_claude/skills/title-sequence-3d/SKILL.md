@@ -1,6 +1,6 @@
 ---
 name: title-sequence-3d
-description: Make a cinematic 3D title sequence (8-15 seconds) in code with Claude Code and Three.js. A camera moves through a lit scene, such as a rainy street at night with brand names as neon signs, then a big question or title lands. Use when someone wants a scroll-stopping opener, a film-style intro, "3D intro", "cinematic opening", "title sequence" or a hook for a video, reel or newsletter.
+description: Make a cinematic 3D title sequence video (8-15 seconds) in code with Claude Code and Three.js. A camera moves through a lit scene, such as a rainy street at night with brand names as neon signs, then a big question or title lands. Use when someone wants a scroll-stopping opener or film-style intro for a video, reel or newsletter, such as "title sequence", "cinematic opening" or "3D intro video". For modeling, Blender files, physical parts or other 3D scenes and renders use 3d.
 ---
 
 # 3D title sequence, built in code

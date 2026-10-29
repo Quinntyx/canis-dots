@@ -1,0 +1,134 @@
+---
+name: visual-design
+description: "Use when designing, implementing, comparing, or reviewing UI, visual identity,
+  responsive layouts, or autonomous screenshot-based design variants."
+metadata:
+  type: procedure
+---
+
+# Contract
+
+## Input Contract
+
+- A product goal or existing UI, repository path, requested deliverable, and editing authority.
+- Existing visual assets, design constraints, and target platform inferred from the project.
+- A task-local output directory when screenshots, design files, or a comparison report are needed.
+- Existing browser or application capture tools, or permission to run a local preview.
+- Autonomous work is the default within an authorized design request. Interactive markup requires
+  an explicit request for a user-driven review session.
+
+## Output Contract
+
+- A purposeful, runnable design or an evidence-backed review within the requested product scope.
+- Rendered evidence for runnable work, with viewport, revision, theme, and route metadata. Reviews
+  of supplied artifacts use that evidence and identify its limits.
+- A comparison report or design artifacts when part of the deliverable; advice returns the
+  requested critique or design direction directly.
+- For variants, a reasoned recommendation and concrete features worth combining from each version.
+- Preserved product identity and established visual constraints within the requested change scope.
+  Autonomous completion describes validation, separately from human approval.
+
+# Entrypoint
+
+## Stage 1: Resolve mode and ownership
+
+1. Read the brief, repository instructions, current UI, and existing assets. Infer missing ordinary
+   details from evidence; ask only about ambiguity that changes authority or the product's purpose.
+2. Identify the primary user task, target routes, viewports, and existing workflow integrations.
+   Keep the requested scope and use the actual product's terminology and content.
+3. If interactive annotation or a designer review session was explicitly requested, proceed to
+   Stage 2: Interactive handoff. For design advice or a review of supplied artifacts, proceed to
+   Stage 5 using that evidence. For authorized runnable work, proceed to Stage 3: Autonomous design.
+
+## Stage 2: Interactive handoff
+
+1. Preserve the brief/artifacts and use the requested available review interface. Self-contained
+   mockups can use T3 `html_preview` then `html_render` when presenting a visual is part of the task.
+   Use preview browser tools only with current browser-work/page/tab scope under
+   `../runtime-verification/SKILL.md`. Interactive design does not require a child automatically;
+   if delegation helps within scope, use the subagents route and a new task for each new review.
+2. If the requested interactivity cannot be delegated (live annotation while you wait), report the
+   missing capability and finish with the preserved brief. Otherwise finish with the review
+   outcome: approved version, iteration history and remaining decisions.
+
+## Stage 3: Autonomous design
+
+1. Record a short design intent: audience, primary task, layout hierarchy, type scale, spacing,
+   palette roles, and one purposeful visual emphasis. Derive choices from the product and brief.
+2. Inventory existing design tokens, assets, rendering and interaction behavior that carry the
+   product's identity. Record relevant paths and settings before editing.
+3. Reuse identity-bearing implementation within the brief's change scope. Evaluate intentional
+   visual changes against the existing design and captured output.
+4. Match the implementation effort to the requested deliverable. Use existing framework and assets;
+   build real navigation, selection, forms, focus, and state transitions for the primary task.
+   Represent unavailable services with explicit local state and disclose the boundary in the report.
+5. Work directly for one design. Requested variants/concurrent same-repo contributors use T3-managed
+   writer allocation through the subagents procedure. Record baseline and runnable command; never
+   create worker worktrees in the shell. Preserve existing user and project state.
+6. Implement hierarchy, density, keyboard access, semantic controls, visible focus, contrast,
+   reduced motion, and responsive layouts. Label actions consistently with their resulting state.
+7. Proceed to Stage 4: Render and exercise.
+
+## Stage 4: Render and exercise
+
+1. Select the shared verification tier and permitted capture route from
+   `../runtime-verification/SKILL.md`. Use T3 preview tools only for current requested browser work
+   or a named page/tab; tool availability alone is not permission. Otherwise use existing approved
+   local capture commands. Do not install another automation stack; preserve user sessions.
+2. If a runnable capture path exists, continue Stage 4. Otherwise record the exact missing command
+   or tool and proceed to Stage 5 with visual validation marked incomplete.
+3. Run the app and capture the requested page set at fixed viewport sizes and device scale. Wait
+   for fonts, assets, layout, and renderer initialization. Record capture settings and revision.
+4. Exercise the primary workflow, keyboard navigation, selected states, scrolling, theme switching,
+   and relevant empty, loading, and failure states. Capture states that reveal layout or behavior.
+5. Inspect actual images. Check edge clipping, backgrounds, nested scroll behavior, interaction
+   feedback, visual identity, legibility, and console errors against the brief and baseline.
+6. For fidelity work, align viewport, scale, theme, data, and animation phase before comparison.
+   Produce side-by-side images and a pixel-difference image using an available image library.
+   Record changed regions and alignment limits; distinguish rendering noise from layout changes.
+7. If observed defects remain within the authorized scope, fix them and repeat Stage 4. Otherwise
+   proceed to Stage 5: Compare and report with any remaining defects explicitly identified.
+
+## Stage 5: Compare and report
+
+1. Verify the requested deliverable with the relevant checks. For runnable changes, run build and
+   interaction checks. Associate captures with their revision, route, theme, and viewport; artifact
+   reviews and design advice use the supplied evidence and describe any unrendered proposals.
+2. Requested comparisons or substantial retained evidence use `visual-report.md` with image links.
+   A focused change can use a short receipt with its decisive capture/check instead of another report
+   file. Advice and supplied-artifact reviews return the critique directly. Continue at step 3.
+3. For each design, describe observed workflow choices, fidelity, interaction completeness,
+   accessibility, and visual tradeoffs. Tie judgments to rendered evidence and exercised behavior.
+4. For multiple variants, recommend one with reasons and identify useful elements from the others.
+   For one design, summarize baseline changes and remaining limits. Use observed findings rather
+   than numeric self-ratings as the quality evidence.
+5. Report changed paths, runnable preview command, checks, report location, and blocked validation.
+   Release only owned preview resources when their useful lifetime ends.
+
+# Visual judgment
+
+- Hierarchy: one clear primary task/action, readable grouping, and subordinate secondary controls;
+  do not give every region equal weight or add decoration that obscures the workflow.
+- Typography and density: deliberate type/spacing scales, comfortable line lengths, consistent
+  alignment, and density suited to the product. Use real content to expose wrapping/overflow.
+- Color and material: tokens with semantic roles, sufficient contrast, and restrained emphasis.
+  Preserve product identity; a generic gradient/card treatment is not a design rationale.
+- Interaction: controls look and behave consistently in default, focus, hover, selected, disabled,
+  loading, empty, and error states relevant to the task. Check keyboard and reduced-motion paths.
+- Responsiveness: hierarchy and action reachability survive actual narrow/wide content and viewport
+  changes; resizing a desktop composition without changing its priorities is not enough.
+- Compare against the brief and baseline with concrete observed tradeoffs, not personal numeric
+  scores or claims that an unseen implementation is polished.
+
+# Claude Code capability adapter
+
+- Inspect saved images with native `Read`. Capture and image generation are separate capabilities.
+- For requested T3 HTML showback discover `html_preview` then `html_render`; supply actual HTML.
+  These are MCP capabilities, not Claude built-ins. With no renderer, deliver the artifact and
+  state the presentation boundary. Native `Artifact` has different account/publication semantics.
+- Use an existing project/image runtime for comparisons; no persistent Python kernel or automatic
+  figure attachment is assumed. Keep viewport, scale, theme, data, readiness, and revision matched.
+- For generated imagery or image edits discover an already configured generator and verify its
+  output contract. Native image Read, browser screenshots, HTML, and Blender are not substitutes
+  for that API. Use licensed existing assets or report the missing generation capability.
+- Keep the current browser-work permission gate; missing capture does not authorize another stack.

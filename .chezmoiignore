@@ -109,4 +109,5 @@ docs/backups/araveia/reference
 # syssec-canis has no mail installation; retain the skill source for mail-capable hosts.
 {{ if eq .chezmoi.hostname "syssec-canis" }}
 .config/pi/profiles/t3main/skills/aerc-email
+.claude/skills/aerc-email
 {{ end }}

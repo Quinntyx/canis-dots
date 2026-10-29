@@ -5,6 +5,16 @@
     stripComponents = 1
 
 # Upstream-owned skills: no locally edited copies. Refresh through chezmoi, not hand patches.
+[".claude/skills/wrangler/SKILL.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/cloudflare/skills/main/skills/wrangler/SKILL.md"
+    refreshPeriod = "168h"
+
+[".claude/skills/freya/SKILL.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/marc2332/freya/main/plugins/freya/skills/freya/SKILL.md"
+    refreshPeriod = "168h"
+
 [".config/pi/profiles/t3main/skills/wrangler/SKILL.md"]
     type = "file"
     url = "https://raw.githubusercontent.com/cloudflare/skills/main/skills/wrangler/SKILL.md"

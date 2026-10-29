@@ -9,5 +9,36 @@
     "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"
   },
   "model": "claude-opus-5-5",
-  "theme": "auto"
+  "theme": "auto",
+  "permissions": {
+    "deny": [
+      "Edit(**/*.env*)",
+      "Write(**/*.env*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/guard-tools.cjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/timing.cjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }

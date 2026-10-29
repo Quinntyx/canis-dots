@@ -11,7 +11,6 @@
 #
 # Layout (mirrors the filesystem so restore.sh can copy it straight back):
 #   home/       paths relative to $HOME
-#   game-saves/ paths relative to $HOME inside Proton prefixes and game dirs
 #   root/       absolute system paths (root-owned, restored as-is)
 #   reference/  copies kept for reading only; restore.sh regenerates these
 set -euo pipefail
@@ -21,8 +20,8 @@ user=${SUDO_USER:-$(id -un)}
 home=$(getent passwd "$user" | cut -d: -f6)
 
 umask 077
-mkdir -p "$here/home" "$here/game-saves" "$here/root" "$here/reference"
-chmod 700 "$here" "$here/home" "$here/game-saves" "$here/root" "$here/reference"
+mkdir -p "$here/home" "$here/root" "$here/reference"
+chmod 700 "$here" "$here/home" "$here/root" "$here/reference"
 
 missing=()
 
@@ -95,13 +94,11 @@ home_paths=(
 	.local/share/Steam/userdata
 )
 
-# Saves that live inside a Proton prefix or a game's install directory. These
-# go to game-saves/ and restore.sh copies them back only once Steam has
-# created the directory around them.
+# Saves inside Proton prefixes and game install directories. restore.sh puts
+# them back before Steam reinstalls the games, which then fills in around them.
 steam=.local/share/Steam/steamapps
-game_paths=("$steam/common/Subnautica/SNAppData" "$steam/common/SubnauticaZero/SNAppData")
-for d in "$home/$steam"/compatdata/*/pfx/drive_c/users/steamuser; do
-	[[ -d "$d" ]] && game_paths+=("${d#"$home/"}")
+for d in "$home/$steam"/compatdata/*/pfx/drive_c/users/steamuser "$home/$steam"/common/Subnautica*/SNAppData; do
+	[[ -d "$d" ]] && home_paths+=("${d#"$home/"}")
 done
 
 # Databases apps keep open (T3 Code is likely running during the backup).
@@ -167,10 +164,6 @@ for rel in "${live_dbs[@]}"; do
 	fi
 done
 
-echo "==> game saves"
-for rel in "${game_paths[@]}"; do
-	[[ -e "$home/$rel" ]] && rsync -aR --delete "$home/./$rel" "$here/game-saves/"
-done
 
 # The docs disk's fstab line, so restore.sh can mount it permanently.
 awk -v m="$home/docs" '$2 == m' /etc/fstab >"$here/reference/docs-fstab-line"
@@ -228,5 +221,5 @@ chown "$user:" "$here/reference"/*.txt "$here/reference/docs-fstab-line" \
 if ((${#missing[@]})); then
 	printf 'not present (skipped): %s\n' "${missing[@]}" >&2
 fi
-du -sh "$here/home" "$here/game-saves" "$here/root" "$here/reference" 2>/dev/null
+du -sh "$here/home" "$here/root" "$here/reference" 2>/dev/null
 echo "snapshot complete: $(cat "$here/reference/snapshot-date")"

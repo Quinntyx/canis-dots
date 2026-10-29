@@ -46,7 +46,6 @@ docs/host/forgejo/forgejo/gitea/conf/
 
 # ---- araveia reinstall backup: secrets and app data, only the scripts are managed ----
 docs/backups/araveia/home
-docs/backups/araveia/game-saves
 docs/backups/araveia/root
 docs/backups/araveia/reference
 

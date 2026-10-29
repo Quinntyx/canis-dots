@@ -6,7 +6,6 @@
 #   2. Mount the docs disk:  sudo mount UUID=40eda021-8152-4dab-8be2-f19307298da2 ~/docs
 #   3. sudo ~/docs/backups/araveia/restore.sh
 #   4. Reboot.
-#   5. After launching Proton games once: sudo ~/docs/backups/araveia/restore.sh game-saves
 #
 # Each step reports failure and the script carries on; the summary lists what
 # needs attention. Every step is idempotent, so re-run after fixing anything.
@@ -218,27 +217,6 @@ home_data() {
 	rsync -a --chown="$user:$user" "$here/home/" "$home/"
 }
 
-game_saves() {
-	# Each save goes back only once Steam has created the prefix or install
-	# directory it lives in; re-run with 'game-saves' after launching games.
-	local rel pending=()
-	while IFS= read -r -d '' rel; do
-		rel=${rel#./}
-		if [[ -d "$home/$(dirname "$rel")" ]]; then
-			rsync -a --chown="$user:$user" "$here/game-saves/$rel/" "$home/$rel/" || return 1
-		else
-			pending+=("~/$rel")
-		fi
-	done < <(cd "$here/game-saves" && find . \( -name steamuser -o -name SNAppData \) -type d -prune -print0)
-	((${#pending[@]} == 0)) && return 0
-	echo "not installed or launched yet (re-run 'restore.sh game-saves' later):" >&2
-	printf '  %s\n' "${pending[@]}" >&2
-}
-
-if [[ "${1:-}" == game-saves ]]; then
-	step "game saves in Proton prefixes and game dirs" game_saves
-	exit $((${#failed[@]} > 0))
-fi
 
 dotfiles() {
 	if [[ ! -d "$home/.local/share/chezmoi/.git" ]]; then
@@ -328,8 +306,7 @@ step "system config, SSH host keys, Tailscale identity" system_files
 step "firewalld zones" firewall
 step "system services" system_services
 step "home layout: Documents, Downloads, Pictures symlinks" home_layout
-step "home: secrets, app data, downloads, ~/src" home_data
-step "game saves in Proton prefixes and game dirs" game_saves
+step "home: secrets, app data, downloads, ~/src, game saves" home_data
 step "chezmoi dotfiles" dotfiles
 step "toolchains: rust, npm, cargo, uv, Claude Code, Pi PTC" toolchains
 step "Forgejo" forgejo
@@ -346,7 +323,6 @@ cat <<EOF
   - gcal-sync: run 'gcal-sync --auth' (its token had already expired before the backup).
   - Sign in again: Discord, Slack, Steam, ChatGPT, Antigravity.
   - T3 Code settings and thread history are back in ~/.t3/userdata; worktrees are not.
-  - Launch each Proton game (and Subnautica) once, then: sudo $here/restore.sh game-saves
   - Check: tailscale status; curl http://$tailnet_ip:8317/v1/models
 EOF
 

@@ -191,6 +191,20 @@ today, and semantically equivalent formulations.
    whose due is tightly coupled to a class block, ask whether it is in-class
    classwork rather than assuming it is take-home work.
 
+## Scope discipline: breakdowns are answers, not schedules (set 2026-10-23)
+
+- When the user asks "what do I have to do / break down X / scan my email for
+  X", the deliverable is the ANSWER — a breakdown, table, or checklist.
+  Deliver it and stop. The user arranges their own time and reports their
+  plan; never create, move, retime, or schedule tasks as a side effect of an
+  informational request, even when a scheduling rule (trip blocks, deadlines)
+  makes placement obvious.
+- The user may have critical scheduling context the stores don't hold (e.g.,
+  family arriving to help, private timelines) — scheduling ahead of their
+  plan will be wrong. Wait for their plan, then schedule what they confirm.
+- After delivering a breakdown, at most ask whether they want it scheduled;
+  don't do it unasked.
+
 ### Session timing discipline
 
 1. Never trust a timestamp from a previous agent turn, not even `date` output
@@ -228,3 +242,18 @@ today, and semantically equivalent formulations.
   model summarizes and keeps its own replies conversational, so there is no
   need to do it on this side. The only meaning the marker carries is
   provenance (the text passed through STT and may be disfluent or segmented).
+
+## Standing scheduling rules (amendments 2026-10-28)
+
+1. MTG / Secret Lair purchases: the user is abstaining from buying sealed
+   MTG product for the next few months (started 2026-10-28). Secret Lair and
+   other drop announcements remain surface-items in the daily brief (alert
+   the user with the drop date), but never auto-create purchase errand
+   blocks. The mail-check standing rule about a 0.5h purchase errand is
+   superseded while this abstention is active; the user resumes purchases on
+   their say-so.
+2. Housing correspondence: the user moved out of Canyon Creek Heights into
+   University Village 4x2 (key deadline 2026-10-26 16:00, verified
+   2026-10-28). Former CCHN staff/resident check-ins (e.g. Behringer 1:1) are
+   no longer obligations; only courtesy replies when a thread is left
+   dangling.

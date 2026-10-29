@@ -70,16 +70,21 @@ home_paths=(
 	.local/share/webnovel-reader
 	.config/webnovel-ai-reader
 	.local/share/daily-assistant
+	.local/state/cliproxyapi         # runtime config and auth snapshots
 	# agent history: T3 Code, OpenCode, Codex
 	.t3/userdata
 	.config/t3code-v2
+	.config/opencode                 # includes antigravity-accounts.json
 	.local/share/opencode
 	.local/state/opencode
 	.codex
 	# files: downloads (unsorted), ~/src checkouts with uncommitted edits and
-	# the NeoForge server worlds
+	# the NeoForge server worlds, CAD work, Element (audio host) sessions
 	downs
 	src
+	cad
+	Music/Element
+	.vst3
 	# game saves without Steam Cloud
 	.factorio/saves
 	.factorio/config
@@ -91,6 +96,15 @@ home_paths=(
 	.local/share/Baba_Is_You
 	.local/share/FasterThanLight
 	".local/share/Space Station 14"
+	.local/share/FBF                 # 100% Orange Juice
+	# Lutris library and Wine runners, and the Battle.net prefix they launch
+	.local/share/lutris
+	Games/battlenet
+	# apps installed outside pacman, and browser profiles
+	Applications/gantry
+	.local/share/gantry
+	Videos
+	.config/chromium
 	.local/share/Steam/userdata
 )
 
@@ -132,6 +146,13 @@ home_excludes=(
 	--exclude='.codex/tmp/'
 	--exclude='.codex/.tmp/'
 	--exclude='.codex/shell_snapshots/'
+	--exclude='.config/opencode/node_modules/'
+	--exclude='.local/state/cliproxyapi/cli-proxy-api*'
+	--exclude='.local/state/cliproxyapi/session-quota-build/'
+	--exclude='.local/share/lutris/runtime/'
+	--exclude='Games/battlenet/GLCache/'
+	--exclude='.config/chromium/**/*Cache/'
+	--exclude='.config/chromium/Singleton*'
 	--exclude='.codex/logs_*.sqlite*'
 )
 
@@ -183,6 +204,7 @@ if [[ $EUID -eq 0 ]]; then
 		/etc/NetworkManager/conf.d/90-dns-systemd-resolved.conf
 		/etc/cups/printers.conf
 		/etc/cups/ppd
+		/etc/nvidia/nvidia-application-profiles-rc.d  # niri VRAM fix for the NVIDIA driver
 	)
 	for p in "${root_paths[@]}"; do
 		if [[ -e "$p" ]]; then

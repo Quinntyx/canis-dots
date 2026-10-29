@@ -322,6 +322,7 @@ cat <<EOF
   - Start niri from a TTY with niri-session (there is no display manager).
   - gcal-sync: run 'gcal-sync --auth' (its token had already expired before the backup).
   - Sign in again: Discord, Slack, Steam, ChatGPT, Antigravity.
+  - Gantry is restored to ~/Applications/gantry; re-run its install.sh if its launcher or deps are missing.
   - T3 Code settings and thread history are back in ~/.t3/userdata; worktrees are not.
   - Check: tailscale status; curl http://$tailnet_ip:8317/v1/models
 EOF

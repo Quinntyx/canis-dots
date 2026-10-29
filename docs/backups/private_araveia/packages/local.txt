@@ -2,3 +2,6 @@
 # restore.sh runs `makepkg -si` in each after Forgejo is back up, because
 # their sources clone from git.quinntyx.dev (which is this machine).
 src/universal-data-management/main
+
+# T3 Code fork: unpacks the pinned release assets from the fork on GitHub.
+src/t3code/main/packaging/arch/t3code-fork-bin

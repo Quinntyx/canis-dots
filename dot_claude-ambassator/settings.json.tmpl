@@ -1,0 +1,16 @@
+{{- $primary := fromJson (include "dot_claude/settings.json") -}}
+{{- $env := dict
+      "ANTHROPIC_BASE_URL" "https://desktop-2ka6tgu.tail227a29.ts.net:8443"
+      "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-5-5"
+      "ANTHROPIC_DEFAULT_SONNET_MODEL" "claude-sonnet-5-5"
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL" "claude-haiku-5-5"
+      "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY" "1" -}}
+{{- $settings := dict
+      "$schema" "https://json.schemastore.org/claude-code-settings.json"
+      "apiKeyHelper" "$HOME/.local/bin/claude-ambassator-key"
+      "env" $env
+      "model" "gpt-6.1-sol"
+      "theme" "auto" -}}
+{{- if $primary.permissions }}{{ $_ := set $settings "permissions" $primary.permissions }}{{ end -}}
+{{- if $primary.hooks }}{{ $_ := set $settings "hooks" $primary.hooks }}{{ end -}}
+{{ toPrettyJson $settings }}

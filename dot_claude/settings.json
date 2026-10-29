@@ -10,6 +10,17 @@
   },
   "model": "claude-opus-5-5",
   "theme": "auto",
+  "extraKnownMarketplaces": {
+    "hyperframes": {
+      "source": {
+        "source": "github",
+        "repo": "heygen-com/hyperframes"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "hyperframes@hyperframes": true
+  },
   "permissions": {
     "deny": [
       "Edit(**/*.env*)",

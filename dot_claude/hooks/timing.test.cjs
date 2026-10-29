@@ -1,0 +1,13 @@
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const { timingBlock } = require('./timing.cjs');
+test('first prompt has local_time and no elapsed interval',()=>{const text=timingBlock(new Date('2026-10-28T23:00:00Z'),null);assert.match(text,/^\[timing\]\nlocal_time=/);assert.doesNotMatch(text,/since_last/);assert.match(text,/\n\[\/timing\]$/);});
+test('later prompts carry elapsed seconds',()=>{const text=timingBlock(new Date('2026-10-28T23:00:02.500Z'),Date.parse('2026-10-28T23:00:00Z'));assert.match(text,/since_last_prompt=2.5s/);assert.doesNotMatch(text,/local_time=/);});
+test('clock regression never creates negative elapsed time',()=>assert.doesNotMatch(timingBlock(new Date(0),1000),/since_last/));
+test('native hook writes scoped state and emits additional context',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'claude-timing-test-'));const run=()=>spawnSync(process.execPath,[path.join(__dirname,'timing.cjs')],{input:JSON.stringify({session_id:'session/with unsafe path'}),encoding:'utf8',env:{...process.env,CLAUDE_TIMING_STATE_DIR:dir}});const first=run();assert.equal(first.status,0);assert.match(JSON.parse(first.stdout).hookSpecificOutput.additionalContext,/local_time=/);const second=run();assert.equal(second.status,0);assert.match(JSON.parse(second.stdout).hookSpecificOutput.additionalContext,/since_last_prompt=/);assert.equal(fs.readdirSync(dir).length,1);assert.equal(fs.statSync(path.join(dir,fs.readdirSync(dir)[0])).mode&0o777,0o600);});
+test('invalid timing input does not block the user prompt',()=>{const result=spawnSync(process.execPath,[path.join(__dirname,'timing.cjs')],{input:'bad JSON',encoding:'utf8'});assert.equal(result.status,0);assert.equal(result.stdout,'');});

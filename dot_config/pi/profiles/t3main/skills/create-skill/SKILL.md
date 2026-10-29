@@ -90,26 +90,25 @@ metadata:
    Guideline-only changes and spelling, formatting, or wording corrections that preserve the
    procedure's behavior go straight to Stage 5: Deliver. For bulk multi-skill edits, suggest a
    follow-up rehearsal in the receipt instead of rehearsing each skill in this run.
-2. Sample a real request that would genuinely activate the skill from the user's Pi session
-   transcripts on disk (locate the active session store for the current profile; do not guess a
-   path) or past T3 Code threads (`t3_thread_search`). Trace the candidate back to the human user's
-   original message using session/thread provenance, and retain that source identity in coordinator
-   notes; a transcript's `user` role can also contain an agent-authored delegation brief. Adapt only
-   the task-specific names, paths, and inputs needed for the fixture. Preserve the user's wording,
-   brevity, and level of detail so the resulting prompt reads as though the user wrote it.
-3. Provision an isolated runtime with a fresh session and task-local filesystem, home/profile,
-   session history, and service counterparts. Give thread/search tools the corresponding task-local
-   scope. Populate it with representative input files, assets, dependencies, and the human-authored
-   task history the ordinary workflow needs. Carry over the normal harness instructions, tool
-   interfaces, permissions, and execution defaults. Make the revised skill and its references
-   available through normal discovery or an explicit entrypoint path, using ordinary task names
-   and paths. Keep coordinator notes, evaluation records, prior trial artifacts, and live user data
-   in the coordinator's separate namespace. Establish these visibility boundaries in the runtime
-   and service configuration, then verify its effective file, history, and thread/search scope
-   before launching. This gives the child an ordinary working environment while containing its
-   effects and keeping the evaluation external to it. Choose a small workload that exercises the
-   same operations within the available budget. With a missing prerequisite, record the blocked
-   execution boundary and the remaining rehearsal work.
+2. Start from a known human-authored request, preferably the user's request already in this
+   conversation. Adapt its task-specific names, paths, and inputs into a small task that genuinely
+   activates the skill. For a different capability, write an analogous synthetic request preserving
+   the user's wording style, brevity, and level of detail. Retain the source identity and adaptations
+   in coordinator notes, identifying synthetic wording as synthetic. When additional history is
+   useful, locate the active profile's session store or use T3 thread search, and establish the
+   human sender from message/thread provenance; transcript `user` roles also carry delegations and
+   tool results can quote prompts. The child-facing result is just an ordinary task brief with the
+   minimum skill-discovery path, while source attribution and evaluation notes stay with you.
+3. Prepare a fresh, disposable, mutable task environment with representative inputs, assets, and
+   dependencies, using ordinary task names and paths. Make the revised skill and its references
+   available through normal discovery or an explicit entrypoint path. Use available isolation while
+   preserving normal harness instructions, tools, permissions, and execution defaults. T3 shared
+   and worktree delegation still expose host state and existing threads; proceed with the prepared
+   task environment and normal delegation when complete isolation is unavailable. Keep coordinator
+   notes, evaluation records, and prior trial artifacts separate from the task inputs, and give the
+   child only the ordinary task context from step 2. Record the actual containment boundary in
+   coordinator notes. Choose a small workload that exercises the same operations within the
+   available budget. Record genuinely missing task prerequisites and remaining execution work.
 4. Record the expected observable sequence and completion evidence in coordinator notes: the
    consequential tool calls, their order, intermediate state changes, and final artifacts. Keep
    the evaluation criteria, its status as a rehearsal, and the expected behavior with the
@@ -121,16 +120,18 @@ metadata:
    the WIP skill's entrypoint path. It ends with those ordinary task requirements and paths;
    workflow, permission, delegation, verification, and delivery instructions come from the skill
    and the agent's normal environment. Let the child perform the task with actual tool calls and
-   produce its artifacts in the prepared environment. The fixture contains the effects; executing
-   the ordinary task is the rehearsal.
+   produce its artifacts in the prepared environment. The task files are disposable; executing the
+   ordinary task is the rehearsal.
 6. Read the child's actual tool/action trace through `t3_thread_read`'s activity view. First match
    the delivered prompt to its human-authored source and check the launch's execution settings
-   against the normal defaults and the environment's verified visibility boundaries; then inspect
-   the changed files, intermediate outputs, and final artifacts. Compare the observed sequence and
-   result with the skill's prescribed trajectory and the criteria from step 4. Derive the outcome
-   from execution evidence, using the child's final explanation as supporting context. Record where
-   behavior matched, diverged, or stopped at a capability boundary, distinguishing completed
-   execution from unexercised steps.
+   against the normal defaults; then inspect the changed files, intermediate outputs, and final
+   artifacts. Include any access to shared history or existing threads in the observed trajectory,
+   and assess how that access affected the work just as it could during ordinary use. Continue
+   judging the actual actions and results against the skill and the criteria from step 4, recording
+   any reliance on prior solutions or evaluation context. Derive the outcome from execution evidence,
+   using the child's final explanation as supporting context. Record where behavior matched,
+   diverged, or stopped at a capability boundary, distinguishing completed execution from
+   unexercised steps.
 7. Iterate: revise the skill and rerun the rehearsal until the trajectory matches. Each revision
    adjusts the happy path so the rehearsing model naturally reaches the right behavior. Never add
    a guard against a pitfall the rehearsal exposed: a negative rule ("don't do Y") introduces the

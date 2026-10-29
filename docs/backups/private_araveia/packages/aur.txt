@@ -1,0 +1,32 @@
+# AUR packages for araveia, installed by restore.sh through yay one at a time,
+# so a single broken PKGBUILD does not block the rest. Curated 2026-10-28.
+# Cider and ChatGPT come from their own signed repos (see restore.sh), not here.
+
+# --- your own tooling / dotfile dependencies ---
+oama-bin
+cyrus-sasl-xoauth2-git
+sunsetr-bin
+fff
+jdtls
+scc
+
+# --- apps ---
+zen-browser-bin
+slack-electron
+slack-term
+antigravity
+upscayl-bin
+
+# --- Android development ---
+android-sdk-cmdline-tools-latest
+android-sdk-platform-tools
+android-sdk-build-tools
+android-platform
+
+# --- games ---
+r2modman-bin
+mtg-forge-bin
+
+# --- printing (Samsung/Xerox driver) ---
+splix
+

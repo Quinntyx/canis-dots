@@ -1,0 +1,4 @@
+# Packages built from your own PKGBUILDs, as directories relative to ~/docs.
+# restore.sh runs `makepkg -si` in each after Forgejo is back up, because
+# their sources clone from git.quinntyx.dev (which is this machine).
+src/universal-data-management/main

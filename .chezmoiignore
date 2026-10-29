@@ -44,6 +44,12 @@ docs/host/forgejo/forgejo/gitea/repo-avatars/
 docs/host/forgejo/forgejo/gitea/tmp/
 docs/host/forgejo/forgejo/gitea/conf/
 
+# ---- araveia reinstall backup: secrets and app data, only the scripts are managed ----
+docs/backups/araveia/home
+docs/backups/araveia/game-saves
+docs/backups/araveia/root
+docs/backups/araveia/reference
+
 # ---- generated/runtime state ----
 .config/fish/fish_variables
 .config/systemd/user/.#*

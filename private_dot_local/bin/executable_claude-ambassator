@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Claude Code against the Ambassator CLIProxy gateway, using its own profile
+# directory so the primary ~/.claude login and settings stay untouched.
+#   claude-ambassator                      # OpenAI/Codex models via the bridge
+#   claude-ambassator --model claude-opus-5-5
+set -euo pipefail
+export CLAUDE_CONFIG_DIR="${CLAUDE_AMBASSATOR_CONFIG_DIR:-$HOME/.claude-ambassator}"
+exec claude "$@"

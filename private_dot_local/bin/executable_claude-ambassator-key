@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Prints the Ambassator CLIProxy client key for Claude Code's apiKeyHelper.
+# The key is kept out of this repository at ~/.config/claude-ambassator/api-key
+# (0600); override the location with CLAUDE_AMBASSATOR_KEY_FILE if needed.
+set -euo pipefail
+key_file="${CLAUDE_AMBASSATOR_KEY_FILE:-$HOME/.config/claude-ambassator/api-key}"
+if [[ ! -r "$key_file" ]]; then
+  printf 'Ambassator key unavailable: %s is missing or unreadable\n' "$key_file" >&2
+  exit 1
+fi
+tr -d '\r\n' <"$key_file"

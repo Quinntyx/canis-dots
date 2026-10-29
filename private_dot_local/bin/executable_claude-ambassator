@@ -3,6 +3,12 @@
 # directory so the primary ~/.claude login and settings stay untouched.
 #   claude-ambassator                      # OpenAI/Codex models via the bridge
 #   claude-ambassator --model claude-opus-5-5
+#
+# --setting-sources user: with CLAUDE_CONFIG_DIR pointed at this profile, the
+# primary ~/.claude/settings.json would otherwise be read as *project* settings
+# whenever the cwd contains a .claude directory (notably $HOME), silently
+# overriding the model and base URL. Sessions that want project settings can
+# pass their own --setting-sources.
 set -euo pipefail
 export CLAUDE_CONFIG_DIR="${CLAUDE_AMBASSATOR_CONFIG_DIR:-$HOME/.claude-ambassator}"
-exec claude "$@"
+exec claude --setting-sources user "$@"

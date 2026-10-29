@@ -3,8 +3,8 @@ name: parametric
 description: "Use when a part or assembly must conform to stated requirements — parametric
   design with build123d in Python: dimension-driven solids built from specified dimensions,
   tolerances, fits, and interface geometry, exported as STEP/STL, verified by measurement, and
-  documented with explicit first-angle technical drawing views when requested. Organic,
-  appearance-driven modeling, sculpting, rendering, and animation select the
+  documented with a first-angle multiview technical drawing sheet and rendered still images by
+  default. Organic, appearance-driven modeling, sculpting, rendering, and animation select the
   non-parametric branch (`../non-parametric/SKILL.md`)."
 metadata:
   type: procedure
@@ -30,8 +30,9 @@ metadata:
 - Measured verification against the brief's acceptance set: each requirement reported as
   target, measured value, margin, and pass/fail, including solid validity and round-trip
   agreement.
-- When requested, a first-angle multiview technical drawing sheet with the acceptance set's
-  dimensions — explicit view types, not photorealistic renders.
+- By default, rendered still images through the non-parametric pipeline, plus a first-angle
+  multiview technical drawing sheet with the acceptance set's dimensions. Present the sheet before
+  other images unless the user overrides the order; honor explicit deliverable overrides.
 - `cad-report.md` covering the parameter table, requirement checks, versions, commands,
   artifact paths, and verification limits.
 - Capability-limited output explicitly identifies which stages ran and which remain pending.
@@ -100,21 +101,27 @@ metadata:
 2. Re-import the exported STEP with `import_step` and re-measure volume and bounding box;
    require agreement with the built model within a stated small tolerance before the export is
    shipped.
-3. When a visual check is requested, export STL and use the non-parametric branch's render
-   pipeline (`../non-parametric/SKILL.md`). The numeric acceptance set remains the part's
-   completion condition.
-4. Proceed to Stage 6: Technical drawing when a sheet is requested, otherwise to Stage 7: Report.
+3. For the default rendered deliverable, also export STL as a visualization intermediate and read
+   `../non-parametric/SKILL.md`. Follow its preflight, scene import/build, geometry-review,
+   lighting/material, final-render, and verification stages. Preserve CAD units on import; keep
+   geometric corrections in `build-part.py` and repeat numeric verification and export after them.
+   Numeric acceptance remains mandatory; renders add visual evidence rather than replace it.
+   Explicit image opt-outs skip this handoff. Unavailable Blender or a render approval boundary
+   leaves renders pending while the drawing and verified CAD artifacts can still be delivered.
+4. Proceed to Stage 6: Technical drawing by default, or Stage 7: Report if the user explicitly
+   omitted the sheet. Rendering execution order does not change the sheet-first presentation order.
 
-## Stage 6: Technical drawing (when requested)
+## Stage 6: Technical drawing (default)
 
-1. When the deliverable includes an engineering sheet rather than a photorealistic render, run
-   the owned helper with the Stage 1 interpreter:
+1. For the default engineering sheet, in addition to the rendered views, run the owned helper
+   with the Stage 1 interpreter:
    `python3 bin/part-drawing.py --part <exported STEP> --out part-sheet.svg --name <part>
    --dims part-dims.json`. It projects a fixed, explicit first-angle view set — front,
    top placed below the front view, the left-hand view placed right of front, plus an
    isometric — with hidden-line removal, dimension callouts, a center mark, and a title block
    stating scale, units, and projection (verified against build123d 0.13.0, 2026-10-28).
-   Convert the SVG to PNG with `rsvg-convert` when a raster is requested.
+   Keep the SVG and convert it to `part-sheet.png` with `rsvg-convert` for the default image handoff.
+   If raster conversion is unavailable, deliver the SVG and name the pending PNG explicitly.
 2. Dimension callouts come from the Stage 2 parameter table: one annotation per requirement,
    labeled with its target value, in model millimeters (linear between two points; diameters on
    the view whose circular face is planar to the sheet). Drawings draw no decorative dimensions;
@@ -129,8 +136,9 @@ metadata:
 
 1. For created parts, write `cad-report.md`: the parameter table, a requirement table with
    target, measured, margin, and pass/fail per item including unverified requirements, script
-   and export paths, interpreter and build123d versions, and the reproduction command.
-   Inspection-only work returns the requested findings directly, with evidence from the
-   inspected reference.
+   and export paths, interpreter and build123d versions, and the reproduction command. Include
+   the drawing sheet before the rendered images by default, plus the Blender report/settings and
+   any pending render approval or missing image capability. Inspection-only work returns the
+   requested findings directly, with evidence from the inspected reference.
 2. Report available and missing paths separately, with failures and unexecuted stages explicit.
    Preserve working copies and logs; release only processes owned by this task.

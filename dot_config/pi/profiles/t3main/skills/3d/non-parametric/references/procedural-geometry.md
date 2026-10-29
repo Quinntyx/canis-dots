@@ -12,7 +12,8 @@
    `bm.to_mesh(obj.data)`, free the BMesh with `bm.free()`, and call `obj.data.update()`.
 3. Keep construction parameters in the build script so corrections regenerate the same scene.
    Choose modifier operators and properties from the installed Blender version. Establish a boolean
-   result through evaluated geometry, actual previews and the task's required solid checks.
+   result through evaluated geometry, actual previews and the task's required solid checks. Use the
+   parent procedure's cheap random-per-object, multi-camera geometry passes before lighting work.
 
 ## Evaluated geometry
 
@@ -23,13 +24,17 @@
    `evaluated.to_mesh()`. Read vertices, polygons and required topology properties from that mesh.
    Release the temporary mesh with `evaluated.to_mesh_clear()` in a `finally` block.
 3. Check required forms and assembly relationships first, then silhouette and material separation
-   in the actual camera image. The brief's acceptance set determines completion. Report additional
-   cosmetic ideas as optional follow-up after saving the verified asset.
+   in actual images from the complementary camera set. Include hidden/backside surfaces, not only
+   the hero view. The brief's acceptance set determines completion. Report additional cosmetic
+   ideas as optional follow-up after saving the verified asset.
 
 ## Whole-asset camera framing
 
-1. Fit the camera to the evaluated subject bounds at every requested preview state. Set that frame
-   and update the view layer. Select the requested renderable objects as the subject set.
+1. Fit every whole-asset review/delivery camera to evaluated subject bounds at every relevant
+   preview state. Set that frame and update the view layer. Select the requested renderable objects
+   as the subject set, excluding backdrops, light rigs and the landscape emitter plane. Center
+   individual-object views with square image dimensions and square pixels unless overridden;
+   preserve the default aspect ratio and intended composition for landscape/scene views.
 2. Obtain each evaluated object's `bound_box`. Transform every corner to world coordinates with
    `evaluated.matrix_world @ mathutils.Vector(corner)`, then project through
    `bpy_extras.object_utils.world_to_camera_view(scene, scene.camera, world_corner)`.

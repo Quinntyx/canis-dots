@@ -1,6 +1,7 @@
 ---
 name: research-report
-description: "Produce a deeply researched, cross-checked narrative report as Markdown and self-contained HTML, using inspected primary evidence."
+description: "Produce a source-backed narrative report as Markdown and self-contained HTML.
+  Wraps native research with the requested evidence, output and T3 execution boundaries."
 argument-hint: "<topic or URL>"
 disable-model-invocation: true
 metadata:
@@ -12,36 +13,32 @@ metadata:
 ## Input Contract
 
 - Research topic/URL and audience: $ARGUMENTS.
-- Source access, requested depth, authorized effects and any child/model/budget limits.
+- Source access, depth, output directory and any child/model/budget or effect limits.
 
 ## Output Contract
 
-- `report.md` and self-contained `report.html`, with source-backed claims and explicit uncertainty.
-- A source ledger and honest coverage; no fabricated consensus, citations or renderer pass.
+- `report.md` and self-contained `report.html`, backed by inspected sources and explicit uncertainty.
+- A source ledger and truthful rendering/verification coverage; no fabricated citations or consensus.
 
 # Entrypoint
 
-1. Resolve the question, audience, timeframe and output directory. Decompose it into bounded
-   evidence questions. Use native WebSearch/WebFetch for discovery; verify source originals for
-   exact quotes, code and numbers. Read `../librarian/SKILL.md` for source-code research.
-2. Use `../subagents/SKILL.md` for justified research delegation within the user's limits. Start the
-   smallest useful finite roster; no obsolete scout tool, automatic ten-child rounds or guaranteed
-   free/Gemini quota exists. Named providers remain exact choices, not fallback suggestions.
-3. Maintain a ledger of source identity, date/version, claim, locator and confidence. Cross-check
-   consequential claims with independent primary evidence. Multiple agents repeating one source
-   are not independent corroboration. Resolve contradictions and discard unsupported assertions.
-4. Write a cohesive article in detached analyst voice. Include executive summary, question/scope,
-   necessary background, evidence-led sections, trade-offs/counterevidence, conclusions, remaining
-   unknowns and references. Explain mechanisms and decision implications rather than pasting agent
-   reports or tool logs. Attribute disputed facts and distinguish inference from documentation.
-5. Check citations, quotations, quantitative reasoning and claimed coverage against inspected
-   evidence. Reuse a scoped permitted review if needed, not an unbounded convergence loop. Apply
-   supported corrections; report inaccessible sources and remaining uncertainty.
-6. Render with the project's existing authorized renderer. With pandoc use this skill's actual
-   `research-report.css` sidecar plus `--standalone --embed-resources --toc --toc-depth=3`. Preserve
-   the source Markdown. Missing renderer is a stated HTML-generation boundary, not install authority.
-7. Inspect generated HTML links, structure and representative content. Browser evidence still needs
-   current browser-work/page/tab scope or an existing permitted local capture route; do not infer
-   permission from report generation. State any untested visual boundary.
-8. Deliver paths and actual verification. For requested T3 visual showback use available
-   `html_preview` then `html_render` with the actual HTML, not a filename or claim of display.
+1. Resolve the question, audience, timeframe, outputs and execution limits. Native `/deep-research`
+   is a dynamic workflow in the installed Claude catalog: use it through `Skill` only when the user
+   explicitly requested that workflow, it is exposed, and its orchestration fits those limits.
+   Use that one research engine rather than starting another report-specific agent fan-out.
+   An explicitly requested but unavailable workflow is a stated blocker, not a silent substitute.
+2. For an ordinary report without Workflow authority, research directly with native web tools and
+   inspected originals. Use `../librarian/SKILL.md` for source-code claims and `../subagents/SKILL.md`
+   only for justified, authorized delegation. This report skill does not grant Workflow, extra
+   children, provider substitutions or publication authority.
+3. Keep a compact source ledger: identity/date, claim, locator and uncertainty. Cross-check important
+   claims against independent primary evidence; agents repeating one source are not corroboration.
+   Check the native engine's evidence too. Write a coherent account of mechanisms, trade-offs,
+   conclusions and unknowns rather than concatenating agent summaries.
+4. Preserve Markdown and render with an existing authorized renderer. With pandoc use the co-located
+   `research-report.css`, `--standalone --embed-resources --toc --toc-depth=3`. Missing rendering
+   capability leaves HTML pending; it does not authorize installation.
+5. Check citations, quotations, numbers, links and generated structure. Browser evidence needs
+   current browser-work/page/tab scope or an existing permitted capture route. Deliver paths and
+   actual coverage. For requested T3 visual showback use `html_preview` then `html_render` with the
+   actual HTML; a filename is not display.

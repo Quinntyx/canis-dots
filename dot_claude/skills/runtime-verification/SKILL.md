@@ -1,7 +1,7 @@
 ---
 name: runtime-verification
-description: "Use when fixing bugs, reviewing runtime correctness, investigating repeated failures,
-  or verifying code changes against real user flows."
+description: "Use when fixing bugs, reviewing runtime correctness, or verifying real user flows.
+  Supplies local evidence tiers and execution permissions around Claude's native /verify workflow."
 metadata:
   type: procedure
 ---
@@ -24,67 +24,40 @@ metadata:
 
 # Entrypoint
 
-## Stage 1: Establish the actual target
+## Stage 1: Bind the target and evidence budget
 
-1. Read the request, local project instructions, current checkout state, and relevant prior
-   findings.
-2. Resolve the actual running build, branch, process, configuration, and entrypoint implicated by
-   the symptom. Preserve existing user work and unrelated running instances.
-3. Translate the request into observable user journeys and identify the smallest decisive check.
-   Select a tier from Verification ladder using its concrete triggers, not model confidence or
-   requested effort. Record the tier and trigger briefly; repository-required checks remain a floor.
-4. When execution is available, continue to Stage 2: Reproduce. Otherwise, continue to Stage 3:
-   Trace with the unavailable runtime explicitly recorded.
+1. Read the request, repository instructions and existing run/verify guidance. Resolve the actual
+   checkout, build, process, configuration and affected user journey; preserve unrelated work.
+2. Select a tier below from its objective triggers. Record the tier, decisive check and permitted
+   effects briefly. Repository checks remain a floor; browser permission remains a separate gate.
+3. For investigation, retain a failing input and trace the first divergence before proposing a
+   repair. A review stays read-only; an authorized repair changes the smallest owning component
+   and adds a focused regression check when useful. Use `../subagents/SKILL.md` if delegating.
+4. Continue to Stage 2 with the target, acceptance condition and execution boundaries bound.
 
-## Stage 2: Reproduce the user journey
+## Stage 2: Use the native verification recipe
 
-1. Exercise the reported entrypoint with the relevant input and environment. Capture its result,
-   logs, exit state, and elapsed time; use screenshots or traces when those expose the symptom.
-2. Follow startup, first use, steady use, cancellation, and reconnect paths only where the request
-   or observed failure makes them relevant.
-3. Compare the observed result with the intended behavior. Record the reproduction command or
-   interaction sequence and preserve the failing input. Continue to Stage 3: Trace.
+1. For a changed runtime surface, load native `/verify` through `Skill` when that built-in is
+   exposed in the current session. Supply the target/revision, selected tier, existing project
+   checks and permitted capture route. Native `/verify` owns the end-to-end exercise method;
+   this skill owns its local evidence budget and permissions. Reuse its evidence rather than
+   running a second generic verification workflow.
+2. Keep any native run/verify-skill bootstrap within assigned repository-writing authority.
+   Read-only or source-only work uses existing instructions/checks without generating new project
+   guidance. A docs/test-only diff needs its applicable checks, not a fabricated runtime journey.
+3. If the native recipe is absent or cannot honor those boundaries, exercise the smallest existing
+   project entrypoint directly and record the limitation. No replacement plugin or capture stack
+   is implied. Use actual process/network/GPU execution for claims dependent on that boundary.
+4. Check the loaded build/configuration, original acceptance condition and applicable repository
+   checks. A failed check returns to diagnosis, with experiments bounded by the ladder below;
+   a passing or explicitly blocked check goes to Stage 3.
 
-## Stage 3: Trace the causal path
+## Stage 3: Report the observed result
 
-1. Follow the actual input through state transitions, process boundaries, asynchronous work, and
-   persistence until the first divergence from the intended behavior.
-2. Form a causal hypothesis and use a focused experiment, trace, or relevant source evidence to
-   distinguish it from plausible alternatives. Reuse existing instrumentation where possible.
-3. Review the changed path's callers, lifecycle, errors, cancellation, and shared-resource ownership
-   according to the actual failure surface. Keep implementation decisions proportional to evidence.
-4. When implementation is authorized and the cause is supported, continue to Stage 4: Repair.
-   Otherwise, continue to Stage 6: Deliver with findings and unresolved uncertainty.
-
-## Stage 4: Repair the cause
-
-1. Modify the smallest coherent component that owns the incorrect behavior. Preserve the user's
-   requested architecture and observable semantics across all affected callers.
-2. When delegation materially helps, use the subagents procedure and T3-managed allocation for
-   concurrent same-repo writers. Verify the bound repository before selecting worktree isolation.
-   Keep branch, publication, and source/coordinator ownership within the actual request.
-3. Add a focused regression check when it captures a durable failure mode. Prefer an existing
-   test path and a small smoke check for exploratory work. Continue to Stage 5: Verify.
-
-## Stage 5: Verify the repaired runtime
-
-1. Run the decisive check against the repaired build, then repeat the original user journey.
-2. Confirm the running process actually loaded the changed build and the relevant configuration.
-3. Run the project's applicable checks and inspect the diff for unintended behavioral changes.
-4. Use real process, browser, kernel, network, or GPU execution for claims that depend on that
-   boundary. Identify the narrower coverage of isolated tests when the real boundary is unavailable.
-5. When the original symptom is resolved and applicable checks pass, continue to Stage 6: Deliver.
-   Otherwise, return to Stage 3: Trace with the new evidence.
-
-## Stage 6: Deliver the result
-
-1. Lead with the verified outcome or highest-impact finding. Include the causal explanation and
-   evidence needed to trust it, with exact affected paths where useful.
-2. State performed checks and coverage limits. Distinguish an implemented change from a deployed,
-   restarted, visually inspected, or remotely verified result.
-3. Report blockers and remaining decisions. A focused repair gets a short outcome-led paragraph
-   covering cause, decisive verification, and remaining uncertainty. Save detailed trajectories in
-   the task workspace when they materially help.
+1. Lead with the verified outcome or actionable finding, cause and decisive evidence. Distinguish
+   observed behavior from inference and retain reproduction commands or captures when useful.
+2. Separate source changes, installation, restart, visual inspection and deployment. Name blocked
+   boundaries and untested behavior; a native workflow's completion message is not proof by itself.
 
 # Verification ladder
 

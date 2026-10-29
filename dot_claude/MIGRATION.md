@@ -34,23 +34,23 @@ those capabilities. Per-session proxy quota integration is discontinued in both 
 |---|---|---|
 | 3d | Native Bash/Read/ToolSearch; complete current parametric/non-parametric tree and helpers | Blender/build123d and authorized scene access remain prerequisites |
 | aerc-email | Existing Bash/mail commands, same privacy and synchronization scope | Kept off syssec-canis, which has no mail installation |
-| agent-repo-guidance | Native file tools; same repository authority and proportionate evidence | No automatic new lint/CI infrastructure |
+| agent-repo-guidance | Native /init for authorized new CLAUDE.md; local curation and existing-file repair | No regeneration of existing guidance or automatic lint/CI infrastructure |
 | browser-workflow | Native ToolSearch → existing T3 preview tools | Server tab ownership/current browser-work permission; not WebFetch |
 | cloudflare | Native web/file/Bash tools, complete product-reference tree | Product APIs/models are subjects, not agent runtime instructions |
 | create-skill | Claude roots/loader semantics and supported native/T3 rehearsal routing | Removed hard-coded Pi provider/model; bulk rehearsal stays optional |
-| edit-config | Native file/Bash tools; Claude settings/plugin ownership added | Authoritative source and scoped commit/push/apply remain mandatory |
+| edit-config | Native /update-config for Claude settings semantics, inside resolved-source ownership | Authoritative source and scoped commit/push/apply remain mandatory |
 | freya | Unmodified upstream skill through chezmoi external | Actual Rust/GUI/capture environment still required |
-| full-send | Native implementation + retained T3 review/PR workflow | Explicit full-send supplies merge scope |
+| full-send | Shared native /verify policy layer and one compatible /code-review or T3 review | Explicit full-send supplies merge scope; managed allocation remains mandatory |
 | full-stop | Read-through full-send workflow | Never merge |
 | git | Native Bash and all four routed children, retained T3 allocation | Shell/native worktree tools do not rebind managed T3 threads |
 | pi-plugin | Claude can still develop Pi packages using Pi's real APIs | Pi is the subject here; rewriting ExtensionAPI into Claude APIs would break it |
 | profiling | Native Bash and existing capture helper/runtime | Only actual capture/trace privileges |
 | project-plan | Native files/questions and existing document roles | Planning does not authorize implementation |
 | research-book | Native research/local originals, math/build tooling and existing capture route | Fetch summaries are insufficient evidence for exact math/source |
-| runtime-verification | Same objective evidence ladder using actual Claude/T3 tools | Missing capture/runtime is reported, not installed around |
-| subagents | Foreground native Agent for eligible children; T3 for heterogeneous/isolated/background work | Native model options and T3 target.options/catalog are different |
+| runtime-verification | Native /verify owns runtime exercise; local objective tiers and permissions remain | No duplicate proof workflow or unauthorized project-skill bootstrap |
+| subagents | Native Agent owns eligible child mechanics; T3 references own managed execution | Native /batch does not bypass T3 allocation or authorize PRs |
 | terminal-ui | Native Bash + existing real PTY/tmux route | Pi TUI reference remains for Pi development; browsers are not terminal evidence |
-| visual-design | Native Read + existing capture/image runtime; retained T3 HTML showback | Input images, screenshots and generation are different capabilities |
+| visual-design | Native /dataviz owns charts; local UI integration, evidence and T3 showback remain | Input images, screenshots, generation and connector publication are separate effects |
 | wrangler | Unmodified upstream skill through chezmoi external | Existing project CLI/config/account scope remains authoritative |
 | librarian | Native WebSearch/WebFetch + inspected checkout/full-SHA permalinks | No assumed fetch clone, stored response reader, video analyzer or Gemini fallback |
 
@@ -59,6 +59,37 @@ The five former prompt templates are native, user-invoked skills: `/change-repor
 co-located CSS, and the shared subagents procedure rather than obsolete scout calls, fixed cheap
 models, automatic ten-agent rounds or Pi prompt-directory writes. They retain their output/effect
 contracts; `disable-model-invocation:true` prevents unsolicited report commands.
+
+## Native workflow policy layers
+
+Updated 2026-10-29 against the installed Claude Code 2.1.312 SDK command catalog. The native-only
+catalog advertises 48 commands; adding the 26 personal entries produces 74, with no exact-name
+collisions. These are additive policy layers, not copies of built-in skill bodies:
+
+- `/verify`: runtime-verification selects the evidence tier, target and permitted capture route;
+  the built-in owns runtime exercise. Docs/test-only changes use relevant checks. Native project
+  run/verify-skill generation stays within the user's repository-writing authority.
+- `/update-config`: edit-config resolves the actual manager/source first. The built-in supplies
+  Claude settings/hook semantics, without replacing chezmoi publication or writing live targets.
+- `/init`: agent-repo-guidance uses its initial survey/draft only for an authorized new CLAUDE.md;
+  existing guidance is curated in place with real local checks and one owner per rule.
+- Native `Agent` and `/code-review`: subagents owns routing/limits, not another native lifecycle.
+  Full-send selects one compatible independent-review path and reuses shared verification evidence.
+  T3 batches use managed delegates, not `/batch`'s automatic native worktrees and PR creation.
+- `/deep-research`: research-report retains Markdown/HTML output and evidence requirements.
+  The advertised built-in is a dynamic workflow, so it is selected only when explicitly requested
+  and compatible with model/child/effect limits. Ordinary reports use native web/original-source
+  research without silently granting Workflow authority or starting a second fan-out engine.
+- `/dataviz`: visual-design loads it before chart decisions/code and supplies actual product tokens,
+  data and output constraints. Broader UI work, capture permission and showback stay local. `/design`
+  is an access-consent command in this installation, not a replacement UI or 3D procedure.
+
+Use native `Skill` when the relevant built-in is exposed and compatible with the assignment.
+An absent/incompatible recipe is an explicit boundary with the documented existing-project route,
+not authority to install a replacement, launch another Claude process or fabricate a tool call.
+The separate `3d` tree and all Pi skills are unchanged by this refinement. Bulk static/discovery
+checks do not establish end-to-end success of each native workflow through CLIProxyAPI; scoped
+per-workflow rehearsals remain a follow-up, not an automatic seven-child campaign.
 
 ## Plugin migration matrix
 

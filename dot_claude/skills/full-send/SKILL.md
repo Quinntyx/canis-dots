@@ -51,7 +51,10 @@ repository, close the PR, force-push another branch, or bypass a harness approva
 ## Stage 2: Finish the change
 
 Complete the goal with the smallest change that works. Fix the case that happened, not
-every case that could. If you are on the default branch, create a branch first.
+every case that could. If you are on the default branch, use the Git procedure to select
+the task branch. Parallel work follows `../subagents/SKILL.md`: in T3 use managed allocation,
+not native `/batch`'s automatic worktree/PR recipe. Full send is delivery authority, not a
+second orchestration engine or permission to bypass workspace ownership.
 
 ## Stage 3: Prove it
 
@@ -60,8 +63,11 @@ diff maps to evidence you observed yourself.
 
 ## Stage 4: Review
 
-Get review feedback and fix real findings, with proof for each fix before you push. Use
-the harness's review path; in T3 Code that is a delegated review with `delegate_task`.
+Get one independent review and fix real findings, with proof for each fix before pushing.
+Use native `/code-review` through `Skill` when exposed and compatible with the child/model
+routing in `../subagents/SKILL.md`; otherwise use one T3 delegated review through that
+procedure. Retain actual reviewer evidence. Choose one path rather than automatically
+running both; review findings alone do not publish PR comments or apply `--fix` effects.
 
 ## Stage 5: File the PR
 
@@ -88,18 +94,15 @@ Final message: PR link, merge commit, your proof, and each decision you made for
 
 # Proof
 
-Proof is evidence you observed yourself in this session: command output, a reproduction,
-a screenshot. Use the most direct proof the change allows:
+Use `../runtime-verification/SKILL.md` to select the evidence tier and native `/verify`
+recipe when applicable. That skill owns verification cost and method; this one owns the
+delivery/merge gate. Full-send's explicit testing grant supplies the permitted capture
+methods, while repository checks remain a floor. Reuse the resulting reproduction,
+commands and actual captures as proof instead of running a second generic proof workflow.
 
-- Reproduce the original failure, apply the fix, then watch the same reproduction pass.
-- Run the checks the repository's CI runs (typecheck, lint, tests).
-- Add one focused test that fails without the fix, when the behavior has none and the
-  repository has a test setup.
-- For UI and runtime behavior, run the app and look at the change. Green mocked tests do
-  not prove the user experience works. Attach screenshots to the PR when they help and
-  you have a way to upload them.
-
-When you cannot find a way to prove a change, you do not have full confidence. Ask.
+Observe the evidence yourself on the final change, not just a workflow's completion
+message. Attach useful captures to the PR when possible. An unavailable decisive check
+leaves the gate blocked and goes to Asking the user.
 
 # Merge gate
 

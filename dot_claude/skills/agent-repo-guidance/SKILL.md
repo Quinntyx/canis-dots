@@ -1,8 +1,8 @@
 ---
 name: agent-repo-guidance
-description: "Use when authoring or repairing a repository's AGENTS.md or CLAUDE.md, agent-facing
-  internal guidance, changed-file verification ladder, or guardrails for repeated agent mistakes;
-  also when explicitly scaffolding these foundations. Not for ordinary implementation or planning."
+description: "Use when creating or repairing AGENTS.md/CLAUDE.md, repository agent guidance,
+  verification ladders or recurring-mistake guardrails. Adds repository-specific policy to native
+  /init; not for ordinary implementation or product planning."
 metadata:
   type: procedure
 ---
@@ -11,83 +11,52 @@ metadata:
 
 ## Input Contract
 
-- Existing repository and observed agent failure, or requested new-repository guidance foundation.
-- Actual build/test/lint tooling, relevant agent/contribution documents, and authorized write scope.
-- Target harness/runtime constraints and evidence of expensive-to-discover repository traps.
+- Existing repository, requested guidance foundation or observed agent failure.
+- Actual agent/contribution docs, architecture/testing notes and project commands.
+- Authority over the target source and any requested mechanical enforcement.
 
 ## Output Contract
 
-- Focused agent operating guidance grounded in the real repository, with checked pointers and checks.
-- Internal docs only for nonlocal decisions/traps that source and existing documents cannot explain.
-- Mechanical enforcement only for a demonstrated, objectively detectable mistake worth maintaining.
-- An actual available pre-handoff verification path, not promised lint infrastructure or commands.
-- Clear source-only/delivery ownership and verification limitations; no automatic hosting or CI setup.
+- Focused guidance grounded in this repository, with working pointers and real verification steps.
+- One authoritative owner per rule; tests/lint only for demonstrated, objectively detectable cases.
+- Honest coverage and delivery status; no automatic CI, hosting or generic lint infrastructure.
 
 # Entrypoint
 
-## Stage 1: Establish the repository and failure
+## Stage 1: Resolve the owner and native starting point
 
-1. Read applicable agent guidance completely, then relevant architecture/testing/domain docs and
-   actual scripts/configuration. Preserve the repository's vocabulary and existing source of truth.
-2. Identify the requested gap. For repeated failures, retain a concrete example and its cost; for a
-   new repo, select only high-consequence facts known from its real stack and initial implementation.
-3. Distinguish product requirements, architecture, execution state, and agent operating rules using
-   `../project-plan/SKILL.md` when planning documents also change. Do not copy a product specification
-   or task checklist into AGENTS.md merely to make it always loaded.
-4. Rank candidate rules by recurrence, consequence, and detectability. With evidence go to Stage 2:
-   Choose the owner; with a missing consequential decision, ask only that question or report it.
+1. Read existing AGENTS.md/CLAUDE.md and relevant internal docs completely. Inspect the actual stack,
+   scripts and failure example. Preserve established vocabulary and unrelated user work.
+2. Resolve managed-source ownership with `../edit-config/SKILL.md` when applicable. For an explicitly
+   requested new CLAUDE.md, use native `/init` through `Skill` when exposed and its destination and
+   writing effects match the assignment. It owns the initial codebase survey/draft, not a second
+   independent generation pass. Existing guidance repairs update in place.
+3. Without a compatible native `/init`, draft from the inspected repository and name that boundary.
+   Read-only/draft-only work produces findings or an unpublished draft, not a generated repo file.
+4. Separate product plans from operating rules with `../project-plan/SKILL.md` when needed, then
+   continue to Stage 2.
 
-## Stage 2: Choose the owner
+## Stage 2: Curate the repository-specific delta
 
-1. Use AGENTS.md for durable local operating knowledge: safety boundaries, conventions with reasons,
-   required docs by task, implicated-surface checklists, and a concise real verification ladder.
-2. Put cross-component architectural decisions or platform traps in an existing internal-docs tree,
-   with a conditional pointer in AGENTS.md. Create a new docs directory only when such material exists.
-3. Use a nearby comment for local rationale, a test/fixture for behavior, or a lint rule for a stable
-   syntactically/structurally detectable constraint. Judgment remains guidance, not a heuristic linter
-   that produces false certainty. Do not invent a custom lint plugin for a new repo by default.
-4. Existing tool configuration is its own source of truth. Point to discoverable scripts/types rather
-   than copying field catalogs or command output. With owners selected, go to Stage 3: Write.
+1. Keep durable operating knowledge in the existing AGENTS.md/CLAUDE.md authority: unusual domain
+   vocabulary, safety/state boundaries, docs to read by task, consequential taste rules and actual
+   changed-file checks. Explain nonobvious reasons; omit facts easily rediscovered from source.
+2. Put cross-component architecture/traps in existing internal docs with conditional pointers;
+   keep local rationale in comments and behavior in tests. A requested scaffold need not invent a
+   docs tree. Keep one owner instead of copying the same policy into several files.
+3. Use the project's real command names, fixtures and surface checklists. Select the evidence cost
+   from `../runtime-verification/SKILL.md`; repository requirements remain a floor. Name expensive
+   CI checks separately rather than presenting whole-project tests as file-scoped commands.
+4. For a repeated, mechanically detectable mistake, use the existing test/lint framework and prove
+   a violating case fails while legitimate neighboring cases pass. Judgment stays guidance.
+   Missing checks are proposals until implemented; a native draft does not authorize enforcement.
+5. Review any native draft against these constraints, then continue to Stage 3.
 
-## Stage 3: Write focused guidance
+## Stage 3: Verify and hand off
 
-1. Update in place. Cover only applicable concerns: safe runtime/state directories and processes,
-   unusual domain vocabulary, relevant platform/entrypoint/reverse-state surfaces, required evidence,
-   and a few defensible taste constraints. Explain the nonobvious reason once.
-2. Give each required doc a subject and condition for reading it. Keep AGENTS.md short enough to be
-   read completely; disclose long detail without hiding an essential operation behind a vague link.
-3. Name real changed-file commands and their scope. Reuse an existing command; add an orchestration
-   script only if it genuinely composes useful existing checks. Do not claim global type checks or
-   dependency-wide tests are file-scoped when the tool runs the entire project.
-4. Define a small mandatory check floor, objective escalation triggers, and which expensive suites
-   belong to CI. The shared `../runtime-verification/SKILL.md` ladder guides cost, while the repo's
-   actual surface/evidence needs determine its local floor. Avoid copying a whole generic ladder.
-5. State missing checks as proposed/blocked until implemented. Use the actual harness's worktree,
-   browser, and process controls; do not transplant T3 commands or permissions into a different repo.
-6. If mechanical enforcement is warranted, go to Stage 4: Enforce. Otherwise go to Stage 5: Verify.
-
-## Stage 4: Enforce a demonstrated rule
-
-1. Use the existing linter/test framework. Add the smallest enforcement vehicle with a diagnostic
-   that names the valid alternative. Retain the observed failure as a test fixture or brief rationale.
-2. Prove a real violating case fails and legitimate nearby cases pass. Test suppression/exception
-   handling where supported; avoid broad syntax bans or unreasoned budget increases.
-3. Keep one authoritative rule owner. A short AGENTS.md pointer to enforcement is useful; a second
-   diverging copy of its complete implementation policy is not. Go to Stage 5: Verify.
-
-## Stage 5: Verify and deliver
-
-1. Read the document set together for contradictions, stale routes, invalid commands, and authority
-   expansion. Check all newly referenced local files and run the actual documented focused checks.
-2. Walk one representative task and one relevant negative/edge task through the guidance. Distinguish
-   static walk-throughs from live agent evaluation; do not claim measured behavior from prose checks.
-3. Report changes, rule rationale, checks actually run, and pending delivery. Commit/publish only
-   when assigned. Future observed failures update the relevant owner, not an accumulating changelog.
-
-# Design basis
-
-- T3 Code's AGENTS.md and task-shaped repository skills demonstrate local safety, scoped verification,
-  conditional internal-doc pointers, truthful evidence, and source-backed conventions. Their commands
-  and product-specific restrictions are not templates to copy verbatim into unrelated repositories.
-- `../create-skill/references/authoring-patterns.md` records the Anthropic/Matt Pocock/T3 research
-  behind progressive disclosure, trigger quality, examples, and behavioral rather than textual tests.
+1. Read the resulting document set together for contradictions, stale paths, copied tool catalogs
+   and unintended authority. Check new links and run the actual focused commands it recommends.
+2. Walk a representative task plus a relevant negative/effect-boundary case through the guidance.
+   Distinguish a static walk-through from live agent evaluation.
+3. Report changed paths, rationale, checks and pending effects. Use the source owner's publication
+   procedure only when assigned. Future failures update their existing rule owner, not a changelog.

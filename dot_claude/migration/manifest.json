@@ -168,7 +168,7 @@
     },
     {
       "name": "agent-repo-guidance",
-      "kind": "owned-snapshot",
+      "kind": "claude-adaptation",
       "source": "~/.config/pi/profiles/t3main/skills/agent-repo-guidance",
       "files": 1,
       "treeSha256": "8e5b1b3b9b5b99cb57068a1c1cc08f4156467f9802768d6f190f4c7648db2dd3"
@@ -196,7 +196,7 @@
     },
     {
       "name": "edit-config",
-      "kind": "owned-snapshot",
+      "kind": "claude-adaptation",
       "source": "~/.config/pi/profiles/t3main/skills/edit-config",
       "files": 1,
       "treeSha256": "de510662a3667892c15417978cd3948b40c905f0ef72c1f697dff71f40fc1662"
@@ -210,7 +210,7 @@
     },
     {
       "name": "full-send",
-      "kind": "owned-snapshot",
+      "kind": "claude-adaptation",
       "source": "~/.config/pi/profiles/t3main/skills/full-send",
       "files": 1,
       "treeSha256": "93d15a936db9bd02710830db78d064fb8fb584b636794bb61d033dfc4cd9c475"
@@ -259,14 +259,14 @@
     },
     {
       "name": "runtime-verification",
-      "kind": "owned-snapshot",
+      "kind": "claude-adaptation",
       "source": "~/.config/pi/profiles/t3main/skills/runtime-verification",
       "files": 1,
       "treeSha256": "1e938dc2d21efd4b38ee9cce49db1e6ed4b4c35f28b8ae58b2563f3a276db205"
     },
     {
       "name": "subagents",
-      "kind": "owned-snapshot",
+      "kind": "claude-adaptation",
       "source": "~/.config/pi/profiles/t3main/skills/subagents",
       "files": 9,
       "treeSha256": "2f0bd693448ca9fcce058f26679e9a72d1bda6ab69b20a20c78243f0bb682d8c"
@@ -280,7 +280,7 @@
     },
     {
       "name": "visual-design",
-      "kind": "owned-snapshot",
+      "kind": "claude-adaptation",
       "source": "~/.config/pi/profiles/t3main/skills/visual-design",
       "files": 1,
       "treeSha256": "6d39955cae3a1665847995a9969631b9da0193b07f21c82c9dab768fffa65ac1"
@@ -370,7 +370,7 @@
     },
     {
       "path": "dot_claude/skills/agent-repo-guidance/SKILL.md",
-      "sha256": "2b2993ad0ce97e80c59bdeed301c635acdfe71b5472a2992ab581f6994621f73"
+      "sha256": "b6eceaefdb686397c0b6c54aa557598138ed6eb97da94c7cc4b4a20882c631b4"
     },
     {
       "path": "dot_claude/skills/browser-workflow/bin/executable_trajectory-costs",
@@ -1682,11 +1682,11 @@
     },
     {
       "path": "dot_claude/skills/edit-config/SKILL.md",
-      "sha256": "5e04d85cc2e3934549b3019c3ddb226a920d270099995519510d59fdd912eea0"
+      "sha256": "0373637cf0a096e423db9e0bada001a8f8251af59f996b3ad5580af47d1e6682"
     },
     {
       "path": "dot_claude/skills/full-send/SKILL.md",
-      "sha256": "6001941fb8ba4c63774920d736ce846d5060a2b5473e5cd06c1fee879f531763"
+      "sha256": "15da77776426a226e1fc4b4394743ed97260fe1223a02b8c80f564257e9c98ae"
     },
     {
       "path": "dot_claude/skills/full-stop/SKILL.md",
@@ -1750,7 +1750,7 @@
     },
     {
       "path": "dot_claude/skills/runtime-verification/SKILL.md",
-      "sha256": "511511f9f96260e4e1fff06bd33032088c2d02b501b46ede8d3b9392ba3b5edf"
+      "sha256": "15ed1995bfbe1194caae7493f8e41aa13d6487300bd089bd4332fa99ae54c28d"
     },
     {
       "path": "dot_claude/skills/subagents/model-selection/SKILL.md",
@@ -1786,7 +1786,7 @@
     },
     {
       "path": "dot_claude/skills/subagents/SKILL.md",
-      "sha256": "f15738990bcfe44d48690e08d5a876831b15309d43a8716427d21c83df91c613"
+      "sha256": "7c74694327a78b28cdeb16b509dc9a274ce525848164a4e359068bc11ed4ea46"
     },
     {
       "path": "dot_claude/skills/terminal-ui/references/capture.md",
@@ -1802,7 +1802,7 @@
     },
     {
       "path": "dot_claude/skills/visual-design/SKILL.md",
-      "sha256": "589e5ff79baece843fbadeeaf9dc84e65083f64ea072cc6407167c39faadc9ca"
+      "sha256": "d801de5d6d7006584b5d8d7dd1bc7653fa32b5bf6b7af5df8270613db68c9184"
     },
     {
       "path": "dot_claude/skills/librarian/LICENSE",
@@ -1822,7 +1822,7 @@
     },
     {
       "path": "dot_claude/skills/research-report/SKILL.md",
-      "sha256": "5b5a503f8dafcb415cd4394d7e201fa8d754ecda1e9672cf697bb80dd402c9bf"
+      "sha256": "375797808194971c1e656eaf7c990124615fea41a088f9896e88c625504c9b89"
     },
     {
       "path": "dot_claude/skills/research-report/research-report.css",

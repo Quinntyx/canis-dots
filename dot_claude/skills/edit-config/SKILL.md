@@ -1,7 +1,8 @@
 ---
 name: edit-config
-description: "Use when creating, changing, or removing persistent configuration, dotfiles,
-  rcfiles, application settings, Claude Code configuration, or Pi profile files, including managed-source changes."
+description: "Use when creating, changing, or removing persistent configuration or dotfiles.
+  Owns source resolution, publication and scoped apply; delegates Claude settings semantics to native
+  /update-config without bypassing chezmoi or the actual manager."
 metadata:
   type: procedure
 ---
@@ -58,9 +59,12 @@ metadata:
 
 ## Stage 2: Edit source
 
-1. Change only the resolved source paths. Preserve chezmoi attributes, templates, permissions, and
-   unrelated edits. Reconcile relevant live drift deliberately; do not overwrite source from live
-   simply because a tool recently rewrote it.
+1. Change only the resolved source paths. For Claude settings JSON, load native `/update-config`
+   through `Skill` when exposed: it owns current settings, permissions and hook semantics. Supply
+   the exact authoritative source path and source-only editing boundary; this skill still owns
+   publication/application. Other configuration keeps its own manager's procedure. If the native
+   skill is absent, consult the installed schema/docs and state the limitation rather than install
+   a replacement. Preserve source attributes and unrelated edits; reconcile live drift deliberately.
 2. Keep credentials and runtime state outside tracked source. Add narrow destination-relative
    exclusions to `.chezmoiignore` when needed. Existing committed secrets require an explicit
    revocation/history-cleanup decision, not merely an ignore entry.
@@ -125,6 +129,8 @@ metadata:
 # Claude Code ownership
 
 - `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and owned personal skills can be chezmoi targets.
+  Native `/update-config` or `/config` is not an ownership override: persistent managed changes go
+  through resolved source and the lifecycle above, not a second write to the live destination.
 - `~/.claude.json` contains runtime/auth/MCP state; use supported Claude MCP/settings commands for that state.
 - Never adopt `~/.claude/plugins/cache`, transcripts, credentials, or generated installed-plugin registries.
 - Changes to skills/hooks must be checked in a fresh Claude session; T3 injects its own MCP and settings.

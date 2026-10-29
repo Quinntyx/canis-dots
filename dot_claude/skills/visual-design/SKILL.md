@@ -1,7 +1,8 @@
 ---
 name: visual-design
-description: "Use when designing, implementing, comparing, or reviewing UI, visual identity,
-  responsive layouts, or autonomous screenshot-based design variants."
+description: "Use when designing, implementing, comparing or reviewing UI, visual identity,
+  responsive layouts or captured design variants. Native /dataviz owns chart design; this skill
+  supplies product constraints, broader UI work and permitted evidence/showback."
 metadata:
   type: procedure
 ---
@@ -35,7 +36,12 @@ metadata:
 1. Read the brief, repository instructions, current UI, and existing assets. Infer missing ordinary
    details from evidence; ask only about ambiguity that changes authority or the product's purpose.
 2. Identify the primary user task, target routes, viewports, and existing workflow integrations.
-   Keep the requested scope and use the actual product's terminology and content.
+   Keep the requested scope and use the actual product's terminology and content. For any chart,
+   graph, dashboard or data visualization, load native `/dataviz` through `Skill` when exposed,
+   before choosing chart form/colors or writing chart code. Give it existing product tokens, data,
+   accessibility needs and output medium: it owns chart encodings/palette/mark guidance, while
+   this skill owns product integration and evidence. For a chart-only task, skip unrelated UI
+   construction. If unavailable, use inspected project chart conventions and name the limitation.
 3. If interactive annotation or a designer review session was explicitly requested, proceed to
    Stage 2: Interactive handoff. For design advice or a review of supplied artifacts, proceed to
    Stage 5 using that evidence. For authorized runnable work, proceed to Stage 3: Autonomous design.
@@ -123,6 +129,9 @@ metadata:
 # Claude Code capability adapter
 
 - Inspect saved images with native `Read`. Capture and image generation are separate capabilities.
+- Native `/dataviz` is the chart procedure, not an image generator or permission to publish through
+  a connector. `/design` is a Design access-consent command in this installation, not a substitute
+  for this UI workflow or the separate `../3d/SKILL.md` modeling workflow.
 - For requested T3 HTML showback discover `html_preview` then `html_render`; supply actual HTML.
   These are MCP capabilities, not Claude built-ins. With no renderer, deliver the artifact and
   state the presentation boundary. Native `Artifact` has different account/publication semantics.

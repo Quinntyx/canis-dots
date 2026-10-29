@@ -179,9 +179,25 @@ def draw_dim_linear(svg, view, cell, scale, p1, p2, label, offset):
     svg.line(pa[0], pa[1], pb[0], pb[1], "dim")
     _arrow(svg, pa, ux, uy, 1.0)
     _arrow(svg, pb, ux, uy, -1.0)
-    lx = (pa[0] + pb[0]) / 2.0 - uy * 2.4
-    ly = (pa[1] + pb[1]) / 2.0 + ux * 2.4
-    svg.text(lx, ly - 0.6, label)
+    # Label lane: perpendicular to the dimension line, on the same side the
+    # dim line was offset toward, so text never crosses the stroke.
+    spx, spy = -uy, ux
+    lane = spx * ox + spy * oy
+    s = 1.0 if lane >= 0 else -1.0
+    lx_lane, ly_lane = spx * s, spy * s
+    if abs(lx_lane) >= abs(ly_lane):
+        svg.text(
+            (pa[0] + pb[0]) / 2.0 + lx_lane * 1.2,
+            (pa[1] + pb[1]) / 2.0 + 1.0,
+            label,
+            anchor="end" if lx_lane < 0 else "start",
+        )
+    else:
+        svg.text(
+            (pa[0] + pb[0]) / 2.0,
+            (pa[1] + pb[1]) / 2.0 + (2.8 if ly_lane > 0 else -1.2),
+            label,
+        )
 
 
 def _arrow(svg, tip, ux, uy, direction):
@@ -297,14 +313,14 @@ class SvgSheet:
             + " />"
         )
 
-    def text(self, x, y, content, size=TEXT_H, weight="normal"):
+    def text(self, x, y, content, size=TEXT_H, weight="normal", anchor="middle"):
         content = (
             str(content).replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
         self.body.append(
-            f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size}" text-anchor="middle" '
+            f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size}" text-anchor="{anchor}" '
             f'font-weight="{weight}" font-family="system-ui, sans-serif">'
             f"{content}</text>"
         )

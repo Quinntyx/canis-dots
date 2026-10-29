@@ -83,27 +83,63 @@ metadata:
    other outcomes go to Stage 5: Deliver. With an unavailable boundary, deliver the valid partial
    result and name that limit.
 
-## Stage 4: Rehearse a procedure revision (optional)
+## Stage 4: Rehearse a procedure revision
 
-1. Rehearse a `procedure` revision by default for a single-skill change, and whenever the user
-   asks, unless the user asked for no verification. Skip it for bulk multi-skill edits, where
-   per-skill rehearsal slows the run substantially; suggest a follow-up rehearsal in the receipt
-   instead. Guideline-only changes and trivial corrections go straight to Stage 5: Deliver.
-2. Build one mock task that would genuinely activate the skill. Write it in the user's own prompt
-   style: sample real requests from the user's Pi session transcripts on disk (locate the active
-   session store for the current profile; do not guess a path) or from past T3 Code threads
-   (`t3_thread_search`), rather than inventing a generic prompt.
-3. Delegate one subagent with `delegate_task` on provider `pi_pi_t3main`, model
-   `opencode-go/glm-5.3-flash`, and give it the skill plus the mock task. Compare the trajectory
-   it takes with the trajectory the skill procedure prescribes.
-4. Iterate: revise the skill and rerun the rehearsal until the trajectory matches. Each revision
+1. For a single `procedure` skill, rehearse changes to its actions, their order, effects, or
+   deliverables by default, and whenever the user asks, unless the user asked for no verification.
+   Guideline-only changes and spelling, formatting, or wording corrections that preserve the
+   procedure's behavior go straight to Stage 5: Deliver. For bulk multi-skill edits, suggest a
+   follow-up rehearsal in the receipt instead of rehearsing each skill in this run.
+2. Sample a real request that would genuinely activate the skill from the user's Pi session
+   transcripts on disk (locate the active session store for the current profile; do not guess a
+   path) or past T3 Code threads (`t3_thread_search`). Trace the candidate back to the human user's
+   original message using session/thread provenance, and retain that source identity in coordinator
+   notes; a transcript's `user` role can also contain an agent-authored delegation brief. Adapt only
+   the task-specific names, paths, and inputs needed for the fixture. Preserve the user's wording,
+   brevity, and level of detail so the resulting prompt reads as though the user wrote it.
+3. Provision an isolated runtime with a fresh session and task-local filesystem, home/profile,
+   session history, and service counterparts. Give thread/search tools the corresponding task-local
+   scope. Populate it with representative input files, assets, dependencies, and the human-authored
+   task history the ordinary workflow needs. Carry over the normal harness instructions, tool
+   interfaces, permissions, and execution defaults. Make the revised skill and its references
+   available through normal discovery or an explicit entrypoint path, using ordinary task names
+   and paths. Keep coordinator notes, evaluation records, prior trial artifacts, and live user data
+   in the coordinator's separate namespace. Establish these visibility boundaries in the runtime
+   and service configuration, then verify its effective file, history, and thread/search scope
+   before launching. This gives the child an ordinary working environment while containing its
+   effects and keeping the evaluation external to it. Choose a small workload that exercises the
+   same operations within the available budget. With a missing prerequisite, record the blocked
+   execution boundary and the remaining rehearsal work.
+4. Record the expected observable sequence and completion evidence in coordinator notes: the
+   consequential tool calls, their order, intermediate state changes, and final artifacts. Keep
+   the evaluation criteria, its status as a rehearsal, and the expected behavior with the
+   coordinator; the child receives the ordinary user request.
+5. Delegate one subagent with `delegate_task` on provider `pi_pi_t3main`, model
+   `opencode-go/glm-5.3-flash`. Supply `task` and the required provider/model identity, retaining
+   normal defaults for the remaining execution settings and an ordinary task title. The task text
+   is the sampled prompt with its fixture identifiers and minimal discovery scaffolding such as
+   the WIP skill's entrypoint path. It ends with those ordinary task requirements and paths;
+   workflow, permission, delegation, verification, and delivery instructions come from the skill
+   and the agent's normal environment. Let the child perform the task with actual tool calls and
+   produce its artifacts in the prepared environment. The fixture contains the effects; executing
+   the ordinary task is the rehearsal.
+6. Read the child's actual tool/action trace through `t3_thread_read`'s activity view. First match
+   the delivered prompt to its human-authored source and check the launch's execution settings
+   against the normal defaults and the environment's verified visibility boundaries; then inspect
+   the changed files, intermediate outputs, and final artifacts. Compare the observed sequence and
+   result with the skill's prescribed trajectory and the criteria from step 4. Derive the outcome
+   from execution evidence, using the child's final explanation as supporting context. Record where
+   behavior matched, diverged, or stopped at a capability boundary, distinguishing completed
+   execution from unexercised steps.
+7. Iterate: revise the skill and rerun the rehearsal until the trajectory matches. Each revision
    adjusts the happy path so the rehearsing model naturally reaches the right behavior. Never add
    a guard against a pitfall the rehearsal exposed: a negative rule ("don't do Y") introduces the
    pitfall into the context window and can make the model more susceptible to it, not less — like
    being told not to imagine a blue elephant. State the correct behavior positively on the path
    ("do X") instead. This keeps the skill lean, prevents the accumulation of model-specific
    patches, and keeps it portable across models with different tendencies.
-5. With the rehearsal converged, go to Stage 5: Deliver and report the rehearsal outcome.
+8. With the rehearsal converged, go to Stage 5: Deliver and report the observed execution outcome,
+   the evidence inspected, and any remaining execution boundary.
 
 ## Stage 5: Deliver
 

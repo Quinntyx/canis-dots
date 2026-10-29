@@ -1,0 +1,4 @@
+# Hide niri's "Screenshot captured" notification (app-name "niri",
+# sent by the built-in screenshot action after saving).
+[app-name="niri" summary="Screenshot captured"]
+invisible=1

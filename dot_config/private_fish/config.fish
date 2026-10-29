@@ -5,6 +5,9 @@ set -gx SUDO_EDITOR helix
 
 # user-level installs: uv tools, gh, forge-git, cargo-style drop-ins
 fish_add_path $HOME/.local/bin
+# npm -g prefix (~/.npmrc): pi, ppi. Cargo installs. daily_assistant's da/bb.
+# These used to live only in universal fish_user_paths, which a reinstall loses.
+fish_add_path $HOME/.npm-global/bin $HOME/.cargo/bin $HOME/.config/pi/profiles/daily_assistant/bin
 
 # Silence the first-run greeting ("Welcome to fish..." / "Type help...")
 set -g fish_greeting
@@ -100,3 +103,4 @@ if command -q pyenv
 else if command -q python3; and python3 -m pyenv init - >/dev/null 2>&1
     python3 -m pyenv init - | source
 end
+set -gx PPI_PI_ROOT ~/.config/pi

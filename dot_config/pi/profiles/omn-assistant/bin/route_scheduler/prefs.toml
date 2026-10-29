@@ -1,0 +1,62 @@
+# route_scheduler preferences — built from the Oct 2026 preference-extraction
+# questionnaire (3 rounds). Full classified list: PREFS.md (same directory).
+# You can hand-edit anything here; the solver reads it on every run.
+
+[solver]
+candidates = 3          # schedules generated per run, each with fuzzed weights
+phase1_seconds = 180    # priority-lock phase per candidate (22 items need the depth)
+phase2_seconds = 120    # cost-minimizing phase per candidate
+seed = 20261012         # fresh fuzz sample
+
+[hard]  # enforced as CP-SAT constraints — violating these makes a candidate invalid
+# Permanent user rules 2026-10-09: hard 22:00 daily stop, including due days;
+# every assignment gets exactly 120 minutes TOTAL across its work blocks.
+# Normal chunking applies; earlier academic deadlines still bind.
+day_end = "22:00"              # hard daily stop, America/Chicago
+free_day_work_start = "10:00"  # no work before ~10 on days without morning class
+# class days: work may start only after the first morning class ENDS
+meal_minutes = 60              # every meal is a full fresh-cooked hour, inviolable
+meal_crush_minutes = 45        # CRUSH VALVE: used only when 60m meals make the week
+                               # INFEASIBLE — meals stay required, never skipped, just
+                               # shorter; flagged in candidate output so it stays visible
+crush_allowed = true
+breakfast_minutes = [60, 90]   # cook + eat, morning
+break_minutes = [30, 120]      # afternoon break: shrinkable to 30m, never zero
+piano_sessions_min = 240       # >= 4 sessions x 60m per week (R1-Q3a: HARD)
+piano_session_minutes = [30, 60]
+piano_day_cap = 60             # never two practice sessions in one day
+lab_block_minutes = [120, 150] # lab work blocks >= 2h (R2-Q3)
+lab_days_max = 3               # spread over at most 3 weekdays
+deadline_day_end = "22:00"     # due-day stop; earlier academic deadlines still bind
+assignment_minutes = 120       # 2 hours TOTAL per assignment, not per block
+# Permanent user rule 2026-10-19: flexible (non-fixed) work is DAY-ATTACHED —
+# scheduled date + est only, never clock times. Only +fixed events and
+# meal/support blocks are timed. Capacity math per day is unchanged.
+
+[weights]  # soft objectives — base values; fuzz ranges below add variation
+travel = 3.0            # per transit minute (10m same building / 20m campus / 30m off-campus)
+weekend_homework = 4.0  # per minute of homework on Sat/Sun (errands exempt)
+earliness = 1.0         # per hour of work start (prefer daytime; evenings = overflow valve)
+fragmentation = 150.0   # per extra day a task spans (prefer same-day adjacent chunks)
+late_evening = 0.5      # per hour of work after 20:00 (overflow-valve pressure)
+meal_lateness = 1.0     # per minute a meal starts after its window opens (fixed, not fuzzed)
+lab_wednesday = 2.0     # reward per hour of lab on Wednesday (already on campus for the meeting)
+
+[fuzz]  # per-candidate weight sampling — variation across the candidate pool
+travel = [2, 3, 4]
+weekend_homework = [3, 4, 6]
+earliness = [0.5, 1.0, 1.5]
+fragmentation = [100, 150, 250]
+late_evening = [0.0, 0.5, 1.0]
+lab_wednesday = [1.0, 2.0, 3.0]
+
+# NOT in the solver (agent-side PREF layer — see PREFS.md):
+# - between-class gaps < 2h spent at SU Starbucks, never home (Tu/Th lunch at
+#   home is the exception: cooking)
+# - swimming Wednesday-anchored (move only if a +fixed item or homework blocks Wed)
+# - MTG nights end the day; no work after
+# - piano sessions in the afternoon, after the break, never right after the lesson
+# - errands batched onto car trips; no driving to campus (walk)
+# - HackUTD/workshop filler only when the week stays free enough
+# - break placement: after the last fixed item of the day, before evening work
+# - grade reviews < 90%: 2h block same week (flows through solver as normal work)

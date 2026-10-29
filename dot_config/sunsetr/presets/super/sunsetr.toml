@@ -1,0 +1,11 @@
+#[Backend]
+backend = "auto"
+#[Smoothing]
+smoothing = true
+startup_duration = 0.5
+shutdown_duration = 0.5
+adaptive_interval = 1
+#[Static config] — super night: the former intense settings, pinned regardless of clock
+transition_mode = "static"
+static_temp = 3600
+static_gamma = 60

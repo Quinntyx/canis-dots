@@ -16,8 +16,9 @@
 
 - Prefer programmatic aggregation for bulk conversion, repeated file work, scans, grouping and
   comparisons. Keep large intermediate results in local artifacts; return compact counts/tables.
-- Write Python into a `.py` file before running it with an existing project runtime through Bash.
-  Never use Python `-c` or stdin heredocs. For a numerical chart save an image and inspect the file.
+- Run Python with an existing project runtime through Bash. Inline `-c` and stdin heredocs are fine
+  for short one-off work; save a `.py` file when the code is long, reused or worth reviewing.
+  For a numerical chart save an image and inspect the file.
 - Native NotebookEdit remains available for editing notebook cells; editing is not execution.
 - One simple lookup does not need a script. If a preferred runtime is unavailable, use another
   existing suitable programmatic runtime and state the relevant limitation.

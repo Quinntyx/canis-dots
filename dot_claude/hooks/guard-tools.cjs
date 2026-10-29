@@ -5,10 +5,6 @@
 const fs = require('node:fs');
 const RM = /(^|[;&|\n/])\s*(?:(?:sudo|time|nice|env|xargs|nohup|command)\s+)*rm(?=\s|$)/;
 const SEARCH = /(^|[;&|\n/])\s*(?:(?:sudo|time|nice|env|xargs|nohup|command)\s+)*(find|grep)(?=\s|$)/;
-const PYTHON = String.raw`(?:\S*\/)?(?:python|pypy)(?:\d+(?:\.\d+)*)?`;
-const FLAGS = String.raw`(?:(?:-[WXQ]\s+\S+|-|-[A-Za-z]+)\s+)*`;
-const HEREDOC = new RegExp(String.raw`(?:^|[\s;&|(){}[\]])${PYTHON}\s*${FLAGS}<<-?\s*["']?[A-Za-z_][A-Za-z0-9_]*["']?`);
-const INLINE = new RegExp(String.raw`(?:^|[\s;&|(){}[\]])${PYTHON}\s+${FLAGS}-[A-Za-z]*c[A-Za-z]*(?=\s|$|[^A-Za-z0-9_-])`);
 
 function policyReason(event) {
   const input = event.tool_input ?? {};
@@ -21,7 +17,6 @@ function policyReason(event) {
   if (RM.test(command)) return '`rm` is blocked. Use `trash <path>` for recoverable deletion; if trash is unavailable, stop and ask. Git removals should use `git rm --cached` or trash followed by staging.';
   const search = command.match(SEARCH);
   if (search) return `${search[2]} is blocked. Use rg for text searches and rg --files -g '<glob>' for file discovery. git grep and git log --grep= remain allowed.`;
-  if (HEREDOC.test(command) || INLINE.test(command)) return 'Inline Python (-c or a stdin heredoc) is blocked. Write a .py file and run it with Bash using an existing project runtime. Do not retry to bypass this rule.';
   return null;
 }
 module.exports = { policyReason };

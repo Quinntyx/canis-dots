@@ -101,7 +101,7 @@ A native equivalent below means its documented capability, not byte-identical Pi
 | pi-web-access | Native WebSearch; capability-gated WebFetch + Git/HTTPS-original acquisition | **Partial:** search verified, native fetch blocked on this host; provider chain, response ledger, curator and video analysis absent |
 | pi-permissions | Native deny rules for env-file edits + PreToolUse file/command guard | Relevant active rules carried; not a security sandbox |
 | pi-block-find-grep | PreToolUse command guard | rg policy preserved, including common pipeline/wrapper/path forms |
-| pi-block-inline-python | PreToolUse command guard; saved scripts with existing project runtimes | Global hard policy retained; Pi extension's retry-once escape hatch deliberately not copied |
+| pi-block-inline-python | Not carried; inline `-c`/heredoc Python allowed with existing project runtimes | Lifted for Claude: without a Pi-style Python cell runtime there is no preferred alternative to redirect to. Pi keeps its block |
 | pi-block-rm | PreToolUse command guard | Recoverable trash policy retained |
 | pi-idle-time@dev | UserPromptSubmit timing hook | Per-session local time/elapsed context, machine-local state |
 | pi-undo-latest | Native CLI rewind/checkpoint options where exposed; T3's own history UI otherwise | Not a custom Claude /undo port; Pi editor prompt restoration differs |
@@ -189,7 +189,7 @@ supported MCP access and suitable hosts; never copy temporary T3 auth headers in
 
 ## Verification and references
 
-- Hook regression command: `node --test ~/.claude/hooks/*.test.cjs` (38 passing regression cases).
+- Hook regression command: `node --test ~/.claude/hooks/*.test.cjs` (37 passing regression cases).
 - Claude 2.1.312 initializes against CLIProxyAPI/claude-opus-5-5, discovers all 26 intended
   personal entries plus built-ins, fires the timing hook and returns the requested sentinel.
   Native built-ins included plugin-authoring, debugging/review and repository guidance support;

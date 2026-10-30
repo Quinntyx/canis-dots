@@ -108,7 +108,8 @@ metadata:
    Numeric acceptance remains mandatory; renders add visual evidence rather than replace it.
    Explicit image opt-outs skip this handoff. Unavailable Blender or a render approval boundary
    leaves renders pending while the drawing and verified CAD artifacts can still be delivered.
-4. Proceed to Stage 6: Technical drawing by default, or Stage 7: Report if the user explicitly
+4. After the Blender handoff, return here with its verified scene, images and `scene-report.md`.
+   Continue to Stage 6: Technical drawing by default, or Stage 7: Report if the user explicitly
    omitted the sheet. Rendering execution order does not change the sheet-first presentation order.
 
 ## Stage 6: Technical drawing (default)
@@ -123,14 +124,19 @@ metadata:
    Keep the SVG and convert it to `part-sheet.png` with `rsvg-convert` for the default image handoff.
    If raster conversion is unavailable, deliver the SVG and name the pending PNG explicitly.
 2. Dimension callouts come from the Stage 2 parameter table: one annotation per requirement,
-   labeled with its target value, in model millimeters (linear between two points; diameters on
-   the view whose circular face is planar to the sheet). Drawings draw no decorative dimensions;
-   a callout set that differs from the acceptance set goes back to Stage 2 first.
+   labeled with its target value and tolerance, in model millimeters (linear between two points;
+   diameters on the view whose circular face is planar to the sheet). Use the helper's `--note`
+   for a shared tolerance such as `Dimensions ±0.1 mm`, or put individual tolerances in labels.
+   Match the callout set to the acceptance set, including feature locations and hole diameters.
 3. The helper fixes the view set deterministically instead of letting the model pick camera
    settings: orthographic by construction, first-angle placement, with mis-specified annotations
    exiting nonzero rather than silently altering the sheet. Photorealistic
    renders remain the non-parametric branch's pipeline.
-4. Proceed to Stage 7: Report.
+4. Open the actual rasterized sheet and compare it with the verified solid and acceptance table:
+   orthographic view placement, visible/hidden edges, callout attachment to the intended features,
+   dimension lengths at the stated scale, tolerances and readable labels. Correct any discrepancy
+   in the dimension inputs or owned helper and regenerate/review the sheet. With the visual sheet
+   check complete, proceed to Stage 7: Report.
 
 ## Stage 7: Report
 
@@ -138,7 +144,9 @@ metadata:
    target, measured, margin, and pass/fail per item including unverified requirements, script
    and export paths, interpreter and build123d versions, and the reproduction command. Include
    the drawing sheet before the rendered images by default, plus the Blender report/settings and
-   any pending render approval or missing image capability. Inspection-only work returns the
-   requested findings directly, with evidence from the inspected reference.
+   any pending render approval or missing image capability. Write this report after the drawing
+   review, then send the final handoff with the sheet image first, rendered images and artifact
+   paths. Inspection-only work returns the requested findings directly, with evidence from the
+   inspected reference.
 2. Report available and missing paths separately, with failures and unexecuted stages explicit.
    Preserve working copies and logs; release only processes owned by this task.

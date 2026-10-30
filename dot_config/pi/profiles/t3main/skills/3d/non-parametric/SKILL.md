@@ -38,9 +38,9 @@ metadata:
 
 ## Stage 1: Preflight and choose transport
 
-1. Resolve the skill root and execute `bin/blender-preflight` directly. Its Python 3 shebang
-   selects the standard-library capability probe, which reads executable availability and invokes
-   Blender's bounded `--version` query. It writes JSON to stdout, changes no files, and returns
+1. Resolve `bin/blender-preflight` from the directory containing this file and execute it directly.
+   Its Python 3 shebang selects the standard-library capability probe, which reads executable
+   availability and invokes Blender's bounded `--version` query. It writes JSON to stdout, changes no files, and returns
    0 for Blender availability or 2 when unavailable.
 2. Blender provides the baseline geometry, materials, rendering, and its own Python with `bpy`.
    After a successful probe, author the build script for that Blender and run it there. Host
@@ -69,14 +69,24 @@ metadata:
 3. Plan a complementary camera set for all-around inspection: normally at least three genuinely
    different angles (for example front three-quarter, rear three-quarter, and side/top), adding
    underside or close interface views when those surfaces matter. Landscapes/scenes use multiple
-   useful viewpoints rather than a single flattering hero angle. Reuse named cameras across passes.
+   useful viewpoints rather than a single flattering hero angle. Keep one complete named camera
+   list for each pass, final renders and reopen verification, including any added overhead view.
 4. Unless specified otherwise, make part/individual-object images square (`resolution_x ==
    resolution_y`, square pixels) with the subject centered and fully in frame. For landscapes/scenes,
    retain Blender's default aspect ratio (normally 16:9 for a new scene; preserve an existing
    scene's configured ratio). A cheap preview can lower resolution without changing that ratio.
 5. Choose modest preview resolutions, sample counts, and bounded threads that preserve desktop
    responsiveness. Budget geometry reviews before lighting, then fast lighting passes before
-   final Cycles images. A request for animation is not approval for a Cycles animation render.
+   final Cycles images. For each review pass, build one labelled contact sheet from the complete
+   named camera list, confirm that its tiles cover that list, and open it at a readable tile size;
+   use a close crop for an unresolved detail. When assembling sheets inside Blender, use contiguous
+   NumPy `float32` RGBA buffers normalized to `[0, 1]` with bulk `pixels.foreach_get` /
+   `foreach_set`. Budget image attachments for the whole task, including tool-generated images and
+   final delivery, against the provider's limit. A small asset normally needs three geometry sheets,
+   one to three EEVEE sheets, one to three Cycles comparison sheets, one final sheet and its CAD
+   drawing if applicable, leaving room for crops and delivery. Record findings in text after each
+   sheet and batch candidate settings into labelled comparisons. Keep full-resolution originals
+   as deliverables. A request for animation is not approval for a Cycles animation render.
 6. For inspection-only or export-only work, proceed to Stage 6: Verify and export with the existing
    scene. For creation or editing, proceed to Stage 3: Build. For rendering an existing scene,
    proceed to Stage 4: Geometry review and render gate, without rebuilding already-correct geometry.
@@ -85,11 +95,16 @@ metadata:
 
 1. Write `build-scene.py` in the output directory using Blender's bundled `bpy` API. For procedural
    mesh or modifier work, read `references/procedural-geometry.md` as the construction baseline.
-   Set seeds, units, preview resolution, engine, camera set, color management, and paths explicitly;
-   keep the initial scene cheap and focused on base geometry, not production materials or lighting.
-2. Use deterministic object names and a dedicated collection. Target owned data blocks and save
-   results to the new `.blend` path. Preserve identity-bearing materials, nodes, and animation;
-   use reversible preview overrides rather than replacing source materials for diagnostic colors.
+   Set seeds, units, preview resolution, engine, camera set, color management, and paths explicitly.
+   Give the script callable `geometry`, `lighting-preview`, `cycles-check` and `final` phases,
+   reached in that order. The geometry phase builds only the subject, cameras and cheap random-color
+   diagnostics; Stage 5 adds the production rig and shaders after accepting the geometry reviews.
+2. For a new standalone scene, start from `bpy.ops.wm.read_factory_settings(use_empty=True)` and
+   create only the planned subject, cameras and supporting scene objects. For existing-scene edits,
+   load the saved working copy and preserve its intended contents. Use deterministic object names
+   and a dedicated collection, record the intended scene-object inventory, and save owned data
+   blocks to the new `.blend` path. Preserve identity-bearing materials, nodes and animation; use
+   reversible preview overrides rather than replacing source materials for diagnostic colors.
 3. Pass project-specific inputs after Blender's `--` separator and parse that trailing argument
    vector in the script. Use absolute process arguments and resolve asset paths explicitly.
 4. For new standalone scenes, invoke the resolved executable with `--background`,
@@ -129,17 +144,21 @@ metadata:
    does not change EEVEE materials. Keep diagnostic overrides separate from production materials.
 5. Spend at least three base-geometry review passes before lighting/material refinement: blockout
    and silhouette; proportions, clearances and assembly relationships; then all-around surfaces,
-   backside/underside details and shading defects. Each pass renders the complementary camera
-   set, inspects the actual images and evaluated geometry, and corrects unmet requirements through
-   Stage 3 before the next pass. Record findings per pass; re-confirm already-correct geometry
-   rather than making pointless edits. A single hero render or three copies of one view do not
-   satisfy this review. Inspection/render-only work on an unchanged existing asset reviews the
-   camera set without imposing unnecessary geometry edits or three reconstruction passes.
-6. Fit each whole-asset camera to evaluated subject bounds using the geometry reference, checking
-   every camera and relevant preview state with the `0.02` normalized margin. Exclude light rigs,
-   backdrops, and emitter planes from the subject bounds. Center individual objects in frame;
-   use intentional composition for landscape cameras. Render actual diagnostic images and inspect
-   them; saving camera configurations alone is not evidence.
+   backside/underside details and shading defects. In each pass, render every named camera with
+   the Stage 4 diagnostic setup, open that pass's labelled contact sheet, and record the finding
+   for every view. Correct unmet requirements through Stage 3 and review the rebuilt camera set
+   before continuing. Re-confirm already-correct geometry rather than making pointless edits.
+   Inspection/render-only work on an unchanged existing asset reviews the camera set without
+   imposing unnecessary geometry edits or three reconstruction passes.
+6. Set the intended image aspect and square pixels before fitting cameras. Fit each whole-asset
+   camera with the geometry reference's evaluated-corner projection and fit pattern. Enumerate all
+   eight `bound_box` corners of every subject object and check every camera/state with Blender's
+   `world_to_camera_view`: `x` and `y` in `[0.02, 0.98]`, positive `z`. Exclude light rigs,
+   backdrops, and emitter planes from the subject bounds. Update the view layer after camera
+   placement, project all evaluated corners, and expand/recenter until the recorded bounds pass;
+   use the executable framing pattern in the geometry reference. Center individual objects in
+   frame; use intentional composition for landscape cameras. Render actual diagnostic images and
+   inspect them; saving camera configurations alone is not evidence.
 7. Repeat geometry-only reviews until the base-geometry acceptance set holds across the camera
    set. Only then proceed to Stage 5: Lighting, materials, and final renders. Missing approval
    blocks the costly step, not preservation/reporting of completed CAD, scene, or cheap previews.
@@ -150,24 +169,34 @@ metadata:
    form, a weaker fill that preserves shadows, and a rear/rim light for separation. Use large area
    lights for controllable soft highlights; tune positions and relative powers to subject scale
    and material instead of flattening all shadows. Keep the rig useful across the review cameras.
-2. For landscapes/scenes, start with a giant emissive plane outside all delivery-camera frames,
-   positioned and sized as a broad soft source. Keep it contributing to lighting and reflections;
-   out of frame does not mean `hide_render`. EEVEE does not automatically light the scene from
-   emissive meshes as Cycles does: use an appropriately aligned area-light proxy or supported
-   baked light-probe solution for early iterations and record the approximation. In Cycles restore
-   the intended mesh-emitter setup without accidental double illumination from a retained proxy.
-3. Iterate light placement and shadow/readability cheaply in EEVEE (or another capable cheap
-   preview engine), keeping camera, exposure, and color-management settings consistent. Workbench
-   flat renders assess shape, not physical illumination. Inspect all review angles after changes;
-   fix geometry regressions in Stage 3/4 before spending on final rendering.
+2. For landscapes/scenes, create a named giant mesh plane above and off to one side of the scene,
+   oriented toward the subject, with an Emission shader connected to Material Output Surface.
+   Size it as a broad soft key source and position its full extent outside every delivery-camera
+   frame. This mesh emitter is the production landscape rig through Cycles checks, finals and
+   the saved scene; tune its emission strength to expose the subject. A sky/world can supply the
+   visible backdrop and supporting fill. Keep the plane render-enabled so it contributes to
+   lighting and reflections. For EEVEE previews, align an area-light proxy to the same plane and
+   approximate its illumination, or use supported baked probes; record that preview approximation.
+   The `cycles-check` and `final` phases use the emissive plane with the EEVEE proxy removed.
+3. Run the script's `lighting-preview` phase: select the installed Blender version's EEVEE engine,
+   apply the production rig and materials, and render the full named camera set at preview size.
+   Open its labelled contact sheet and record the engine and findings for every angle: readable
+   form, highlights, shadows and separation. Adjust the rig and rerun that EEVEE phase until
+   accepted, then run `cycles-check` for step 5's transport confirmation. Keep camera, exposure and
+   color management consistent across both phases.
+   Workbench flat renders assess shape; these EEVEE images establish the initial lighting. Route
+   geometry corrections through Stage 3/4 before returning to lighting.
 4. Before assigning or refining production materials, read `references/principled-materials.md`
    for physical parameter semantics and common-material starting ranges. Match the reference
    surface, finish, texture scale, layer structure and lighting rather than assigning arbitrary
    colors to a uniformly glossy shader. Restore source materials after diagnostic overrides.
 5. With a verified GPU, switch to low-resolution, bounded-sample Cycles in later lighting/material
-   iterations to confirm actual light transport, reflections, anisotropy and transmission. Correct
-   mismatches that EEVEE approximations hid. Without GPU approval under Stage 4, leave expensive
-   Cycles work pending; an EEVEE preview is not evidence of final Cycles lighting correctness.
+   iterations to confirm actual light transport, reflections, anisotropy and transmission. Assemble
+   and open a labelled low-resolution Cycles sheet for the full named camera set, using the same
+   cameras and exposure as the EEVEE preview. Compare candidate light powers, roughness or texture
+   scales in its tiles, and record the accepted appearance before running the final-resolution
+   phase. Correct mismatches that EEVEE approximations hid. Without GPU approval under Stage 4,
+   leave expensive Cycles work pending; an EEVEE preview is not evidence of final Cycles correctness.
 6. Final rendered stills always use Cycles unless the user explicitly selects another engine.
    Restore production materials, remove diagnostic/proxy artifacts, and use the accepted lighting
    rig, centered square object framing or default scene aspect ratio. Render the complementary
@@ -175,31 +204,48 @@ metadata:
    Stage 4 animation gate to any final animation; a default engine is not authorization to render it.
 7. Set all render options before rendering; Blender processes CLI arguments in order. Place
    `--render-frame` or `--render-anim` after file loading and render-setting arguments, or use
-   `bpy.ops.render.render(write_still=True)` for script-controlled stills. Inspect the actual final
-   images for geometry, composition, materials, shading, textures and lighting against the
-   acceptance set. Return to the relevant phase on failure. Record optional polish separately,
-   save the production `.blend` with intended final settings, and proceed to Stage 6 when verified.
+   `bpy.ops.render.render(write_still=True)` for script-controlled stills. Open a contact sheet of
+   the actual final images and assess every view against the acceptance set. Return to the
+   relevant preview phase for unmet requirements. Once every view meets the acceptance set, save
+   the production state and complete verification and handoff; record optional cosmetic polish as
+   follow-up in the report.
+8. Prepare the saved production state after rendering: select the named hero as `scene.camera`,
+   set the final engine, resolution, square pixels, resolution percentage, samples, Cycles device
+   and output path, and restore production materials and visibility. Save the `.blend` in that
+   state. Record the expected values and named delivery cameras, then proceed to Stage 6.
 
 ## Stage 6: Verify and export
 
 1. Inspect the requested existing scene, or reopen a changed `.blend` in a separate background
-   process to verify the saved result. Inspect required objects, materials, transforms, cameras,
-   final engine/render settings, external paths, and animation data. Confirm diagnostic overrides
-   did not leak into the production scene; verify image aspect ratio and multi-camera coverage.
+   process. For a changed scene, compare the loaded state with Stage 5's expected values using
+   assertions that exit nonzero on mismatch: active hero camera, named delivery cameras, final
+   engine, resolution, pixel aspect, percentage, samples and Cycles device. Compare the loaded
+   renderable-object inventory with the planned subject, backdrop/emitter and rig. For a landscape,
+   observe the named mesh emitter's material connection, render visibility and out-of-frame
+   placement across the full camera list. Then check production material assignments/overrides,
+   transforms, external paths and relevant animation
+   data. Run the geometry reference's observational framing check for every saved named camera:
+   all eight evaluated corners per subject, Blender's `[0, 1]` projection, and the `0.02` margins
+   at the saved aspect. Compare final PNG dimensions with it.
+   Record those loaded values and outcomes. Return a mismatch to the build/final-save phase, then
+   reopen that corrected file for the same observational check.
 2. Check evaluated geometry with modifiers and render settings accounted for. Apply manifoldness,
    normal, topology, or polygon-budget checks only where the deliverable requires them.
 3. When export is requested, use the installed Blender version's operators. Reimport into a
    separate scene or inspect with an available reader; verify units, axes, bounds, and data.
-4. Proceed to Stage 7: Report.
+4. Save the verification results, then continue in this task to Stage 7: Report and its final
+   user handoff.
 
 ## Stage 7: Report
 
 1. For created artifacts, write `scene-report.md` with relevant previews, scene, scripts, exports,
    checks, device evidence, asset provenance, and reproduction commands. Include the geometry-pass
    findings, camera coverage, lighting/material iterations, final engine/aspect ratio, timings and
-   any approval boundary. Distinguish cheap diagnostic previews from final renders. Inspection-only
+   any approval boundary. Report material values from the saved node settings in explicit scene
+   units. Distinguish cheap diagnostic previews from final renders. Inspection-only
    work returns the requested findings directly, with evidence from the inspected scene.
-2. Deliver rendered images by default, not just file paths to models; parametric models retain
-   their technical sheet before other images unless the user specifies otherwise. Report available
-   and missing paths separately, with failures and unexecuted stages explicit. Preserve working
-   copies and logs; release only processes owned by this task.
+2. After writing the report, send the final user handoff with the rendered images, report, scene
+   and reproduction-script paths. Parametric handoffs return to the CAD branch's drawing review
+   and report, presenting its technical sheet before other images unless specified otherwise.
+   Report available and missing paths separately, with failures and unexecuted stages explicit.
+   Preserve working copies and logs; release only processes owned by this task.

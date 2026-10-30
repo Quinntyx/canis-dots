@@ -74,8 +74,9 @@ class View:
         right, up = VIEW_PAIRS[name]
         center = part.bounding_box().center()
         self.center = (center.X, center.Y, center.Z)
+        eye = tuple(self.center[i] + VIEW_EYES[name][i] for i in range(3))
         vis, hid = part.project_to_viewport(
-            VIEW_EYES[name],
+            eye,
             viewport_up=up,
             look_at=self.center,
         )
@@ -166,12 +167,13 @@ def draw_dim_linear(svg, view, cell, scale, p1, p2, label, offset):
     if length < 3.0:
         raise ValueError(f"dimension {label!r} is too small to draw")
     ux, uy = dx / length, dy / length
-    a = (x1 + ux * 4.0, y1 + uy * 4.0)
-    b = (x2 - ux * 4.0, y2 - uy * 4.0)
-    mx, my = (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0
-    ox, oy = mx - cell[0], my - cell[1]
-    ol = math.hypot(ox, oy)
-    ox, oy = ox / ol, oy / ol
+    a, b = (x1, y1), (x2, y2)
+    mx, my = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+    # Translate both projected endpoints perpendicular to their dimension line.
+    # A centered dimension uses the positive normal as its deterministic lane.
+    nx, ny = -uy, ux
+    side = 1.0 if nx * (mx - cell[0]) + ny * (my - cell[1]) >= 0 else -1.0
+    ox, oy = nx * side, ny * side
     pa = (a[0] + ox * offset, a[1] + oy * offset)
     pb = (b[0] + ox * offset, b[1] + oy * offset)
     for point, o in ((a, pa), (b, pb)):

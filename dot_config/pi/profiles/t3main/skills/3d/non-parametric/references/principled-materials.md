@@ -98,8 +98,15 @@ paint colors. Finishing changes roughness and anisotropy, not the metal's identi
 | Chrome plating | Near-neutral high reflection; source measured chromium data | 0.03–0.12 | 0–0.1 | A reflective coating, not gray plastic |
 
 Polished metals need large reflected light shapes and some dark surroundings to show form.
-A uniformly bright world can make correct metal look flat. Add wear only where the object's use
-supports it; do not spread identical procedural scratches across every metal.
+A uniformly bright world can make correct metal look flat. For a brushed finish, establish UVs or
+an explicit mesh tangent along the machining/brushing direction, connect a Tangent node to the
+Principled `Tangent` input, and align `Anisotropic Rotation` with that direction. Add fine,
+low-amplitude directional roughness/bump at a plausible physical grain scale while retaining the
+metal's reflection color. Under the off-axis key, inspect the elongated highlight from multiple
+angles and compare with a smooth patch: the grain should read within the reflection rather than
+as broad painted stripes or cloudy color patches. Tune light/dark reflected shapes and texture
+scale in Cycles until both the metal and its brushing direction read clearly. Add wear only where
+the object's use supports it.
 
 ## Wood and common opaque surfaces
 
@@ -176,6 +183,13 @@ and disclose approximation limits rather than faking "diamond" with Metallic 1.
 2. Build correlated but nonidentical color, roughness and normal detail at the asset's scale.
    Keep important silhouette detail in geometry. Avoid a perfect uniform gloss or identical noise
    everywhere; also avoid gratuitous scratches, dirt and bevels unsupported by the reference.
+   Choose texture frequency in its actual coordinate space: Generated spans approximately 0–1
+   across each mesh axis, while Object coordinates follow the chosen object's local scale. Mapping
+   scale and texture scale multiply. For example, Generated × `(1, 4, 4)` into Noise Scale `40`
+   gives about 40 versus 160 coordinate-scale units across those axes, not 40 cycles per meter;
+   Noise is not periodic, so confirm the actual feature size visually. Judge fine brushing in a
+   final-density crop and keep subpixel microtexture represented by roughness/anisotropy. Match
+   bump distance to physical scene units, preserving the texture's contrast while tuning lighting.
 3. Test under the parent procedure's three-point rig for objects, or broad out-of-frame emitter
    for landscapes. Inspect complementary camera angles, broad/grazing highlights and shadowed
    regions. Fix surface normals, tangent direction, texture scale or lighting before forcing a

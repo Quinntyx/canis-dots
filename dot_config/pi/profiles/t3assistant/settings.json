@@ -1,0 +1,19 @@
+{
+  "$schema": "https://pi.dev/schemas/settings.schema.json",
+  "defaultProvider": "cliproxyapi",
+  "defaultModel": "gpt-6.1-sol",
+  "defaultThinkingLevel": "high",
+  "enabledModels": ["cliproxyapi/gpt-6.1-sol"],
+  "defaultTools": ["read", "bash", "edit", "write", "tool_search"],
+  "packages": [
+    {
+      "source": "git:git.quinntyx.dev/quinntyx/pi-web-access",
+      "skills": []
+    },
+    "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
+    "git:git.quinntyx.dev/quinntyx/pi-block-rm"
+  ],
+  "enableSkillCommands": true,
+  "hideThinkingBlock": true,
+  "transport": "websocket-cached"
+}

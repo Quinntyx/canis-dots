@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for early coursework preparation four times daily
+
+[Timer]
+OnCalendar=*-*-* 08,12,16,20:05:00 America/Chicago
+Persistent=false
+Unit=t3assistant-coursework.service
+
+[Install]
+WantedBy=timers.target

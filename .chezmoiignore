@@ -71,6 +71,8 @@ docs/backups/araveia/reference
 .config/pi/profiles/subagents/git
 .config/pi/profiles/mail/git
 .config/pi/profiles/design-subagents/git
+.config/pi/profiles/t3assistant/git
+.local/state/t3assistant
 .local/bin/forge-git
 .local/bin/gh
 .local/bin/python3.14
@@ -106,8 +108,17 @@ docs/backups/araveia/reference
 .pi/agent/session-store
 .pi/agent/models-store.json
 
+# Coursework automation runs on the authoritative desktop; clients use T3 remotely.
+{{ if ne .chezmoi.hostname "araveia" }}
+.config/t3assistant
+.config/pi/profiles/t3assistant/mcp.json
+.config/systemd/user/t3assistant-coursework.service
+.config/systemd/user/t3assistant-coursework.timer
+{{ end }}
+
 # syssec-canis has no mail installation; retain the skill source for mail-capable hosts.
 {{ if eq .chezmoi.hostname "syssec-canis" }}
 .config/pi/profiles/t3main/skills/aerc-email
+.config/pi/profiles/t3assistant/skills/aerc-email
 .claude/skills/aerc-email
 {{ end }}

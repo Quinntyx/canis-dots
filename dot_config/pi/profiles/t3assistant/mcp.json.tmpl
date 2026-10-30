@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "coursework": {
+      "command": "/usr/bin/python",
+      "args": [
+        "-m",
+        "t3assistant",
+        "--config",
+        "{{ .chezmoi.homeDir }}/.config/t3assistant/config.json",
+        "serve"
+      ],
+      "cwd": "{{ .chezmoi.homeDir }}/docs/src/universal-data-management/main/adapters",
+      "exposure": "deferred",
+      "description": "Read Canvas assignment preparation state and track submission separately from learning debt. Live scheduler tick is an explicitly authorized operation; never submit work."
+    }
+  }
+}

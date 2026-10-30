@@ -1,8 +1,8 @@
 [Unit]
-Description=Check for early coursework preparation four times daily
+Description=Check coursework releases frequently during waking hours
 
 [Timer]
-OnCalendar=*-*-* 08,12,16,20:05:00 America/Chicago
+OnCalendar=*-*-* 07..23:00/15:00 America/Chicago
 Persistent=false
 Unit=t3assistant-coursework.service
 

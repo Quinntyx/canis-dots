@@ -114,6 +114,8 @@ docs/backups/araveia/reference
 .config/pi/profiles/t3assistant/mcp.json
 .config/systemd/user/t3assistant-coursework.service
 .config/systemd/user/t3assistant-coursework.timer
+.config/systemd/user/t3assistant-email.service
+.config/systemd/user/t3assistant-email.timer
 {{ end }}
 
 # syssec-canis has no mail installation; retain the skill source for mail-capable hosts.

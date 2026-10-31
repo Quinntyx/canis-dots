@@ -1,0 +1,50 @@
+---
+# These are the curated, actually-used 2026-10-28 lists, not pacman -Q output.
+# Keep their provenance visible; the migration may rename their parent directory.
+software_package_sources:
+  official: "{{ role_path }}/../../docs/backups/private_araveia/packages/pacman.txt"
+  aur: "{{ role_path }}/../../docs/backups/private_araveia/packages/aur.txt"
+  local: "{{ role_path }}/../../docs/backups/private_araveia/packages/local.txt"
+software_official_curated: >-
+  {{ lookup('ansible.builtin.file', software_package_sources.official).splitlines()
+     | map('regex_replace', '#.*$', '') | map('trim') | reject('equalto', '')
+     | reject('equalto', 'chezmoi') | unique | list }}
+software_official_prerequisites:
+  - acl
+  - sudo
+  - ca-certificates
+  - base-devel
+  - git
+  - python
+  - nodejs
+  - npm
+  - rustup
+  - cargo-binstall
+  - uv
+  - gtk4
+  - gtk4-layer-shell
+software_official_packages: "{{ (software_official_curated + software_official_prerequisites) | unique | list }}"
+software_aur_packages: >-
+  {{ lookup('ansible.builtin.file', software_package_sources.aur).splitlines()
+     | map('regex_replace', '#.*$', '') | map('trim') | reject('equalto', '') | unique | list }}
+software_local_directories: >-
+  {{ lookup('ansible.builtin.file', software_package_sources.local).splitlines()
+     | map('regex_replace', '#.*$', '') | map('trim') | reject('equalto', '') | unique | list }}
+software_npm_packages:
+  - name: '@earendil-works/pi-coding-agent'
+  - name: pi-profiles
+  # Supported registry distribution, replacing the backup's curl|bash installer.
+  - name: '@anthropic-ai/claude-code'
+  # The backup preserves .codex, and the curated T3 fork uses this CLI.
+  - name: '@openai/codex'
+software_cargo_packages:
+  - mdbook-katex
+  - flamegraph
+software_user_environment:
+  HOME: "{{ dots_home }}"
+  PATH: "{{ dots_home }}/.local/bin:{{ dots_home }}/.npm-global/bin:{{ dots_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+  NPM_CONFIG_PREFIX: "{{ dots_home }}/.npm-global"
+  CARGO_HOME: "{{ dots_home }}/.cargo"
+  RUSTUP_HOME: "{{ dots_home }}/.rustup"
+  UV_TOOL_DIR: "{{ dots_home }}/.local/share/uv/tools"
+  UV_TOOL_BIN_DIR: "{{ dots_home }}/.local/bin"

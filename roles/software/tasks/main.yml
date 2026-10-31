@@ -1,0 +1,13 @@
+---
+- name: Explain sandbox and check-mode software boundary
+  ansible.builtin.debug:
+    msg: >-
+      Software installation is disabled in sandbox and check mode. No package
+      queries, downloads, privilege grants, tool setup or cache changes are made.
+  when: (dots_sandbox | default(false) | bool) or ansible_check_mode
+
+- name: Install curated araveia software
+  ansible.builtin.include_tasks: install.yml
+  when:
+    - not (dots_sandbox | default(false) | bool)
+    - not ansible_check_mode

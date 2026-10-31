@@ -1,0 +1,247 @@
+---
+- name: Inspect restored local PKGBUILD directories without updating their repositories
+  become: true
+  become_user: "{{ dots_user }}"
+  environment: "{{ software_user_environment }}"
+  ansible.builtin.command:
+    argv: [/usr/bin/makepkg, --printsrcinfo]
+    chdir: "{{ dots_home }}/docs/{{ item }}"
+  loop: "{{ software_local_directories }}"
+  register: software_local_metadata
+  changed_when: false
+
+- name: Require package identities in every local PKGBUILD
+  ansible.builtin.assert:
+    that:
+      - item.stdout | regex_findall('(?m)^\s*pkgname = (\S+)$') | length > 0
+    fail_msg: "No pkgname found in {{ item.item }}; restore/review that local source before continuing."
+  loop: "{{ software_local_metadata.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Find the EndeavourOS AUR helper
+  ansible.builtin.stat:
+    path: /usr/bin/yay
+  register: software_yay
+
+- name: Select local builds that are not yet installed
+  ansible.builtin.set_fact:
+    software_local_missing: []
+
+- name: Record missing local package builds
+  ansible.builtin.set_fact:
+    software_local_missing: "{{ software_local_missing + [item.item] }}"
+  loop: "{{ software_local_metadata.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: >-
+    item.stdout | regex_findall('(?m)^\s*pkgname = (\S+)$')
+    | difference(software_installed.stdout_lines) | length > 0
+
+- name: Build only missing packages
+  when: >-
+    software_aur_missing | length > 0 or software_local_missing | length > 0
+    or not software_yay.stat.exists
+  block:
+    - name: Allocate an account-owned build workspace
+      become: true
+      become_user: "{{ dots_user }}"
+      ansible.builtin.tempfile:
+        state: directory
+        path: /var/tmp
+        prefix: dots-software-build-
+      register: software_build
+      changed_when: false
+
+    - name: Allocate root-owned temporary policy workspace
+      become: true
+      become_user: root
+      ansible.builtin.tempfile:
+        state: directory
+        path: /run
+        prefix: dots-software-policy-
+      register: software_policy
+      changed_when: false
+
+    - name: Allow traversal of policy workspace without allowing writes
+      become: true
+      become_user: root
+      ansible.builtin.file:
+        path: "{{ software_policy.path }}"
+        mode: '0755'
+      changed_when: false
+
+    - name: Install a validating pacman bridge for this transaction only
+      become: true
+      become_user: root
+      ansible.builtin.template:
+        src: pacman-bridge.py.j2
+        dest: "{{ software_policy.path }}/pacman"
+        owner: root
+        group: root
+        mode: '0755'
+      changed_when: false
+
+    - name: Provide noninteractive yay sudo validation without broad privilege
+      become: true
+      become_user: root
+      ansible.builtin.template:
+        src: sudo.sh.j2
+        dest: "{{ software_policy.path }}/sudo"
+        owner: root
+        group: root
+        mode: '0755'
+      changed_when: false
+
+    - name: Keep makepkg output outside personal source checkouts
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: "{{ software_policy.path }}/makepkg.conf"
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          source /etc/makepkg.conf
+          BUILDDIR={{ (software_build.path + '/build') | quote }}
+          SRCDEST={{ (software_build.path + '/sources') | quote }}
+          PKGDEST={{ (software_build.path + '/packages') | quote }}
+          LOGDEST={{ (software_build.path + '/logs') | quote }}
+          PACMAN={{ (software_policy.path + '/pacman') | quote }}
+      changed_when: false
+
+    - name: Create isolated artifact directories
+      become: true
+      become_user: "{{ dots_user }}"
+      ansible.builtin.file:
+        path: "{{ software_build.path }}/{{ item }}"
+        state: directory
+        mode: '0700'
+      loop: [build, sources, packages, logs, yay]
+      changed_when: false
+
+    - name: Allocate a uniquely named sudoers fragment
+      become: true
+      become_user: root
+      ansible.builtin.tempfile:
+        state: file
+        path: /etc/sudoers.d
+        prefix: 90-dots-software-
+      register: software_sudoers
+      changed_when: false
+
+    - name: Grant only the validating bridge, never arbitrary pacman or a shell
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: "{{ software_sudoers.path }}"
+        owner: root
+        group: root
+        mode: '0440'
+        content: "{{ dots_user }} ALL=(root) NOPASSWD: {{ software_policy.path }}/pacman *\n"
+        validate: /usr/bin/visudo -cf %s
+      changed_when: false
+
+    - name: Bootstrap missing yay from its supported AUR source
+      when: not software_yay.stat.exists
+      block:
+        - name: Clone yay PKGBUILD into the isolated workspace
+          become: true
+          become_user: "{{ dots_user }}"
+          ansible.builtin.git:
+            repo: https://aur.archlinux.org/yay.git
+            dest: "{{ software_build.path }}/yay-bootstrap"
+            update: false
+
+        - name: Build and install yay as the account, not root
+          become: true
+          become_user: "{{ dots_user }}"
+          environment: "{{ software_user_environment }}"
+          ansible.builtin.command:
+            argv:
+              - /usr/bin/makepkg
+              - --config
+              - "{{ software_policy.path }}/makepkg.conf"
+              - --syncdeps
+              - --install
+              - --needed
+              - --noconfirm
+            chdir: "{{ software_build.path }}/yay-bootstrap"
+          changed_when: true
+
+    - name: Install only missing curated AUR packages without a global upgrade
+      become: true
+      become_user: "{{ dots_user }}"
+      environment: >-
+        {{ software_user_environment | combine({
+             'XDG_CONFIG_HOME': software_build.path + '/config',
+             'XDG_CACHE_HOME': software_build.path + '/cache'
+           }) }}
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/yay
+          - -S
+          - --needed
+          - --noconfirm
+          - --answerdiff
+          - None
+          - --answerclean
+          - None
+          - --builddir
+          - "{{ software_build.path }}/yay"
+          - --pacman
+          - "{{ software_policy.path }}/pacman"
+          - --sudo
+          - "{{ software_policy.path }}/sudo"
+          - --makepkgconf
+          - "{{ software_policy.path }}/makepkg.conf"
+          - --noremovemake
+          - --
+          - "{{ item }}"
+      loop: "{{ software_aur_missing }}"
+      changed_when: true
+
+    - name: Build missing local PKGBUILDs without pulling or cleaning personal repositories
+      become: true
+      become_user: "{{ dots_user }}"
+      environment: "{{ software_user_environment }}"
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/makepkg
+          - --config
+          - "{{ software_policy.path }}/makepkg.conf"
+          - --syncdeps
+          - --install
+          - --needed
+          - --noconfirm
+        chdir: "{{ dots_home }}/docs/{{ item }}"
+      loop: "{{ software_local_missing }}"
+      changed_when: true
+  always:
+    # Revoke before removing the bridge or untrusted build artifacts, even on failure.
+    - name: Revoke temporary package build privilege
+      become: true
+      become_user: root
+      ansible.builtin.file:
+        path: "{{ software_sudoers.path }}"
+        state: absent
+      when: software_sudoers is defined and software_sudoers.path is defined
+      changed_when: false
+
+    - name: Remove temporary root policy workspace
+      become: true
+      become_user: root
+      ansible.builtin.file:
+        path: "{{ software_policy.path }}"
+        state: absent
+      when: software_policy is defined and software_policy.path is defined
+      changed_when: false
+
+    - name: Remove isolated build artifacts, never personal repositories
+      become: true
+      become_user: root
+      ansible.builtin.file:
+        path: "{{ software_build.path }}"
+        state: absent
+      when: software_build is defined and software_build.path is defined
+      changed_when: false

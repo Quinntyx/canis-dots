@@ -1,0 +1,6 @@
+#!/bin/sh
+# yay may refresh sudo before invoking pacman. Authorize only our fixed bridge.
+if [ "$#" -eq 1 ] && [ "$1" = '-v' ]; then
+    exec /usr/bin/sudo -n {{ (software_policy.path + '/pacman') | quote }} --dots-validate
+fi
+exec /usr/bin/sudo -n "$@"

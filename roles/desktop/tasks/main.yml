@@ -1,11 +1,16 @@
 ---
+- name: Track desktop configuration changes separately
+  ansible.builtin.set_fact:
+    dots_configuration_changed: false
+- name: Install desktop configuration
+  ansible.builtin.include_tasks: config.yml
 - name: Install the reviewed sunset scheduler
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/software/tasks/aur.yml"
   vars:
     dots_aur_name: sunsetr-bin
   when: dots_manage_packages and not dots_sandbox
 - name: Enable selected desktop user services
-  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/user-service.yml"
   vars:
     dots_units: "{{ dots_service_units.desktop }}"
 - name: Bring the fresh lingering user manager's session services up without restarts

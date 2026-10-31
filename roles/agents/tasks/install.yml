@@ -1,0 +1,30 @@
+---
+- name: Provision agent tools and declared Pi resources
+  vars:
+    dots_agent_bindir: "{{ dots_bindir | default('/usr/bin') }}"
+    # npm/Pi package install scripts are untrusted: new session, no TTY and no
+    # cached sudo ticket from Ansible's earlier become authentication.
+    dots_agent_untrusted_argv:
+      - "{{ dots_agent_bindir }}/setsid"
+      - --wait
+      - /bin/sh
+      - -c
+      - '"$0" -K && exec "$@"'
+      - "{{ dots_agent_bindir }}/sudo"
+  block:
+    - name: Provision agent CLIs without changing active profile selection
+      ansible.builtin.include_tasks: tools.yml
+      when: dots_install_agent_tools and not dots_sandbox
+    - name: Acquire explicitly upstream-owned skill resources
+      ansible.builtin.include_tasks: externals.yml
+      when: dots_manage_externals and not dots_sandbox
+    - name: Select the shared profiles plus araveia's optional assistant
+      ansible.builtin.set_fact:
+        dots_pi_agent_dirs: "{{ dots_pi_shared_dirs + (dots_pi_main_dirs if inventory_hostname == 'araveia' else []) }}"
+      when: dots_install_agent_tools and not dots_sandbox
+    - name: Reconcile declared profile resources through Pi's supported package manager
+      ansible.builtin.include_tasks: profile.yml
+      loop: "{{ dots_pi_agent_dirs }}"
+      loop_control:
+        loop_var: dots_pi_agent_dir
+      when: dots_install_agent_tools and not dots_sandbox

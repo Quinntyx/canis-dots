@@ -1,4 +1,26 @@
-#!/usr/bin/env sh
-set -eu
-here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-exec "${DOTS_PYTHON:-python3}" "$here/deploy.py" "$@"
+#!/usr/bin/env bash
+# Convenience only; playbooks/site.yml also runs directly with ansible-playbook.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+export ANSIBLE_CONFIG="$PWD/ansible.cfg"
+target=$(hostname -s)
+connection=(--connection local)
+case "${1:-}" in
+  --host) target=${2:?Usage: scripts/deploy [--host HOST|--all] [Ansible options]}; shift 2; connection=() ;;
+  --all) target=workstations; shift; connection=() ;;
+  --help) echo 'scripts/deploy [--host HOST|--all] [--check --diff | other ansible-playbook options]'; exit 0 ;;
+esac
+case "$target" in araveia|syssec-canis|workstations) ;; *) echo "Unenrolled hostname: $target" >&2; exit 2 ;; esac
+command -v ansible-playbook >/dev/null || { echo 'Install ansible-core first.' >&2; exit 2; }
+# Optional encrypted host variables use standard Ansible Vault, not an auto-import store.
+vault=()
+if [[ -z "${ANSIBLE_VAULT_PASSWORD_FILE:-}" ]]; then
+  for file in secrets/*; do
+    [[ -f "$file" ]] || continue
+    IFS= read -r header < "$file" || true
+    if [[ "$header" == '$ANSIBLE_VAULT;'* ]]; then vault=(--ask-vault-pass); break; fi
+  done
+fi
+become=()
+if [[ -z "${DOTS_UNATTENDED:-}" ]]; then become=(--ask-become-pass); fi
+exec ansible-playbook playbooks/site.yml --limit "$target" "${connection[@]}" "${vault[@]}" "${become[@]}" "$@"

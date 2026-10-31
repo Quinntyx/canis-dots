@@ -1,0 +1,351 @@
+---
+- name: Install agents common files with mode 0644
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0644"
+    config_mode: '0644'
+- name: Install agents common files with mode 0755
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0755"
+    config_mode: '0755'
+- name: Install agents araveia files with mode 0644
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/araveia/0644"
+    config_mode: '0644'
+  when: inventory_hostname == 'araveia'
+- name: Install agents common files with mode 0600
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0600"
+    config_mode: '0600'
+- name: Install agents araveia files with mode 0755
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/araveia/0755"
+    config_mode: '0755'
+  when: inventory_hostname == 'araveia'
+- name: Install agents common files with mode 0700
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0700"
+    config_mode: '0700'
+- name: Render .claude-ambassator/settings.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".claude-ambassator/settings.json.j2"
+    config_dest: ".claude-ambassator/settings.json"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/daily_assistant/npm/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/daily_assistant/npm/.gitignore.j2"
+    config_dest: ".config/pi/profiles/daily_assistant/npm/.gitignore"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/design-subagents/npm/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/design-subagents/npm/.gitignore.j2"
+    config_dest: ".config/pi/profiles/design-subagents/npm/.gitignore"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/main/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/main/.gitignore.j2"
+    config_dest: ".config/pi/profiles/main/.gitignore"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/main/mcp.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/main/mcp.json.j2"
+    config_dest: ".config/pi/profiles/main/mcp.json"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/main/npm/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/main/npm/.gitignore.j2"
+    config_dest: ".config/pi/profiles/main/npm/.gitignore"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/omn-assistant/bin/agent-task-del
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/omn-assistant/bin/agent-task-del.j2"
+    config_dest: ".config/pi/profiles/omn-assistant/bin/agent-task-del"
+    config_mode: '0755'
+  when: inventory_hostname in ["araveia"]
+- name: Render .config/pi/profiles/omn-assistant/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/omn-assistant/.gitignore.j2"
+    config_dest: ".config/pi/profiles/omn-assistant/.gitignore"
+    config_mode: '0644'
+  when: inventory_hostname in ["araveia"]
+- name: Render .config/pi/profiles/omn-assistant/npm/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/omn-assistant/npm/.gitignore.j2"
+    config_dest: ".config/pi/profiles/omn-assistant/npm/.gitignore"
+    config_mode: '0644'
+  when: inventory_hostname in ["araveia"]
+- name: Render .config/pi/profiles/omn-assistant/trust.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/omn-assistant/trust.json.j2"
+    config_dest: ".config/pi/profiles/omn-assistant/trust.json"
+    config_mode: '0644'
+  when: inventory_hostname in ["araveia"]
+- name: Render .config/pi/profiles/subagents/npm/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/subagents/npm/.gitignore.j2"
+    config_dest: ".config/pi/profiles/subagents/npm/.gitignore"
+    config_mode: '0644'
+- name: Render .config/pi/profiles/t3main/.gitignore
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/pi/profiles/t3main/.gitignore.j2"
+    config_dest: ".config/pi/profiles/t3main/.gitignore"
+    config_mode: '0644'
+- name: Render .taskrc
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".taskrc.j2"
+    config_dest: ".taskrc"
+    config_mode: '0644'
+- name: Render .local/bin/omn-canvas-ingest
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".local/bin/omn-canvas-ingest.j2"
+    config_dest: ".local/bin/omn-canvas-ingest"
+    config_mode: '0700'
+  when: inventory_hostname in ["araveia"]
+- name: Render .local/bin/omn-mlh-ingest
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".local/bin/omn-mlh-ingest.j2"
+    config_dest: ".local/bin/omn-mlh-ingest"
+    config_mode: '0700'
+  when: inventory_hostname in ["araveia"]
+- name: Link .claude-ambassator/hooks
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".claude-ambassator/hooks"
+    config_target: "../.claude/hooks"
+- name: Link .claude-ambassator/skills
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".claude-ambassator/skills"
+    config_target: "../.claude/skills"
+- name: Link .config/pi/profiles/coordinator-subagents/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/coordinator-subagents/auth.json"
+    config_target: "{{ dots_home }}/.config/pi/agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/coordinator-subagents/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/coordinator-subagents/models.json"
+    config_target: "{{ dots_home }}/.config/pi/agent/models.json"
+- name: Link .config/pi/profiles/daily_assistant/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/daily_assistant/auth.json"
+    config_target: "../../agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/daily_assistant/deepseek-router.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/daily_assistant/deepseek-router.json"
+    config_target: "../../agent/deepseek-router.json"
+- name: Link .config/pi/profiles/daily_assistant/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/daily_assistant/models.json"
+    config_target: "../../agent/models.json"
+- name: Link .config/pi/profiles/design-subagents/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/design-subagents/auth.json"
+    config_target: "{{ dots_home }}/.config/pi/agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/design-subagents/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/design-subagents/models.json"
+    config_target: "{{ dots_home }}/.config/pi/agent/models.json"
+- name: Link .config/pi/profiles/mail/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/mail/auth.json"
+    config_target: "../../agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/mail/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/mail/models.json"
+    config_target: "../../agent/models.json"
+- name: Link .config/pi/profiles/main/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/main/auth.json"
+    config_target: "../../agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/main/git
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/main/git"
+    config_target: "../../git"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/main/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/main/models.json"
+    config_target: "../../agent/models.json"
+- name: Link .config/pi/profiles/omn-assistant/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/omn-assistant/auth.json"
+    config_target: "../../agent/auth.json"
+    config_preserve_existing: true
+  when: inventory_hostname in ["araveia"]
+- name: Link .config/pi/profiles/omn-assistant/deepseek-router.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/omn-assistant/deepseek-router.json"
+    config_target: "../../agent/deepseek-router.json"
+  when: inventory_hostname in ["araveia"]
+- name: Link .config/pi/profiles/omn-assistant/git
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/omn-assistant/git"
+    config_target: "../../git"
+    config_preserve_existing: true
+  when: inventory_hostname in ["araveia"]
+- name: Link .config/pi/profiles/omn-assistant/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/omn-assistant/models.json"
+    config_target: "../../agent/models.json"
+  when: inventory_hostname in ["araveia"]
+- name: Link .config/pi/profiles/subagents/skills/3d
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/3d"
+    config_target: "../../main/skills/3d"
+- name: Link .config/pi/profiles/subagents/skills/api-migration
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/api-migration"
+    config_target: "../../main/skills/api-migration"
+- name: Link .config/pi/profiles/subagents/skills/browser-workflow
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/browser-workflow"
+    config_target: "../../main/skills/browser-workflow"
+- name: Link .config/pi/profiles/subagents/skills/cloudflare
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/cloudflare"
+    config_target: "../../main/skills/cloudflare"
+- name: Link .config/pi/profiles/subagents/skills/create-skill
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/create-skill"
+    config_target: "../../main/skills/create-skill"
+- name: Link .config/pi/profiles/subagents/skills/edit-config
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/edit-config"
+    config_target: "../../main/skills/edit-config"
+- name: Link .config/pi/profiles/subagents/skills/freya
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/freya"
+    config_target: "../../main/skills/freya"
+- name: Link .config/pi/profiles/subagents/skills/git
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/git"
+    config_target: "../../main/skills/git"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/subagents/skills/pi-plugin
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/pi-plugin"
+    config_target: "../../main/skills/pi-plugin"
+- name: Link .config/pi/profiles/subagents/skills/profiling
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/profiling"
+    config_target: "../../main/skills/profiling"
+- name: Link .config/pi/profiles/subagents/skills/project-plan
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/project-plan"
+    config_target: "../../main/skills/project-plan"
+- name: Link .config/pi/profiles/subagents/skills/research-book
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/research-book"
+    config_target: "../../main/skills/research-book"
+- name: Link .config/pi/profiles/subagents/skills/runtime-verification
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/runtime-verification"
+    config_target: "../../main/skills/runtime-verification"
+- name: Link .config/pi/profiles/subagents/skills/subagents
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/subagents"
+    config_target: "../../main/skills/subagents"
+- name: Link .config/pi/profiles/subagents/skills/terminal-ui
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/terminal-ui"
+    config_target: "../../main/skills/terminal-ui"
+- name: Link .config/pi/profiles/subagents/skills/tmux-jobs
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/tmux-jobs"
+    config_target: "../../main/skills/tmux-jobs"
+- name: Link .config/pi/profiles/subagents/skills/visual-design
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/skills/visual-design"
+    config_target: "../../main/skills/visual-design"
+- name: Link .config/pi/profiles/subagents/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/auth.json"
+    config_target: "../../agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/subagents/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/subagents/models.json"
+    config_target: "../../agent/models.json"
+- name: Link .config/pi/profiles/t3main/antigravity-accounts.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/t3main/antigravity-accounts.json"
+    config_target: "../../agent/antigravity-accounts.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/t3main/auth.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/t3main/auth.json"
+    config_target: "../../agent/auth.json"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/t3main/git
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/t3main/git"
+    config_target: "../../git"
+    config_preserve_existing: true
+- name: Link .config/pi/profiles/t3main/models.json
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/pi/profiles/t3main/models.json"
+    config_target: "../../agent/models.json"

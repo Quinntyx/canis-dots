@@ -17,30 +17,12 @@
   register: dots_firewall_runtime_zones
   changed_when: false
   check_mode: false
-- name: Allow creation of a new runtime zone only during explicit fresh recovery
+- name: Require the existing firewall zone restored by the recovery procedure
   ansible.builtin.assert:
-    that: "'tailscale' in dots_firewall_runtime_zones.stdout.split() or dots_fresh_install | default(false) | bool"
-    fail_msg: Existing-node firewall lacks its declared tailscale zone. Inspect its runtime-only rules before a deliberate reload; fresh recovery authorizes first-install zone activation.
-- name: Allocate only the declared tailnet zone when absent
-  ansible.builtin.command:
-    argv: [firewall-cmd, --permanent, --new-zone=tailscale]
-  when: not ansible_check_mode and 'tailscale' not in dots_firewall_zones.stdout.split()
-  changed_when: true
-- name: Preserve permanent SSH access before first-install firewall activation
-  ansible.builtin.command:
-    argv: [firewall-cmd, --permanent, --zone=public, --add-service=ssh]
-  when: not ansible_check_mode and 'tailscale' not in dots_firewall_runtime_zones.stdout.split()
-  changed_when: true
-- name: Validate firewalld configuration before activating the newly created zone
-  ansible.builtin.command:
-    argv: [firewall-cmd, --check-config]
-  when: not ansible_check_mode and 'tailscale' not in dots_firewall_runtime_zones.stdout.split()
-  changed_when: false
-- name: Activate the new zone once during explicit fresh recovery
-  ansible.builtin.command:
-    argv: [firewall-cmd, --reload]
-  when: not ansible_check_mode and 'tailscale' not in dots_firewall_runtime_zones.stdout.split()
-  changed_when: true
+    that:
+      - "'tailscale' in dots_firewall_runtime_zones.stdout.split()"
+      - "'tailscale' in dots_firewall_zones.stdout.split()"
+    fail_msg: Restore the existing firewall configuration before deployment; this play never reloads all runtime zones.
 - name: Inspect the current runtime zone for the tailnet interface
   ansible.builtin.command:
     argv: [firewall-cmd, --get-zone-of-interface=tailscale0]

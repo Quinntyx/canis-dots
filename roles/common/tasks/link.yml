@@ -1,0 +1,34 @@
+---
+- name: Check and create this link's parent directories
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/parents.yml"
+- name: Inspect the link destination without following it
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/{{ config_dest }}"
+    follow: false
+    get_checksum: false
+  register: config_existing_link
+- name: Check optional externally installed link target
+  ansible.builtin.stat:
+    path: "{{ config_target }}"
+  register: config_link_target
+  when: config_optional_target | default(false)
+- name: Refuse to replace an existing ordinary layout file or directory
+  ansible.builtin.assert:
+    that: config_preserve_existing | default(false) or not config_existing_link.stat.exists or config_existing_link.stat.islnk | default(false)
+    fail_msg: Inspect the runtime-owned layout destination before deploying this link.
+- name: Create declared layout links even before their runtime targets exist
+  ansible.builtin.file:
+    src: "{{ config_target }}"
+    dest: "{{ dots_home }}/{{ config_dest }}"
+    state: link
+    # The assertion above prevents replacing a regular file/directory. Force
+    # permits only a declared dangling link before its owning manager installs.
+    force: true
+    follow: false
+  register: config_linked
+  when:
+    - not (config_preserve_existing | default(false) and (config_existing_link.stat.exists or config_existing_link.stat.islnk | default(false)))
+    - not config_optional_target | default(false) or config_link_target.stat.exists | default(false)
+- name: Remember this role's link changes
+  ansible.builtin.set_fact:
+    dots_configuration_changed: "{{ dots_configuration_changed | default(false) or config_linked.changed | default(false) }}"

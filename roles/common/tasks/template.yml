@@ -1,0 +1,23 @@
+---
+- name: Check and create this template's parent directories
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/parents.yml"
+- name: Inspect this template's destination without following links
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/{{ config_dest }}"
+    follow: false
+    get_checksum: false
+  register: config_template_destination
+- name: Refuse to replace a template destination link or non-regular file
+  ansible.builtin.assert:
+    that: not config_template_destination.stat.exists or (config_template_destination.stat.isreg | default(false) and not config_template_destination.stat.islnk | default(false))
+    fail_msg: Inspect the unexpected template destination before deploying this role.
+- name: Render the named template with its explicit permissions
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/{{ config_template }}"
+    dest: "{{ dots_home }}/{{ config_dest }}"
+    mode: "{{ config_mode }}"
+    follow: false
+  register: config_rendered
+- name: Remember this role's template changes
+  ansible.builtin.set_fact:
+    dots_configuration_changed: "{{ dots_configuration_changed | default(false) or config_rendered.changed }}"

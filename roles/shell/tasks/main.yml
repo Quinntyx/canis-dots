@@ -1,0 +1,6 @@
+---
+- name: Track shell configuration changes separately
+  ansible.builtin.set_fact:
+    dots_configuration_changed: false
+- name: Install shell configuration
+  ansible.builtin.include_tasks: config.yml

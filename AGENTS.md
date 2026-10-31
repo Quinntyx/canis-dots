@@ -1,65 +1,53 @@
 # Repository operating rules
 
-This is an Ansible **source** repository, not the active home. Read this file
-completely before editing. Read README.md and docs/DEPLOYMENT.md for role,
-inventory and ownership changes; docs/SECRETS.md before touching Vault,
-preimages or rollback; docs/SOFTWARE.md before package/build changes; and
- docs/migration/README.md before changing baseline dispositions.
+This is Ansible **source**, not the active home. Read README.md and
+ docs/DEPLOYMENT.md before changing inventory or roles; docs/SECRETS.md for secrets;
+ docs/SOFTWARE.md for packages/builds; docs/migration/README.md for migration scope.
 
-## Boundaries that matter
+## Boundaries
 
-- Source-only work never runs `scripts/deploy`, a real-host playbook, an installer,
-  Pi update, live services, or website publication. Publication and deployment
-  require their own assigned scope; a PR is not permission to apply it.
-- Never edit the currently active home, `/etc`, package/plugin outputs or private
-  runtime trees to make a source test pass. Use explicit disposable homes with
-  `dots_sandbox=true`, and leave installs/external acquisition/services disabled.
-- Inventory membership is explicit. A T3 connection, tailnet peer, or requested
-  component is not enrollment or permission to widen a host's eligibility.
-- Manifests own file destinations/modes; role tasks own lifecycle; package/Git/Pi
-  managers own their outputs. Unknown paths stay unmanaged. Do not recursively
-  adopt, chown, prune, reset personal repositories, or import a live home.
-- Credentials go through policy/secrets.yml and Vault. No plaintext credentials,
-  keys, backup archives, logs containing private payloads, or generated stores in
-  Git. Keep `no_log`/diff suppression and fail before mutation on wrong keys.
-- Upstream mirrored skills retain upstream ownership. Do not copy local policy
-  into them to satisfy a broad textual scan; adjust the owner/acquisition instead.
+- Source work never deploys to real machines, installs host software, starts live
+  services, updates active Pi profiles, or publishes the website. A PR is not
+  permission to apply it. Leave PRs unmerged unless explicitly authorized.
+- Use ordinary Ansible Core modules, inventory, roles and handlers. Do not add
+  custom modules/plugins, automatic secret enrollment, recovery orchestration or
+  a manifest engine. Explain any genuinely necessary exception before adding it.
+- Role files/templates and named YAML tasks are the desired-state source.
+  Package/Git/Pi managers own their outputs. Unknown files, credentials, sessions,
+  personal repositories and databases remain runtime/data state. Never recursively
+  adopt, chown, prune or reset them; preserve upstream-owned resource bytes.
+- The existing restore procedure owns reinstall/data recovery; Ansible runs after
+  it. Do not add disk formatting/mount recovery, restore a whole /etc, clone
+  identities, or use this repository as personal-data backup.
+- Inventory membership is explicit. Neither T3 connections nor requested tags
+  authorize enrolling a host. Main-only services must not reach syssec-canis.
+- Secrets are restored runtime files or standard Ansible Vault files. Never commit
+  plaintext credentials, private backups or keys. Suppress secret logs/diffs.
+  Forgejo deployment secrets and privileged jobs follow docs/SECRETS.md.
 
-## Change checklist
+## Change and verification
 
-For destination/template changes, update the component manifest and migration
-ledger when relevant; preserve exact modes, home portability, host filtering and
-literal embedded template languages. For new lifecycle behavior, inspect the
-corresponding task pattern, dependency closure and service activation inputs.
-Secret changes and successful binary builds must activate the affected service;
-failed builds must remain retryable. Documentation must distinguish configuration
-rollback from package/data/system recovery.
+Preserve permissions, actual account/home portability, host scoping and literal
+embedded template languages. Use native stat/assert checks for unexpected
+symlinks before file installation. Services restart only for affected config,
+secret or binary changes; failed builds must retry. Build/package code runs as
+an unprivileged account, without reusable sudo credentials. Do not grant builds
+arbitrary passwordless sudo to simplify installation.
 
-Add a focused regression first for logic/security failures. Use real Ansible in
-disposable homes for target-file, Vault, selection, convergence or rollback
-changes, not only textual assertions. Never lower a safety check because a live
-side effect was deliberately not authorized. Say loudly if a rule conflicts with
-the assignment rather than silently bypassing it.
+Add a focused regression first for logic/security changes. Test target-file,
+host selection and Vault behavior using real Ansible in explicitly disposable
+homes (`dots_sandbox=true`); disable all installs, acquisitions and services.
+Never edit active home, /etc or manager caches to make a test pass.
 
-## Available verification ladder
+Project-local dependencies: `uv venv .venv && uv pip install --python
+.venv/bin/python -r requirements-dev.txt`. Mandatory floor:
+`PATH="$PWD/.venv/bin:$PATH" ./scripts/check static` (not file-scoped).
+Escalate affected surfaces with `scripts/check deployment`, `scripts/check
+software`, or `scripts/check tmux`; cross-cutting changes use `scripts/check all`.
+Keep the virtualenv PATH prefix. `scripts/check-packages` is a read-only query,
+not an install/refresh. Run `git diff --check` and inspect changed paths for
+unassigned files/secrets before handoff.
 
-Install **project-local** development dependencies, not a host toolchain:
-`uv venv .venv && uv pip install --python .venv/bin/python -r requirements-dev.txt`.
-Then `PATH="$PWD/.venv/bin:$PATH" ./scripts/check static` is the mandatory floor
-(syntax/ownership/guidance checks; not falsely described as file-scoped).
-
-Escalate only the affected surfaces:
-
-- Ansible/plugins/wrappers/secrets/host selection: `scripts/check deployment`.
-- Curated software/build privilege changes: `scripts/check software`.
-- Tmux persistence helper/protocol changes: `scripts/check tmux`.
-- Cross-cutting migration changes: `scripts/check all`.
-
-Keep the virtualenv PATH prefix for these commands. `scripts/check-packages` is
-an optional **read-only** official-package availability query against the current
-Arch sync databases; it does not install or refresh. There is no claim of a
-repo-wide live deployment/visual capture suite or hosted CI here. Handoff must
-name checks actually run and explicitly mark real installs, sudo/SSH, services,
-provider sign-ins and visual behavior unexercised when they were not authorized.
-Run `git diff --check` before handoff and inspect the changed-path list for
-unassigned files/secrets. Do not merge unless separately authorized.
+Name actual checks. Explicitly mark real installs, sudo/SSH, service activation,
+provider sign-ins and visual behavior unexercised when unauthorized. Configuration
+rollback via Git/redeploy is not package, database or whole-machine recovery.

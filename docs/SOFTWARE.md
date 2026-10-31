@@ -1,170 +1,107 @@
-# Curated araveia software
+# Software provisioning
 
-The parent playbook's **software** component includes `roles/software` **only on
-araveia**, and **last**, after restoring account configuration and starting Forgejo.
-Local omn PKGBUILDs fetch from the Forgejo hosted on this machine. Membership and
-host selection belong to the parent; importing the role alone is not a host guard.
-This is not a replay of every package once installed on the old machine.
+Normal Ansible installs the declared, actually used software after the existing
+restore procedure. It does not import `pacman -Q` output as desired state, reset
+personal repositories, upgrade the whole OS or install packages during source
+checks.
 
-After installing `ansible-core>=2.19`, run the parent's normal apply command with
-become authentication (`--ask-become-pass`). No external Ansible collections,
-preinstalled yay, manual npm/cargo dependencies, or downloaded shell installers
-are required. The parent supplies `dots_user` and the gathered account's real
-`dots_home`; the role checks that home against passwd. It does not hardcode a
-username or `/home` layout. The EndeavourOS installer still owns the base system,
-kernel, firmware, NVIDIA drivers and networking. Existing pacman repositories
-must be usable; the role never does a partial `pacman -Sy` refresh or full upgrade.
+## Official packages
 
-## Installation contract
+`policy/packages.yml` is a small YAML variable file grouping role prerequisites.
+The software role also reads the curated commented package lists preserved under
+`docs/backups/private_araveia/packages/`. It excludes the retired chezmoi manager.
+All installations use the distro's `pacman` through `ansible.builtin.command`:
+query installed names, then `pacman -S --needed` only for missing names. No sync-
+database refresh, system-wide upgrade, forced removal or package replacement is
+hidden in the play. Maintain a coherent Arch installation through its normal OS
+update procedure before deploying; this is not an upgrade manager.
 
-`roles/software/vars/main.yml` directly parses the curated files (one package per
-line, comments allowed), rather than copying a stale second list:
+ACL/sudo/util-linux/build prerequisites are installed before unprivileged become
+or tool setup. The curated PipeWire JACK provider is held when jack2 is already
+installed rather than forcing a conflicting replacement. The play reports the
+hold and its interactive resolution. Missing official build dependencies are
+queried with pacman's dependency test, preserving existing virtual providers.
 
-| Source | Installation |
-| --- | --- |
-| `docs/backups/private_araveia/packages/pacman.txt` | Native `pacman -Qq`, then `pacman -S --needed --noconfirm` for missing names only. `chezmoi` is deliberately excluded. |
-| `docs/backups/private_araveia/packages/aur.txt` | Missing names only, one at a time through EndeavourOS's yay. If missing, yay is built as the account from `https://aur.archlinux.org/yay.git` in an isolated workspace. |
-| `docs/backups/private_araveia/packages/local.txt` | Existing `~/docs/` recipe paths are used without pulling/resetting their repositories. For missing packages whose recipe is absent, `roles/software/vars/local-sources.yml` acquires the exact declared owning repo/ref into a package-source cache. Installed packages are skipped. `makepkg --printsrcinfo` verifies recipe identities; failures are not hidden. |
+## AUR and owned PKGBUILDs
 
-Explicit additional official prerequisites include ACL support for Ansible's
-unprivileged become, sudo, util-linux (`setsid`), CA certificates, base-devel, Git,
-Python, Node/npm, Rustup, cargo-binstall, uv and GTK development libraries. They
-are installed in **their own transaction first**, so a curated-list conflict
-cannot strand them before account become/build tasks; the curated batch follows.
-`policy/packages.yml` also lists them for the earlier component install, and its
-desktop/software groups contain only what the managed niri configuration and this
-role use, not opinionated extra applications.
+Native tasks in `roles/software/tasks/{builder,build-package,builds,aur}.yml`
+clone a declared recipe, evaluate its metadata, install missing official
+dependencies, build unprivileged, and install only completed current artifacts
+through root pacman. No custom Ansible plugin, request protocol, root bridge or
+sudoers grant exists. PKGBUILDs execute under **dots-builder**, a system account
+with a locked password, nologin shell, private home and no sudo group; `setpriv
+--no-new-privs` prevents acquiring new privilege. They do not receive the login
+account's home, authentication stores or cached sudo ticket. Package installation
+itself is privileged and trusts the chosen package's install scripts, as normal
+pacman operation does. The account is a privilege separation boundary, not a
+network/filesystem sandbox or an approval of arbitrary unreviewed recipes.
 
-Unavailable/renamed packages and conflicts fail visibly; there is no silent
-dropping of packages or forced replacement of unrelated apps. The one declared
-exception is `software_conflict_guards`: if `jack2` is already installed,
-`pipewire-jack` is **held and reported**, never swapped in by removing jack2
-(pacman's `--noconfirm` would refuse that removal and abort the whole batch).
-No policy group contains a JACK consumer, so a fresh install does not pull in
-jack2 as the default provider before this role runs. Neither official nor AUR
-installation performs a blanket upgrade or removal. AUR dependencies are
-checked with `pacman -T`, which honors existing providers, and are installed with
-plain pacman: ansible-core's `package` module would need community.general.
+Desktop/mail prerequisites have explicit reviewed AUR revisions in inventory.
+Bulk AUR software uses the curated list in its declared order and current AUR
+recipe HEAD; already installed packages are not rebuilt or upgraded. Dependencies
+that are themselves AUR packages must be explicitly listed before dependents;
+unknown dependencies fail rather than adding a recursive acquisition engine.
+Debug split artifacts and old package versions left in a build cache are not
+installed. The next run retries any package whose build/install did not finish.
 
-Builds run as `dots_user`, never root. Generated source, build and package output
-live in a temporary workspace, not personal repositories. No personal checkout is
-pulled, reset, cleaned or switched. PKGBUILDs are executable trusted source: review
-those declarations before deployment, including the local T3 release checksums.
-AUR availability and upstream package builds can still fail independently.
+`roles/software/vars/local-sources.yml` names the owning repositories and exact
+refs for omn-git and t3code-fork-bin. They are acquired into the build account's
+managed cache, never by resetting an existing personal development checkout.
+The restored Forgejo must be healthy first; private source access must be
+explicitly supplied through its normal owner rather than copied from user auth
+stores. Trusted signed custom-repository applications remain part of the existing
+restore procedure, not silently replaced with a downloaded binary or alternate
+package source. The source preflight and isolated package builder use the same
+araveia-local Forgejo URL rewrite, including Git invoked from inside makepkg.
+The declared bootstrap repositories must allow anonymous read access on that
+restored forge; unavailable/private sources fail the preflight rather than
+borrowing personal credentials.
 
-When builds are needed, a unique, root-owned bridge and a `visudo -cf`-validated
-sudoers fragment permit **only** bounded pacman operations. The bridge rejects
-removal, database refresh, sysupgrade, arbitrary configs/roots/hooks, unknown
-flags and archives outside this run's build workspace. There is no grant for
-arbitrary pacman, makepkg, a shell, or a user-writable helper. `block`/`always`
-revokes the grant before removing policy and build files on success or failure.
-No privilege is retained for subsequent sessions.
+## Account-local tools
 
-Untrusted package code (makepkg, including `--printsrcinfo`/`--packagelist`, yay,
-npm, cargo, uv builds and Pi package installs) runs as
-`setsid --wait sh -c 'sudo -K && exec ...'`: a new session with no controlling TTY,
-after discarding the account's cached sudo credentials. While the build grant is
-present, its fragment also sets `Defaults:<user> timestamp_timeout=0`. Ansible's
-become password therefore cannot be reused by build scripts; only the bridge's
-NOPASSWD rule works. The makepkg override sets `OPTIONS+=(!debug)`, so uncurated
-`-debug` split packages are neither built nor installed; the shared AUR tasks drop
-a `-debug` packagelist entry for the same reason. Clearing cached credentials also
-ends an interactive terminal's sudo ticket for that account. A killed controller/power loss
-cannot execute Ansible's cleanup: inspect `90-dots-software-*` fragments before
-rerunning; their `/run/dots-software-policy-*` executables disappear on reboot.
+Packaged npm, rustup, cargo-binstall and uv install account-local CLIs under the
+actual account's prefix. npm includes Pi, pi-profiles, Claude Code and Codex.
+Rustup preserves an existing selected toolchain and installs it if missing;
+otherwise it initializes stable. Cargo binary acquisition disables third-party
+quick-install and telemetry. Existing installed CLI versions are not forced to
+upgrade. Installer scripts run without a controlling TTY or cached sudo ticket.
 
-## Account-owned tools
+uv provides Python 3.14 and the existing PTC scientific environment without
+clearing an existing venv. Optional layer-shell-rs and astala-downloader use
+preserved local source only, with absence reported instead of inventing a new
+upstream. Provider credentials/sign-ins are runtime state, not CLI installation.
 
-All of these run with `HOME`, executable paths, npm prefix and Rust/uv homes
-resolved from `dots_home`, not the controller's account:
+The agents role installs explicit Pi versions from inventory if missing and uses
+`pi update --extensions` for every host-eligible configured profile. The profile
+list is a small normal role variable; files are managed by native role tasks.
+Pi owns its Git/npm resource caches. A successful reconciliation records the
+settings checksum; failure records no success and retries. It does not self-
+update Pi, change the selected active profile, patch installed resources, or
+inject local policy into upstream-owned skill files.
 
-- npm CLIs: Pi (`@earendil-works/pi-coding-agent`), `pi-profiles`, Claude Code
-  (`@anthropic-ai/claude-code`, replacing the backup's remote shell installer),
-  and Codex (`@openai/codex`, whose state is preserved by the backup).
-  Only absent manifests are installed in `~/.npm-global`. Existing versions are
-  not upgraded, and the role does not rewrite `.npmrc`.
-- Rust: queries run with `RUSTUP_AUTO_INSTALL=0`. Initialize stable only if no
-  toolchain is selected. If a (restored) selection names a toolchain that is not
-  installed, install that toolchain instead of replacing the selection. Install
-  missing `mdbook-katex` and `flamegraph` with cargo-binstall's upstream metadata
-  or source build only: `--disable-strategies quick-install --disable-telemetry`,
-  so no third-party prebuilt mirror is substituted.
-- If preserved source exists, install `layer-shell-rs` from
-  `~/docs/src/layer-shell` and `astala-downloader` from
-  `~/docs/src/astala-downloader/main`. The role reports absent optional sources;
-  it neither invents upstreams nor claims those tools were installed.
-- uv provides Python 3.14 and `~/.cache/pi-ptc/python-env` with matplotlib, NumPy,
-  pandas and Pillow. Existing environments are not cleared; missing packages
-  alone are installed. This replaces running every restored Pi profile's setup
-  script, which would erase the same environment repeatedly.
+## Session and services
 
-Pi profile declarations and restored checkouts belong to the parent file-restore
-component and Pi's own package manager. This role installs the CLI, **not** a
-blanket `pi update --extensions` across all caches/profiles. Existing versions,
-refs and dirty state remain untouched. This role does not reconcile extension caches/dependencies itself. The parent's
-agents role runs `pi update --extensions` (packages only; bare `pi update` updates
-Pi itself) in **every** host-eligible declared agent directory: each
-`.config/pi/profiles/<name>/settings.json` in the selected manifest entries,
-including subagent profiles, plus `~/.pi/agent`. A receipt records the command and
-settings checksum only after success. Receipts from the former bare `pi update`
-never match, and a failed directory gets no receipt, so it is retried on the next run.
-Self-hosted Git commands (Pi packages, local recipe acquisition, builds) receive the
-parent's `dots_git_environment` loopback rewrite. There is no cache mutation
-disguised as software restoration.
+The main desktop is niri with its declared Wayland applications and portals,
+PipeWire/WirePlumber and Syncthing. It is not replaced by a Hyprland/Fcitx stack.
+Session starts do not forcibly restart a running compositor or replace an
+existing display manager. First graphical login remains the owner's action.
+Native configuration handlers restart declared user services on changed inputs;
+binary build failure does not publish a successful receipt or service restart.
+Website publication stays in the website repository's separate Actions pipeline.
+The website and CLIProxyAPI paths under `~/docs` are personal source checkouts:
+Ansible clones them only if missing and never updates, switches branches or
+resets an existing checkout. You update those sources through normal Git work.
+The proxy builds from that checkout's current HEAD, recording only successful
+builds; the isolated package recipe caches are instead manager-owned and may be
+reset to retry a recipe changed by a failed VCS build.
 
-## Explicitly unmanaged / not completed by this role
+## Evidence
 
-- **Cider and ChatGPT desktop**: the historical restore script adds vendor repos
-  (ChatGPT by executing a downloaded installer). Those are not official/AUR
-  curated-list entries. This role does not execute that installer or configure
-  unverified vendor repos/keys. Install via a separately reviewed vendor-supported
-  declaration if desired; neither app is claimed installed here.
-- **Gantry, DecentSampler and other manually distributed apps/assets**: preserved
-  backup data is not proof of an installed, working binary. No guessed AppImage
-  download or remote `curl | sh` replacement is used.
-- **CLIProxyAPI**: the parent service/restore component owns its supported local
-  updater, configuration and activation; this role does not invoke an unknown
-  updater or start services.
-- **Desktop session**: the desktop role starts Syncthing and the PipeWire sockets
-  that packages already enabled in the lingering user manager, but never restarts,
-  enables over a user's disable/mask, or switches display managers. An installed
-  display manager is preserved and reported; without one, start niri from a TTY
-  with `niri-session`. Portals are D-Bus activated. No Hyprland or fcitx stack is
-  installed because the baseline configures neither. The legacy restore's
-  `~/Documents`/`~/Downloads`/`~/Pictures` aliases moved user files, and are not
-  in the baseline configuration, so they stay unmanaged.
-- Sign-ins, OAuth refresh, Android SDK license acceptance, restored application
-  state and runtime activation are not package-installation results.
-- Navidrome, Sunshine, OpenClaw, Nix/Incus and other abandoned stacks are not
-  restored. No live configuration, service enablement, firewall or account-group
-  mutation belongs to this software role.
-
-## Safety and verification
-
-`dots_sandbox: true` (default **false**) disables **all** installation paths,
-queries, downloads, temporary privilege and account tool/cache setup. The parent
-runtime fixtures must set it explicitly. `--check` is also a non-mutating plan
-boundary: it skips real software tasks rather than pretending missing package
-executables can be exercised on a fresh host.
-
-Focused checks (in an isolated dependency environment):
-
-```sh
-uv run --no-project --with 'ansible-core>=2.19,<2.20' \
-  python roles/software/tests/test_software.py
-python -m unittest tests/test_fresh_software.py   # project .venv on PATH
-```
-
-`tests/test_fresh_software.py` runs the real task files against **recording
-mocks** for pacman, rustup, npm, cargo, uv, makepkg, yay, sudo and Pi, with become
-disabled and a nonexistent become executable as a tripwire. It proves transaction
-order, held conflicts, toolchain repair, untrusted-command wrapping, Git environment
-propagation, AUR deptest/debug filtering and per-profile Pi receipts. It is **not**
-a live installation, sudo or session test.
-
-The tests parse every role task file, validate curated-list resolution, syntax
-check the role, execute sandbox and check-mode runs with zero changes, and probe
-the bridge's supported and rejected requests without invoking pacman or sudo.
-They do not prove a real AUR build, upstream downloads, privilege escalation,
-package conflicts or desktop activation. Those require an authorized disposable
-EndeavourOS installation, not live package changes during source implementation.
+`PATH="$PWD/.venv/bin:$PATH" ./scripts/check software` executes real Ansible
+control flow against disposable homes and recording substitutes for installers,
+package builders, Pi and privilege commands. It tests missing/already-installed
+packages, provider conflicts, dependency decisions, artifact selection, toolchains
+and failed-resource retry. It is **not** evidence of a live AUR build, successful
+provider login, sudo/SSH operation or working graphical session. `check-packages`
+is an optional read-only availability query against existing Arch sync databases;
+it installs/refreshes nothing.

@@ -1,9 +1,14 @@
 ---
+- name: Track tmux configuration changes separately
+  ansible.builtin.set_fact:
+    dots_configuration_changed: false
+- name: Install tmux configuration
+  ansible.builtin.include_tasks: config.yml
 - name: Install pinned upstream resurrect
   ansible.builtin.include_tasks: external.yml
   when: dots_manage_externals and not dots_sandbox
 - name: Enable persistence timer on eligible workstations
-  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/user-service.yml"
   vars:
     dots_units: "{{ dots_service_units.tmux }}"
 - name: Check for the user's main tmux server without creating one

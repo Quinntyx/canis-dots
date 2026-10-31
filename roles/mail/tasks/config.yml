@@ -1,0 +1,103 @@
+---
+- name: Install mail common files with mode 0644
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0644"
+    config_mode: '0644'
+- name: Install mail common files with mode 0755
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0755"
+    config_mode: '0755'
+- name: Install mail common files with mode 0600
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0600"
+    config_mode: '0600'
+- name: Install mail common files with mode 0700
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0700"
+    config_mode: '0700'
+- name: Render docs/mail/.notmuch/hooks/post-new
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: "docs/mail/.notmuch/hooks/post-new.j2"
+    config_dest: "docs/mail/.notmuch/hooks/post-new"
+    config_mode: '0755'
+- name: Render .config/aerc/aerc.conf
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/aerc/aerc.conf.j2"
+    config_dest: ".config/aerc/aerc.conf"
+    config_mode: '0644'
+- name: Render .config/aerc/binds.conf
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/aerc/binds.conf.j2"
+    config_dest: ".config/aerc/binds.conf"
+    config_mode: '0644'
+- name: Render .config/aerc/accounts.conf
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/aerc/accounts.conf.j2"
+    config_dest: ".config/aerc/accounts.conf"
+    config_mode: '0600'
+- name: Render .config/goimapnotify/goimapnotify.yaml
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/goimapnotify/goimapnotify.yaml.j2"
+    config_dest: ".config/goimapnotify/goimapnotify.yaml"
+    config_mode: '0644'
+- name: Render .config/systemd/user/goimapnotify.service
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/systemd/user/goimapnotify.service.j2"
+    config_dest: ".config/systemd/user/goimapnotify.service"
+    config_mode: '0644'
+- name: Render .config/systemd/user/mail-sync.service
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/systemd/user/mail-sync.service.j2"
+    config_dest: ".config/systemd/user/mail-sync.service"
+    config_mode: '0644'
+- name: Render .notmuch-config
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".notmuch-config.j2"
+    config_dest: ".notmuch-config"
+    config_mode: '0644'
+- name: Render .local/bin/aerc-archive.sh
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".local/bin/aerc-archive.sh.j2"
+    config_dest: ".local/bin/aerc-archive.sh"
+    config_mode: '0700'
+- name: Render .local/bin/mail-sync-cycle.sh
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".local/bin/mail-sync-cycle.sh.j2"
+    config_dest: ".local/bin/mail-sync-cycle.sh"
+    config_mode: '0700'
+- name: Render .local/bin/mail-sync.sh
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".local/bin/mail-sync.sh.j2"
+    config_dest: ".local/bin/mail-sync.sh"
+    config_mode: '0700'
+- name: Render .local/bin/mbsync-reconcile.py
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".local/bin/mbsync-reconcile.py.j2"
+    config_dest: ".local/bin/mbsync-reconcile.py"
+    config_mode: '0700'
+- name: Link .config/systemd/user/default.target.wants/goimapnotify.service
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/systemd/user/default.target.wants/goimapnotify.service"
+    config_target: "../goimapnotify.service"
+- name: Link .config/systemd/user/timers.target.wants/mail-sync.timer
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/systemd/user/timers.target.wants/mail-sync.timer"
+    config_target: "../mail-sync.timer"

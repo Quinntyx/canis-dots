@@ -1,0 +1,22 @@
+---
+- name: Install forgejo common files with mode 0644
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0644"
+    config_mode: '0644'
+- name: Install forgejo common files with mode 0700
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0700"
+    config_mode: '0700'
+- name: Render docs/host/forgejo/docker-compose.yml
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: "docs/host/forgejo/docker-compose.yml.j2"
+    config_dest: "docs/host/forgejo/docker-compose.yml"
+    config_mode: '0644'
+- name: Link .config/systemd/user/default.target.wants/forgejo.service
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/systemd/user/default.target.wants/forgejo.service"
+    config_target: "../forgejo.service"

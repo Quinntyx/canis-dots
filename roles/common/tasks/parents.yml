@@ -1,0 +1,25 @@
+---
+- name: Inspect each declared destination ancestor
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/{{ config_dest.split('/')[:item] | join('/') }}"
+    follow: false
+    get_checksum: false
+  loop: "{{ range(1, config_dest.split('/') | length) | list }}"
+  register: config_parents
+- name: Require ordinary destination directories, never symlink traversal
+  ansible.builtin.assert:
+    that: not item.stat.exists or (item.stat.isdir | default(false) and not item.stat.islnk | default(false))
+    quiet: true
+    fail_msg: Destination ancestry contains an unexpected link/file; inspect it before deployment.
+  loop: "{{ config_parents.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+- name: Create only missing destination parents, preserving existing permissions
+  ansible.builtin.file:
+    path: "{{ dots_home }}/{{ config_dest.split('/')[:item.item] | join('/') }}"
+    state: directory
+    mode: "{{ '0700' if config_dest.startswith('.ssh/') else '0755' }}"
+  loop: "{{ config_parents.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: not item.stat.exists

@@ -1,0 +1,55 @@
+# Native Ansible rebuild verification
+
+Checkpoint **f81385a** preserves the implementation before simplification. The
+current source replaces the custom plugins, manifests, recovery/enrollment and
+rollback framework with built-in Ansible roles, files, templates, handlers and
+optional Vault data. `.forgejo/workflows/ansible.yml` supplies the ordinary
+same-repository check-then-main-deploy workflow.
+
+## Observed proof
+
+`PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
+the final implementation fixes. It includes syntax/ownership checks, agent tool
+checks, real Ansible fixtures, software decision fixtures and tmux protocol tests.
+`git diff --check` is also required before publication.
+
+- Real Ansible in disposable homes proves shell deployment, idempotence, host
+  filtering, Vault delivery/wrong-key failure, declared service selection and
+  refusing unexpected destination symlinks for static files/templates/secrets.
+- The two-host template/layout fixture exercises the public playbook for both
+  enrolled hosts with all live effects disabled. It preseeds public static bytes
+  using a local filesystem copy and skips the bulk static-transfer block. It is
+  template/layout coverage, **not** a complete live deployment or proof that every
+  static file was transferred through Ansible. The separate shell fixture covers
+  native static transfer; digest checks cover the reviewed static-source layout.
+- Focused red-to-green regressions cover preserving personal Git branches and
+  unpushed commits, retryable manager-owned build recipes/Git routing, trackable
+  `.vault` files and wrapper prompting, and layout links whose runtime target is
+  not installed yet without allowing an existing ordinary file to be replaced.
+- The full render fixture caught a stale template source path that syntax-only
+  checking had missed; the repaired template renders on both hosts.
+- An isolated chezmoi `managed`/`apply` check observed zero managed files with the
+  deny-all `.chezmoiignore`. This protects against the archived restore procedure
+  accidentally applying this Ansible source as dotfiles. It does not validate or
+  update that separate restore procedure.
+
+The independent Opus review identified concrete issues that were fixed with
+focused proof. Its final follow-up was interrupted by Claude quota; there is no
+claim of independent approval of the finished revision.
+
+## Deliberately unexercised boundaries
+
+No active configuration, real host packages, sudo/SSH deployment, preserved disk,
+network identity, live service/container activation, provider sign-in, runner
+registration, website publication or visual behavior was changed or tested.
+Software substitutes prove decisions, not successful real installations.
+
+No repository deployment secrets were provisioned and no privileged Forgejo job
+was run. The workflow's actual execution, runner networking/concurrency support,
+and merge-triggered production deployment remain unverified until the owner
+configures the documented repository secrets and runner. Source validation does
+not grant permission to exercise those live effects.
+
+The PR must remain open and unmerged. Configuration rollback is a Git
+revert/redeploy, not database, package, identity or personal-data recovery. See
+[Deployment](DEPLOYMENT.md), [Secrets](SECRETS.md), and [Recovery](RECOVERY.md).

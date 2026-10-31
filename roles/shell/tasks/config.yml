@@ -1,0 +1,24 @@
+---
+- name: Install shell common files with mode 0644
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0644"
+    config_mode: '0644'
+- name: Render .config/fish/functions/hx-copilot.fish
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".config/fish/functions/hx-copilot.fish.j2"
+    config_dest: ".config/fish/functions/hx-copilot.fish"
+    config_mode: '0644'
+- name: Render .npmrc
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: ".npmrc.j2"
+    config_dest: ".npmrc"
+    config_mode: '0600'
+- name: Link .config/fish/functions/br.fish
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: ".config/fish/functions/br.fish"
+    config_target: "{{ dots_home }}/.local/share/broot/launcher/fish/br.fish"
+    config_optional_target: true

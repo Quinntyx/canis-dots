@@ -1,4 +1,9 @@
 ---
+- name: Track mail configuration changes separately
+  ansible.builtin.set_fact:
+    dots_configuration_changed: false
+- name: Install mail configuration
+  ansible.builtin.include_tasks: config.yml
 - name: Provision isolated mail OAuth helper
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/software/tasks/aur.yml"
   vars:
@@ -18,6 +23,6 @@
     - "{{ dots_home }}/.local/share/oama"
   when: not dots_sandbox
 - name: Enable mail timers and push notification service
-  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/user-service.yml"
   vars:
     dots_units: "{{ dots_service_units.mail }}"

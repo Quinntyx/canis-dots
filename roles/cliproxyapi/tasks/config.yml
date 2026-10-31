@@ -1,0 +1,11 @@
+---
+- name: Install cliproxyapi common files with mode 0644
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0644"
+    config_mode: '0644'
+- name: Install cliproxyapi common files with mode 0700
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0700"
+    config_mode: '0700'

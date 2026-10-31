@@ -1,0 +1,22 @@
+---
+- name: Enable declared user units without restarting unchanged services
+  ansible.builtin.systemd_service:
+    name: "{{ unit }}"
+    scope: user
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ dots_units }}"
+  loop_control:
+    loop_var: unit
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ dots_uid }}"
+  when: dots_manage_services and not dots_sandbox
+- name: Notify this role's native service handler only for changed inputs
+  ansible.builtin.debug:
+    msg: Declared service inputs changed.
+  changed_when: dots_configuration_changed | default(false) or ansible_role_name in dots_changed_secret_roles | default([])
+  notify: "Restart {{ ansible_role_name }} services"
+  when: dots_manage_services and not dots_sandbox
+- name: Apply pending handlers before health checks and dependent source acquisition
+  ansible.builtin.meta: flush_handlers

@@ -1,0 +1,73 @@
+---
+# Standard modules only. Inspect source directories, not the target's runtime tree.
+# The ordinary tag lets template-only fixtures skip the expensive bulk transfer;
+# untagged normal deployments always include this block.
+- name: Install this role's static files
+  tags: [static_files]
+  block:
+    - name: List this role's source directories
+      ansible.builtin.find:
+        paths: "{{ config_source }}"
+        recurse: true
+        hidden: true
+        file_type: directory
+      delegate_to: localhost
+      become: false
+      register: config_directories
+      changed_when: false
+    - name: Check corresponding destination directories without following links
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/{{ item.path | relpath(config_source) }}"
+        follow: false
+        get_checksum: false
+      loop: "{{ config_directories.files }}"
+      loop_control:
+        label: "{{ item.path | relpath(config_source) }}"
+      register: config_directory_checks
+    - name: Refuse to copy through a symlink or a non-directory
+      ansible.builtin.assert:
+        that: not item.stat.exists or (item.stat.isdir | default(false) and not item.stat.islnk | default(false))
+        fail_msg: Inspect the unexpected destination link/file before deploying this role.
+        quiet: true
+      loop: "{{ config_directory_checks.results }}"
+      loop_control:
+        label: "{{ item.item.path | relpath(config_source) }}"
+    - name: List this role's regular source files
+      ansible.builtin.find:
+        paths: "{{ config_source }}"
+        recurse: true
+        hidden: true
+        file_type: file
+      delegate_to: localhost
+      become: false
+      register: config_files
+      changed_when: false
+    - name: Check corresponding destination files without following links
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/{{ item.path | relpath(config_source) }}"
+        follow: false
+        get_checksum: false
+      loop: "{{ config_files.files }}"
+      loop_control:
+        label: "{{ item.path | relpath(config_source) }}"
+      register: config_file_checks
+    - name: Refuse to replace a destination symlink or non-regular file
+      ansible.builtin.assert:
+        that: not item.stat.exists or (item.stat.isreg | default(false) and not item.stat.islnk | default(false))
+        fail_msg: Inspect the unexpected destination link/file before deploying this role.
+        quiet: true
+      loop: "{{ config_file_checks.results }}"
+      loop_control:
+        label: "{{ item.item.path | relpath(config_source) }}"
+    - name: Copy only this role's declared source tree, keeping unrelated data
+      ansible.builtin.copy:
+        src: "{{ config_source }}/"
+        dest: "{{ dots_home }}/"
+        mode: "{{ config_mode }}"
+        directory_mode: '0755'
+        local_follow: false
+        follow: false
+      register: config_copied
+    - name: Remember this role's configuration changes for its lifecycle
+      ansible.builtin.set_fact:
+        dots_configuration_changed: "{{ dots_configuration_changed | default(false) or config_copied.changed }}"

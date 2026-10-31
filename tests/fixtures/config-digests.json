@@ -1,0 +1,42 @@
+{
+  "agents": {
+    "count": 1254,
+    "sha256": "dad9d085646a9013ffe61954b7b12169fbb89f4d780c5b2f7d13bf2c712b8e7e"
+  },
+  "cliproxyapi": {
+    "count": 9,
+    "sha256": "676d9ebb91c27ea22caaab04a39071db878c3808e8cc9980ad4f7300ad6ebb27"
+  },
+  "desktop": {
+    "count": 25,
+    "sha256": "462d6f022cb0848e99ee3bae829d32a1bd3944dc682acec3768503a3908da855"
+  },
+  "editor": {
+    "count": 25,
+    "sha256": "74a14e3c10a0af71ba35dd18e7f8dd4b92ac15e7b58a7d2d81696168d8332947"
+  },
+  "forgejo": {
+    "count": 39,
+    "sha256": "50a77eb49101b883db0baee6277bc0d66717d967f5d049a2308cdbcd5492672d"
+  },
+  "git": {
+    "count": 1,
+    "sha256": "ed8f87b5875c26d1d1ed341e0f03b269ad5af1f4219cb557afb4572d6c5c3191"
+  },
+  "mail": {
+    "count": 9,
+    "sha256": "c6de42c94779851086c2471b3ecd07866029a26a7a5c4ff486585160b8aab293"
+  },
+  "shell": {
+    "count": 23,
+    "sha256": "8dbddaf2121d81dcb139463a3804111f4656e9a6690077c2f5a7f47fb071dcb9"
+  },
+  "ssh": {
+    "count": 1,
+    "sha256": "75f83df68d89917e9fa263bf891fbf99c073e61b4300b6014b1b0a32fa459cc9"
+  },
+  "tmux": {
+    "count": 5,
+    "sha256": "c003da0e0d5f2c44b1f8563ac9ece3e50b1bbc23cab4c1e2dab71971e3161aea"
+  }
+}

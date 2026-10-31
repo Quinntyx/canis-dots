@@ -1,73 +1,46 @@
-# Migration coverage
+# Migration record
 
-`policy/migration.json` is the complete baseline ledger: every tracked source path
-at the pre-migration revision recorded in `policy/baseline.yml` has an original
-Git-blob SHA-256 (before guidance edits) and one explicit
-`managed`, `reference`, `retired`, or `upstream` disposition. For managed files it
-records the Ansible source, actual destination, kind, mode and component. The
-allowlists, not a recursive traversal of a live home, define deployment.
+## Current decision
 
-## Preserved and translated
+The owner selected **normal Ansible + Ansible Vault + same-repository Forgejo
+Actions**, with their merge to main as the operational deployment approval. The
+existing restore procedure runs first after a reinstall; recovery is not part of
+Ansible desired state. Repository workflow authors are trusted with repository
+secrets under the explicitly accepted small-instance trust model.
 
-- Chezmoi `dot_`, `private_`, `executable_` and `symlink_` semantics become real
-  destination names, explicit modes and declared links. Original hashes remain
-  evidence even where intentional Jinja/source-guidance edits change bytes.
-- Host/home-dependent Go templates become inventory/fact-driven Jinja with a
-  separate delimiter where embedded shell/Go templates would otherwise collide.
-  Literal Forgejo application templates are not rendered by Ansible.
-- The lab retains its narrow component subset and an included SSH fragment;
-  existing personal SSH config/keys are preserved. Main-only mail, desktop,
-  services, workstation PKGBUILDs and network bindings cannot leak through a
-  component-selection request.
-- The tmux hook becomes explicit dependency acquisition/timer/reload tasks;
-  helper behavior and its regression tests are retained. No private tmux server
-  is created during migration verification.
-- User-owned agent instructions and configuration-editing skills now resolve
-  manifests/controller identity and separate publication from deployment.
-  Upstream skills remain upstream-owned and package outputs stay runtime-owned.
-- The backup thread's curated, actually used package declarations are consumed
-  directly, rather than replaying an installed-package dump. See SOFTWARE.md one
-  directory up for actively supported apps and manual/vendor distribution gaps.
+Checkpoint **f81385a** (`chore: checkpoint Ansible implementation before
+simplification`) preserves the previous complete implementation and its forensic
+ledger, custom plugins, encrypted preimages and fresh-recovery path. It was made
+before this rebuild so that design can be inspected without reintroducing it.
 
-## Intentionally outside desired file state
+## Dispositions
 
-- Personal docs/media, mail and notmuch databases, Forgejo repositories/database,
-  runner state, browser/provider/SSH/OAuth identities, package caches, sessions,
-  task/application databases, virtual environments, and generated downloads.
-- Installer boot/GPU configuration and unrelated disks/zones remain outside
-  desired state. Explicit `--fresh` now mounts only araveia's declared existing
-  docs UUID, validates data ownership/Forgejo lock, and recovers enumerated
-  identities from the existing private snapshot. That is a separate create-only
-  input, not public desired file state or adoption of repositories/sessions.
-  Named fstab/DNS/tunnel/hostname overrides and manager-owned additive tailnet
-  firewall rules are declared in `policy/system.yml`; no whole `/etc` replay.
-  See [recovery](../RECOVERY.md).
-- Retired Sunshine, Navidrome, OpenClaw, Nix/Incus and abandoned service stacks.
-  The migration does not enable or reinstall them. Existing unowned leftovers
-  are not silently deleted; removal needs separate ownership and deletion scope.
-- The old absolute developer workspace path `/home/henry/src/dots` is retired.
-  Actual target homes come from facts; no such directory is created or deleted.
-- Inactive Forgejo template backup copies are history, not competing desired
-  state. Website content is a separate owning repository and CI pipeline.
-
-`legacy/` retains old ignore/remove/external/hook policy as non-executing audit
-text. The former backup/restore shell scripts under `docs/backups/` are likewise
-`.legacy.txt`: they are **not runnable alternatives** to the new encrypted
-preimage/import/rollback flow. Removing the old manager's remove list does not
-authorize deletion of any current live path.
+- Desired configuration remains source-owned role files/templates, explicit YAML
+  tasks and native handlers. Static source bytes/destination/mode/host-scope are
+  preserved by the conversion; the small role-level digest regression fixture is
+  test evidence, not a runtime manifest.
+- Explicit inventory membership remains araveia and syssec-canis only. Main-only
+  components do not deploy to the lab, whose personal SSH config remains intact.
+- Package/Git/Pi managers own their acquired outputs. Upstream skill bytes stay
+  upstream-owned. Personal repositories are never reset or recursively adopted.
+- Credentials are existing restored runtime files or deliberately committed
+  standard Vault ciphertext. No active-home import, generated key, custom secret
+  registry or automatic enrollment. CI secrets live in Forgejo repository settings.
+- Personal data, databases, identities and private backups remain outside Git and
+  outside normal deployment. Unknown paths remain unmanaged; no remove-list sweep
+  or recursive prune replaces the former manager.
+- Website source remains a separate repository; this machine role does not publish
+  it. OS updates and full data/system recovery remain separate operations.
+- Removed: per-component JSON manifests, migration classifier/filter, custom
+  action/modules, controller marker/source resolver, local `.vault` protocol,
+  import/rollback wrappers, root-bridge/request machinery and `--fresh`.
 
 ## Evidence and limits
 
-Run `scripts/check` for syntax, ownership, guidance, software safety, tmux helper,
-and real disposable-home Ansible boundary tests. The tests cover both hosts,
-repeat convergence, check-mode nonmutation, wrong-key refusal, lab/server
-isolation, symlink refusal, secret rotation, encrypted rollback, and retry after
-a failed proxy build. They never apply to the active home or start live services.
-`scripts/check-packages` is a separate read-only query against the controller's
-existing pacman databases; it never refreshes them or installs packages.
-
-Source readiness does not prove a full live package/AUR build, sudo crossing,
-remote SSH, signed-in provider, running service health, graphical session, or
-website publication. Those require a separately authorized deployment on the
-actual target. No configuration was applied merely to claim this migration was
-verified.
+The changed checks test native Ansible in disposable homes, file/symlink safety,
+convergence, host isolation, standard Vault delivery, workflow gating, AUR/tool
+control flow and unchanged configuration content. No live deployment or active
+configuration edit is authorized by rebuilding source. Checks do not prove OS
+installation, remote sudo/SSH, current backup completeness, provider credentials,
+live services or visual behavior. See AGENTS.md for the mandatory verification
+ladder and docs/DEPLOYMENT.md for operational prerequisites.

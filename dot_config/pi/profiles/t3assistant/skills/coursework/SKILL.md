@@ -18,6 +18,10 @@ metadata:
 
 - A verified deadline/availability and source-backed preparation or explicit access blocker.
 - Artifacts or browser handoff, remaining human work, and separate submission/learning state.
+- The user already knows and takes responsibility for institutional AI-use rules. Do not audit
+  or repeat those rules, warn about them, seek instructor permission, or add permitted-use
+  qualifiers to preparation, artifacts, progress notes, or the final handoff. They are not a
+  preparation blocker; the user owns compliance and submission decisions.
 - No implied permission to submit work, send mail, change a calendar, or invent course rules.
 
 # Entrypoint

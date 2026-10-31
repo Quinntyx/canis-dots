@@ -13,7 +13,8 @@ metadata:
 
 - Requested Pi behavior, acceptance criteria, package identity, and selected installation profiles.
 - Active profile and installed Pi version; existing repository or installed package identity.
-- Git, Node.js, npm, and chezmoi; execution also requires authenticated hosting and CI capacity.
+- Git, Node.js, npm, and the verified Ansible controller checkout for managed configuration;
+  assigned hosted delivery additionally requires authenticated hosting and CI capacity.
 - New-project visibility and material dependency choices, resolved with the user when unspecified.
 - A new-plugin delivery request includes personal hosting, mirroring, source commits and pushes,
   and managed Git-reference installation. Explicit local-only limits or coordinator ownership
@@ -44,9 +45,11 @@ metadata:
    not the requested topology; a sandbox cwd and unchanged hosting/profiles do not relocate source.
 2. Bind the active profile from system context and `PI_CODING_AGENT_DIR`. Keep explicitly selected
    installation profiles separate from the worker's active profile; otherwise use the active one.
-   Bind absolute `agent_dir` values before reading `$agent_dir/settings.json`. Run
-   `chezmoi source-path -- "$agent_dir/settings.json"` and read that exact source and neighbors.
-   Inspect package entries, project overrides, filters, and parent/worker relationships. A profile
+   Bind absolute `agent_dir` values before reading `$agent_dir/settings.json`. Resolve that exact
+   destination through `../edit-config/SKILL.md` and the controller's `scripts/dots-source`; read the
+   manifest-owned source and neighbors. A remote deployment marker identifies the controller, not
+   a guaranteed target-local checkout. Inspect package entries, project overrides, filters, and
+   parent/worker relationships. A profile
    conflict proceeds to Stage 10: Report for a target decision; otherwise continue at step 3.
 3. Inspect `command -v pi`, the installed package version, its README, and `docs/extensions.md`,
    `docs/packages.md`, and `docs/skills.md`. Use `references/api-and-sources.md` for linked API docs
@@ -190,9 +193,10 @@ metadata:
 ## Stage 7: Stage managed installation
 
 1. For each selected profile, bind `agent_dir` and `settings="$agent_dir/settings.json"`.
-   Run `chezmoi source-path -- "$settings"` and inspect the resolved source file and neighbors.
-   For durable unmanaged profile configuration, deliberately adopt the current live file into
-   source state, with correct chezmoi attributes and secret/runtime exclusions, then resume here.
+   Use `../edit-config/SKILL.md` to resolve the exact target's controller source, inventory host,
+   and role manifest ownership. Read that source and neighbors. Adopt genuinely unmanaged durable
+   settings only when authorized, using explicit source/destination/mode entries and host eligibility;
+   leave credentials, package caches, and runtime state outside normal manifests.
 2. Edit only that managed source file's package declaration. Add or reconcile the canonical
    `source`, preserving existing resource filters, unrelated entries, and other profile settings.
    Git identity is repository URL without ref, so reconcile the existing entry rather than
@@ -200,29 +204,29 @@ metadata:
 3. Retire a superseded loose extension declaration or file only within authorized migration scope.
    Preserve its code in the source project and prove one intended registration remains. Package
    implementation now lives in the repository; the profile contains delivery configuration.
-4. Validate the source JSON and targeted chezmoi rendering. Build an isolated representative
-   configuration from the desired rendered settings and run `references/runtime-validation.md`
+4. Validate source JSON and intended Ansible-rendered settings for the selected host. Build an
+   isolated representative configuration from those settings and run `references/runtime-validation.md`
    against the published canonical Git ref. Passing checks continue at step 5; failures return
    to Stage 4: Develop for code or Stage 7: Stage managed installation for configuration.
-5. Review `git -C ~/.local/share/chezmoi diff --check` and the complete owned source diff.
-   Coordinator-owned configuration proceeds to Stage 10: Report with the validated source files.
-   Self-owned authorized configuration proceeds to Stage 8: Apply managed installation.
+5. Run `git diff --check` in the assigned controller checkout and review the complete owned diff.
+   Source-only/coordinator configuration proceeds to Stage 10 with validated source files.
+   Assigned complete configuration proceeds to Stage 8: Apply managed installation.
 
 ## Stage 8: Apply managed installation
 
-1. Verify the chezmoi checkout is on `main`; another branch proceeds to Stage 10: Report.
-   On `main`, stage only owned changes, inspect the staged diff, commit, and push the configured
-   upstream. Confirm the push and task paths are
-   clean. A failed push proceeds to Stage 10: Report with apply pending; success continues here.
-2. Run `chezmoi apply -- "$settings"` for each selected profile's changed settings target, and
-   apply any other explicitly changed migration targets by path. Source commit and push precede
-   application. Preserve unrelated source edits and live drift through this targeted application.
-3. From a neutral working directory, reconcile only the selected package in each intended profile:
-   `PI_CODING_AGENT_DIR="$agent_dir" pi update "$source" --no-approve`.
-   The source declaration already comes from managed configuration; this updates runtime caches.
-4. Run targeted `chezmoi diff -- "$settings"` and `chezmoi status -- "$settings"` for all owned
-   targets. Empty output proceeds to Stage 9: Verify delivery; remaining drift returns to
-   Stage 7: Stage managed installation for deliberate reconciliation and another pushed change.
+1. Follow `../edit-config/SKILL.md` for the assigned task branch, scoped commit/push, inventory host,
+   and component deployment. A fixed `main` checkout is not required. Commit-only, no-push, no-deploy,
+   and coordinator limits end at Stage 10 with remaining effects pending; preserve unrelated work.
+2. Before authorized deployment, enumerate all affected destinations/handlers for the selected
+   components. `scripts/deploy` supports host/component scope, not an exact-settings-file filter.
+   Review the same-scope `--check --diff` plan without exposing secrets; if components would apply
+   unrelated drift, stop for a narrower supported plan. Publish owned source before actual deployment.
+3. Only after authorized configuration deployment, reconcile the selected package in each intended
+   profile from a neutral cwd: `PI_CODING_AGENT_DIR="$agent_dir" pi update "$source" --no-approve`.
+   This supported manager operation updates runtime caches; do not patch installed package files.
+4. Verify rendered settings and modes, relevant application checks, and unexplained task-owned drift
+   with edit-config's scoped verification. Passing checks proceed to Stage 9; failures return to
+   Stage 7 for deliberate source reconciliation. Treat package update and activation separately.
 
 ## Stage 9: Verify delivery
 

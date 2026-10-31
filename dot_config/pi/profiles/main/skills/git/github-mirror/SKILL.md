@@ -110,9 +110,10 @@ metadata:
    prove the forge has its commits. Set the canonical origin and matching tracking refs, then
    remove obsolete personal `github` or mirror-only `upstream` remotes. Shared worktrees use the
    primary clone's common remote configuration. Retain genuine foreign upstreams.
-4. Durable Pi package-source configuration remains canonical to Forgejo. Any requested source
-   setting change is authored in chezmoi source state and follows its separately assigned
-   commit/push/apply lifecycle. Package caches remain runtime state.
+4. Durable Pi package-source configuration remains canonical to Forgejo. Resolve requested settings
+   changes through `../../edit-config/SKILL.md`, author the manifest-owned Ansible source on the
+   assigned task branch, and follow separately assigned commit/push/host-component deployment scope.
+   Source-only/no-deploy handoffs stop before application; package caches remain runtime state.
 5. Report mirror destination, completion time, last error, ref parity, local remotes/tracking, and
    any pending operation. A missing mirror/HEAD on a restricted machine is repaired at the mirror
    source, preserving canonical package source declarations and existing global rewrites.

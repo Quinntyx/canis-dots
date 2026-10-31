@@ -19,14 +19,17 @@ those capabilities. Per-session proxy quota integration is discontinued in both 
   concurrent commit c8b0a8a and moved to its owning T3 repository. This migration preserves that
   ownership and does not resurrect a stale global copy. Use that repository's current skill when
   working there; its discovery belongs to that repository's agent configuration.
-- Local source: chezmoi `dot_claude/skills`, `dot_claude/CLAUDE.md`, hooks and settings. Freya and
-  Wrangler remain upstream-managed `.chezmoiexternal.toml` targets, not locally patched copies.
+- Personal guidance, skills, hooks and settings now follow Ansible source ownership through
+  edit-config: resolve exact destinations with the controller's `scripts/dots-source` and the
+  applicable role manifest. Freya/Wrangler remain upstream-owned resources acquired through Ansible
+  declarations, not locally patched copies. The older `dot_claude` paths and Chezmoi provenance in
+  the migration manifest describe the original audit, not the current deployment procedure.
 - Librarian is an explicitly Claude-specific adaptation, with source Git SHA and tree digests in
   `migration/manifest.json`; Pi's installed packages are not edited or adopted.
 - The Claude notebook-workflow skill is retired. Use saved scripts with existing project runtimes;
   native NotebookEdit remains available for cell editing. No kernel/MCP bridge is queued.
 - Personal Claude config lives in `~/.claude`; no Pi profile/environment selector applies to it.
-  Claude runtime/auth files, plugin caches and transcripts stay outside chezmoi.
+  Claude runtime/auth files, plugin caches and transcripts stay outside normal Ansible manifests.
 
 ## Skill migration matrix
 
@@ -39,7 +42,7 @@ those capabilities. Per-session proxy quota integration is discontinued in both 
 | cloudflare | Native web/file/Bash tools, complete product-reference tree | Product APIs/models are subjects, not agent runtime instructions |
 | create-skill | Claude roots/loader semantics and supported native/T3 rehearsal routing | Removed hard-coded Pi provider/model; bulk rehearsal stays optional |
 | edit-config | Native /update-config for Claude settings semantics, inside resolved-source ownership | Authoritative source and scoped commit/push/apply remain mandatory |
-| freya | Unmodified upstream skill through chezmoi external | Actual Rust/GUI/capture environment still required |
+| freya | Unmodified upstream skill through Ansible resource acquisition | Actual Rust/GUI/capture environment still required |
 | full-send | Shared native /verify policy layer and one compatible /code-review or T3 review | Explicit full-send supplies merge scope; managed allocation remains mandatory |
 | full-stop | Read-through full-send workflow | Never merge |
 | git | Native Bash and all four routed children, retained T3 allocation | Shell/native worktree tools do not rebind managed T3 threads |
@@ -51,7 +54,7 @@ those capabilities. Per-session proxy quota integration is discontinued in both 
 | subagents | Native Agent owns eligible child mechanics; T3 references own managed execution | Native /batch does not bypass T3 allocation or authorize PRs |
 | terminal-ui | Native Bash + existing real PTY/tmux route | Pi TUI reference remains for Pi development; browsers are not terminal evidence |
 | visual-design | Native /dataviz owns charts; local UI integration, evidence and T3 showback remain | Input images, screenshots, generation and connector publication are separate effects |
-| wrangler | Unmodified upstream skill through chezmoi external | Existing project CLI/config/account scope remains authoritative |
+| wrangler | Unmodified upstream skill through Ansible resource acquisition | Existing project CLI/config/account scope remains authoritative |
 | librarian | Native WebSearch/WebFetch + inspected checkout/full-SHA permalinks | No assumed fetch clone, stored response reader, video analyzer or Gemini fallback |
 
 The five former prompt templates are native, user-invoked skills: `/change-report`,
@@ -70,7 +73,7 @@ collisions. These are additive policy layers, not copies of built-in skill bodie
   the built-in owns runtime exercise. Docs/test-only changes use relevant checks. Native project
   run/verify-skill generation stays within the user's repository-writing authority.
 - `/update-config`: edit-config resolves the actual manager/source first. The built-in supplies
-  Claude settings/hook semantics, without replacing chezmoi publication or writing live targets.
+  Claude settings/hook semantics, without bypassing Ansible source publication or writing live targets.
 - `/init`: agent-repo-guidance uses its initial survey/draft only for an authorized new CLAUDE.md;
   existing guidance is curated in place with real local checks and one owner per rule.
 - Native `Agent` and `/code-review`: subagents owns routing/limits, not another native lifecycle.
@@ -160,7 +163,7 @@ server previews, devices and durable schedules remain available only when the T3
 provides them. They were not Pi-only features and need no duplicate Claude plugin.
 
 **Fix:** use Claude through T3 for those workflows. A standalone CLI needs separately configured
-supported MCP access and suitable hosts; never copy temporary T3 auth headers into chezmoi.
+supported MCP access and suitable hosts; never copy temporary T3 auth headers into tracked config.
 
 ## Migration/update process
 
@@ -171,15 +174,20 @@ supported MCP access and suitable hosts; never copy temporary T3 auth headers in
 3. Classify every dependency as native Claude, retained T3 MCP, supported adapter, explicit gap or
    deliberately excluded. Preserve the exclusions above instead of restoring retired features.
    Preserve subject APIs: developing a Pi plugin/TUI from Claude still needs Pi's actual APIs.
-4. Edit only owning chezmoi/native adapter source. Keep upstream externals upstream-owned. Review
-   each changed procedure; never bulk-replace the word Pi or execute a copying script over local
-   Claude refinements. Keep helpers/modes, routed references, CSS and provenance together.
+4. Edit only the owning Ansible/native adapter source resolved by edit-config and the role manifest.
+   Keep upstream resources upstream-owned. Review each changed procedure; never bulk-replace the
+   word Pi or execute a copying script over local Claude refinements. Keep helpers/modes, routed
+   references, CSS and original-audit provenance together.
 5. Validate frontmatter/links/stale executing-host bindings, native settings syntax and hook tests.
    Use realistic missing-tool/source-only/model-choice cases; bulk migrations do not require a
    rehearsal child for every skill. Static checks are not model-behavior proof.
-6. Commit/push exact owned paths under the edit-config lifecycle, then review/apply exact files
-   through chezmoi with scripts excluded. For shared external/ignore declarations enumerate only
-   their affected Claude targets; preserve unrelated Pi or live drift.
+6. Follow edit-config for assigned task-branch commits/pushes and separately authorized deployment.
+   Ansible uses explicit inventory host/component scope through `scripts/deploy`; components are
+   not exact-file filters. Enumerate all affected destinations/handlers before a secret-safe
+   `--check --diff` preview. If a component would reconcile unrelated drift, stop for a narrower
+   supported plan. Source-only/no-deploy/coordinator handoffs leave application pending. Keep
+   secrets in approved Vault `encrypted_files/<host>/...` under `policy/secrets.yml`, never logs/Git
+   plaintext. Preserve unrelated Pi source, live drift, and runtime/auth state.
 7. Verify fresh Claude initialization actually lists the intended skills/tools and exercises hooks.
    Check the real T3 SDK loading path as well as standalone CLI discovery. Run representative web
    and native/T3 boundary checks, recording what was and was not executed.
@@ -200,10 +208,11 @@ supported MCP access and suitable hosts; never copy temporary T3 auth headers in
 - Native web rehearsal called both tools once: search succeeded, fetch failed as recorded above.
 - Migration manifest records Pi source identities and produced Claude file hashes; it is provenance,
   not Claude plugin activation, an auto-sync instruction or a copy of credentials/runtime state.
-- Static validation: valid frontmatter, explicit relative links, helper source attributes, stale
-  Pi-only execution references, settings JSON and chezmoi diff checks. Freya/Wrangler validation
-  additionally follows their external target rendering, not a local patch. Adapted/new files pass
-  whitespace checks; byte-identical reference snapshots retain their original Markdown whitespace.
+- Original-migration static validation covered frontmatter, relative links, helper source attributes,
+  stale Pi-only execution references, settings JSON and then-current Chezmoi diff checks. Those are
+  historical evidence, not Ansible runtime/deployment proof. Future changes use edit-config's
+  Ansible manifest/render/application checks; Freya/Wrangler use their upstream acquisition path,
+  not local patches. Byte-identical reference snapshots retain original Markdown whitespace.
 - Completed representative behavior check: native foreground child. Further bulk samples remain:
   T3 allocation, private secret entry, browser permission
   and source permalink generation. No claim is made that all skills have been rehearsed or every

@@ -95,13 +95,18 @@ When a request parses two ways, prefer the reading that requires capabilities on
 
 As an agent that runs outside of a container, you must be EXTREMELY careful about what system files you are allowed to touch. For example, files that are managed by another service/tool (eg. `Lazy`, `pacman`, etc.) are NOT to be edited directly.
 
-Determine the actual owner before editing. For chezmoi targets, use `edit-config` and modify the
-resolved source state. Package managers, plugin managers, Pi Git/npm caches, and generators own their
-outputs: inspect those for identity, then change a supported override or the user's owned source
-repository. Load `git`, reuse a verified development checkout, or clone missing source through its
-procedure. The user is `quinntyx` on Forgejo and `Quinntyx` on GitHub. Publish only assigned source,
-then update only the affected package or exact configuration targets through their manager. Do not
-patch installed caches, adopt generated output, or reconcile unrelated drift.
+Determine the actual owner before editing. For Ansible-managed configuration, load `edit-config`:
+resolve exact destination ownership with the controller checkout's `scripts/dots-source` and role
+manifest, then edit that source. `~/.config/ansible/dots-source.json` records `source_root` and
+`inventory_hostname`; a remote target's marker identifies the controller, not a guaranteed local
+checkout. Preserve task-branch, source-only, no-push, and no-deploy boundaries. Commit/push assigned
+source before any separately authorized `scripts/deploy` host/component scope; a component is not
+an exact-file filter. Approved secrets use Vault `encrypted_files/<host>/...` and
+`policy/secrets.yml`, never plaintext Git or logs. Package managers, plugin managers, Pi Git/npm
+caches, and generators retain ownership of their outputs: inspect identity, then change supported
+overrides or user-owned source. Load `git`, reuse verified source or clone through its procedure.
+The user is `quinntyx` on Forgejo and `Quinntyx` on GitHub. Update only the assigned package/scope;
+preserve upstream-owned skills, generated state, and unrelated drift.
 
 ## Agent-directed repo work
 - When work enters any repository that ships its own agent-surface (`AGENTS.md`, `CLAUDE.md`, or equivalent), that file outranks your defaults: read it end to end before the first edit, then follow its verification ladder, surface checklist, and taste rules verbatim. When a rule there conflicts with your habits, the repo wins; say so loudly if the rule itself fights the task, as such files instruct.

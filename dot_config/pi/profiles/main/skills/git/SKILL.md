@@ -38,12 +38,11 @@ metadata:
    - Drafting, publishing, revising, or responding to pull requests: `pr/SKILL.md`.
    - Researching issue discussions, checking for duplicates, creating, drafting, updating,
      or responding to repository issues: `issues/SKILL.md`.
-3. For `~/.local/share/chezmoi`, retain the existing `main` checkout and source-state layout.
-   Verify `main`; an unexpected branch ends with a report, preserving the checkout. Edit source
-   state, validate, then commit and push before applying when those
-   actions are assigned to this agent. An explicit coordinator handoff ends at validated source
-   changes. Report the completed lifecycle stages and finish here. For code repositories continue
-   to Stage 2: Resolve the repository.
+3. For Ansible-managed configuration, use `../edit-config/SKILL.md` to resolve the controller
+   checkout, inventory host, and exact destination's manifest owner. Retain the assigned task branch;
+   no fixed checkout path or `main` requirement applies. Follow assigned source/commit/push/deployment
+   ownership and return that receipt. A source-only/coordinator handoff leaves deployment pending.
+   For code repositories continue to Stage 2: Resolve the repository.
 
 ## Stage 2: Resolve the repository
 
@@ -156,8 +155,10 @@ metadata:
   prompt. Explicit no-commit, no-push, or local-only instructions govern the current task.
 - Merging into `main` requires explicit authorization. Work on an explicitly selected `main` keeps
   its requested scope; implementation alone is distinct from opening a pull request.
-- Requested chezmoi configuration changes normally authorize source-state commits and ordinary
-  pushes on `main`, followed by apply. A coordinator-owned lifecycle leaves source changes ready.
+- Requested Ansible configuration work follows `edit-config`: commit/push owned source on the
+  assigned task branch when authorized, then perform only separately authorized host/component
+  deployment. Source-only, no-push, no-deploy, and coordinator limits take precedence; neither
+  configuration editing nor publication implicitly authorizes merging into `main` or live deployment.
 - Contribution work follows the task's repository, host, contribution rules, and target branches.
   Clone-layout and personal-host defaults apply to checkout setup, independently of hosted issues
   and pull requests, whose repository context is supplied by their task.

@@ -7,8 +7,8 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const root = path.resolve(__dirname, '..');
-const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
-  .split('\0').filter(Boolean);
+const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8' })
+  .split('\0').filter(file => file && fs.existsSync(path.join(root, file)));
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 // Suffixes survive relocation from legacy dot_* sources into roles/agents/files.
 const locate = suffix => {

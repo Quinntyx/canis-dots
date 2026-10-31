@@ -1,0 +1,17 @@
+---
+- name: Read upstream-owned resource declarations
+  ansible.builtin.set_fact:
+    dots_upstream: "{{ lookup('ansible.builtin.file', dots_controller_root ~ '/policy/externals.yml') | from_yaml }}"
+- name: Create only declared external skill parents
+  ansible.builtin.file:
+    path: "{{ dots_home }}/{{ item.dest | dirname }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ dots_upstream }}"
+- name: Refresh checksum-pinned upstream-owned skill entrypoints
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    checksum: "{{ item.checksum }}"
+    dest: "{{ dots_home }}/{{ item.dest }}"
+    mode: '0644'
+  loop: "{{ dots_upstream }}"

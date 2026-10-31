@@ -1,0 +1,142 @@
+[
+  {
+    "source": "docs/mail/.notmuch/hooks/post-new.j2",
+    "dest": "docs/mail/.notmuch/hooks/post-new",
+    "mode": "0755",
+    "kind": "template"
+  },
+  {
+    "source": ".config/aerc/aerc.conf.j2",
+    "dest": ".config/aerc/aerc.conf",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".config/aerc/binds.conf.j2",
+    "dest": ".config/aerc/binds.conf",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".config/aerc/accounts.conf.j2",
+    "dest": ".config/aerc/accounts.conf",
+    "mode": "0600",
+    "kind": "template"
+  },
+  {
+    "source": ".config/aerc/query-map",
+    "dest": ".config/aerc/query-map",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/aerc/query-map-gmail",
+    "dest": ".config/aerc/query-map-gmail",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/aerc/query-map-utdallas",
+    "dest": ".config/aerc/query-map-utdallas",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/goimapnotify/gmail-xoauth2.sh",
+    "dest": ".config/goimapnotify/gmail-xoauth2.sh",
+    "mode": "0755",
+    "kind": "file"
+  },
+  {
+    "source": ".config/goimapnotify/o365-xoauth2.sh",
+    "dest": ".config/goimapnotify/o365-xoauth2.sh",
+    "mode": "0755",
+    "kind": "file"
+  },
+  {
+    "source": ".config/goimapnotify/goimapnotify.yaml.j2",
+    "dest": ".config/goimapnotify/goimapnotify.yaml",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".config/oama/config.yaml",
+    "dest": ".config/oama/config.yaml",
+    "mode": "0600",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/default.target.wants/goimapnotify.service",
+    "dest": ".config/systemd/user/default.target.wants/goimapnotify.service",
+    "mode": "0644",
+    "kind": "link",
+    "target": "../goimapnotify.service"
+  },
+  {
+    "source": ".config/systemd/user/goimapnotify.service.j2",
+    "dest": ".config/systemd/user/goimapnotify.service",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".config/systemd/user/mail-sync.service.j2",
+    "dest": ".config/systemd/user/mail-sync.service",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".config/systemd/user/mail-sync.timer",
+    "dest": ".config/systemd/user/mail-sync.timer",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/timers.target.wants/mail-sync.timer",
+    "dest": ".config/systemd/user/timers.target.wants/mail-sync.timer",
+    "mode": "0644",
+    "kind": "link",
+    "target": "../mail-sync.timer"
+  },
+  {
+    "source": ".mbsyncrc",
+    "dest": ".mbsyncrc",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".notmuch-config.j2",
+    "dest": ".notmuch-config",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".local/bin/aerc-archive.sh.j2",
+    "dest": ".local/bin/aerc-archive.sh",
+    "mode": "0700",
+    "kind": "template"
+  },
+  {
+    "source": ".local/bin/mail-route-jev.py",
+    "dest": ".local/bin/mail-route-jev.py",
+    "mode": "0700",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/mail-sync-cycle.sh.j2",
+    "dest": ".local/bin/mail-sync-cycle.sh",
+    "mode": "0700",
+    "kind": "template"
+  },
+  {
+    "source": ".local/bin/mail-sync.sh.j2",
+    "dest": ".local/bin/mail-sync.sh",
+    "mode": "0700",
+    "kind": "template"
+  },
+  {
+    "source": ".local/bin/mbsync-reconcile.py.j2",
+    "dest": ".local/bin/mbsync-reconcile.py",
+    "mode": "0700",
+    "kind": "template"
+  }
+]

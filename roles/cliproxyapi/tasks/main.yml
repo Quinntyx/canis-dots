@@ -1,0 +1,11 @@
+---
+- name: Acquire and build canonical CLIProxyAPI source through its manager
+  ansible.builtin.include_tasks: build.yml
+  when: dots_manage_externals and not dots_sandbox
+- name: Include successful binary replacements in the proxy's restart decision
+  ansible.builtin.set_fact:
+    dots_configuration_changed: "{{ dots_configuration_changed or dots_proxy_built.changed | default(false) }}"
+- name: Enable the main-node proxy only after credentials and binary are provisioned
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  vars:
+    dots_units: "{{ dots_service_units.cliproxyapi }}"

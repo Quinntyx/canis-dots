@@ -1,0 +1,55 @@
+---
+- name: Manage araveia system integration only
+  when: not dots_sandbox and dots_manage_services
+  become: true
+  block:
+    - name: Add the primary account to supported integration groups
+      ansible.builtin.user:
+        name: "{{ dots_user }}"
+        groups: [audio, realtime, uucp]
+        append: true
+    - name: Preserve the main node's local hostname resolution
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+araveia(?:\s|$)'
+        line: '127.0.1.1 araveia'
+        backup: false
+    - name: Ensure the keyd configuration directory exists
+      ansible.builtin.file:
+        path: /etc/keyd
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+    - name: Install only the user-owned keyd override
+      ansible.builtin.copy:
+        src: keyd-default.conf
+        dest: /etc/keyd/default.conf
+        owner: root
+        group: root
+        mode: '0644'
+        backup: false
+      register: dots_keyd
+    - name: Start supported system services without restarting networking
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: [tailscaled.service, sshd.service, keyd.service, fstrim.timer]
+    - name: Reload changed keyd configuration through its service
+      ansible.builtin.systemd_service:
+        name: keyd.service
+        state: restarted
+      when: dots_keyd.changed
+    - name: Detect an existing tunnel unit without reading its credentials
+      ansible.builtin.stat:
+        path: /etc/systemd/system/cloudflared.service
+      register: dots_tunnel
+    - name: Preserve and enable an already-enrolled tunnel
+      ansible.builtin.systemd_service:
+        name: cloudflared.service
+        enabled: true
+        state: started
+      when: dots_tunnel.stat.exists
+      no_log: true
+      diff: false

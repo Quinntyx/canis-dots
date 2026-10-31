@@ -1,0 +1,43 @@
+---
+- name: Inspect the profile's authoritative settings
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/.config/pi/profiles/{{ dots_profile }}/settings.json"
+    checksum_algorithm: sha256
+  register: dots_profile_settings
+- name: Create private package-reconciliation receipts directory
+  ansible.builtin.file:
+    path: "{{ dots_home }}/.local/state/ansible-dots"
+    state: directory
+    mode: '0700'
+- name: Inspect the last successful package reconciliation receipt
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/.local/state/ansible-dots/pi-{{ dots_profile }}.sha256"
+  register: dots_profile_receipt
+- name: Read the last successful receipt
+  ansible.builtin.slurp:
+    src: "{{ dots_home }}/.local/state/ansible-dots/pi-{{ dots_profile }}.sha256"
+  register: dots_profile_previous
+  when: dots_profile_receipt.stat.exists
+- name: Refresh only when declared profile settings changed
+  when:
+    - not ansible_check_mode
+    - dots_profile_settings.stat.exists
+    - not dots_profile_receipt.stat.exists or (dots_profile_previous.content | default('') | b64decode | trim) != dots_profile_settings.stat.checksum
+  block:
+    - name: Let Pi acquire the profile's declared Git/npm resources
+      ansible.builtin.command:
+        argv: ["{{ dots_home }}/.npm-global/bin/pi", update]
+      environment:
+        HOME: "{{ dots_home }}"
+        PATH: "{{ dots_home }}/.npm-global/bin:{{ dots_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+        PI_CODING_AGENT_DIR: "{{ dots_home }}/.config/pi/profiles/{{ dots_profile }}"
+        PPI_PI_ROOT: "{{ dots_home }}/.config/pi"
+        PPI_PI_DIR: "{{ dots_home }}/.config/pi/profiles/{{ dots_profile }}"
+      changed_when: true
+      no_log: true
+      diff: false
+    - name: Record successful settings reconciliation, never provider identities
+      ansible.builtin.copy:
+        content: "{{ dots_profile_settings.stat.checksum }}\n"
+        dest: "{{ dots_home }}/.local/state/ansible-dots/pi-{{ dots_profile }}.sha256"
+        mode: '0600'

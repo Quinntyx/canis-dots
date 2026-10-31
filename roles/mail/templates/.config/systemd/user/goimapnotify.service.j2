@@ -1,0 +1,16 @@
+#jinja2:variable_start_string:'[[[',variable_end_string:']]]'
+[Unit]
+Description=goimapnotify - IMAP IDLE mail trigger
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/goimapnotify -conf %h/.config/goimapnotify/goimapnotify.yaml
+Restart=on-failure
+RestartSec=10
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+Environment=PPI_PI_ROOT=[[[ dots_home ]]]/.config/pi
+Environment=PATH=[[[ dots_home ]]]/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

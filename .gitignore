@@ -1,0 +1,20 @@
+.venv/
+.vault/
+__pycache__/
+*.pyc
+.test-results/
+.artifacts/
+
+# Defense in depth; never treat an ignore rule as encryption or backup.
+vault-pass*
+*.vault
+.env
+.env.*
+auth.json
+secrets.json
+credentials.json
+client_secret.json
+*.pem
+*.key
+id_rsa*
+id_ed25519*

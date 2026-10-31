@@ -1,0 +1,172 @@
+[
+  {
+    "source": ".config/alsa/asoundrc",
+    "dest": ".config/alsa/asoundrc",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/electron-flags.conf",
+    "dest": ".config/electron-flags.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/kitty/kitty.conf",
+    "dest": ".config/kitty/kitty.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/mako/config",
+    "dest": ".config/mako/config",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/niri/config.kdl",
+    "dest": ".config/niri/config.kdl",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/pipewire/pipewire.conf.d/60-piano-mix.conf",
+    "dest": ".config/pipewire/pipewire.conf.d/60-piano-mix.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/twig/twig.json",
+    "dest": ".config/twig/twig.json",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/sunsetr/presets/super/sunsetr.toml",
+    "dest": ".config/sunsetr/presets/super/sunsetr.toml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/sunsetr/sunsetr.toml",
+    "dest": ".config/sunsetr/sunsetr.toml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/swaylock/config",
+    "dest": ".config/swaylock/config",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/default.target.wants/syncthing.service",
+    "dest": ".config/systemd/user/default.target.wants/syncthing.service",
+    "mode": "0644",
+    "kind": "link",
+    "target": "/usr/lib/systemd/user/syncthing.service"
+  },
+  {
+    "source": ".config/systemd/user/meal-water-sync.service",
+    "dest": ".config/systemd/user/meal-water-sync.service",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/sunsetr-resume.service",
+    "dest": ".config/systemd/user/sunsetr-resume.service",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/sunsetr-resume.timer",
+    "dest": ".config/systemd/user/sunsetr-resume.timer",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/sunsetr.service.d/waybar-pause.conf",
+    "dest": ".config/systemd/user/sunsetr.service.d/waybar-pause.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/timers.target.wants/sunsetr-resume.timer",
+    "dest": ".config/systemd/user/timers.target.wants/sunsetr-resume.timer",
+    "mode": "0644",
+    "kind": "link",
+    "target": "../sunsetr-resume.timer"
+  },
+  {
+    "source": ".config/waybar/config.jsonc",
+    "dest": ".config/waybar/config.jsonc",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/waybar/meal-water.py",
+    "dest": ".config/waybar/meal-water.py",
+    "mode": "0755",
+    "kind": "file"
+  },
+  {
+    "source": ".config/waybar/mpris.sh",
+    "dest": ".config/waybar/mpris.sh",
+    "mode": "0755",
+    "kind": "file"
+  },
+  {
+    "source": ".config/waybar/reaper-route.py",
+    "dest": ".config/waybar/reaper-route.py",
+    "mode": "0755",
+    "kind": "file"
+  },
+  {
+    "source": ".config/waybar/sunsetr-toggle.py",
+    "dest": ".config/waybar/sunsetr-toggle.py",
+    "mode": "0755",
+    "kind": "file"
+  },
+  {
+    "source": ".config/waybar/style.css",
+    "dest": ".config/waybar/style.css",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/xdg-desktop-portal-wlr/config",
+    "dest": ".config/xdg-desktop-portal-wlr/config",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/xdg-desktop-portal/portals.conf",
+    "dest": ".config/xdg-desktop-portal/portals.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/xkb/keymap.xkb",
+    "dest": ".config/xkb/keymap.xkb",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/xkb/symbols/custom",
+    "dest": ".config/xkb/symbols/custom",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".local/share/applications/apple-tv.desktop",
+    "dest": ".local/share/applications/apple-tv.desktop",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".local/share/applications/decentsampler.desktop.j2",
+    "dest": ".local/share/applications/decentsampler.desktop",
+    "mode": "0644",
+    "kind": "template"
+  }
+]

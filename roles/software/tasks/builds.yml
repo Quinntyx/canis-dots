@@ -1,12 +1,32 @@
 ---
-- name: Inspect restored local PKGBUILD directories without updating their repositories
+- name: Read exact source acquisition declarations for missing local recipes
+  ansible.builtin.include_vars: "{{ role_path }}/vars/local-sources.yml"
+
+- name: Require every local package path to have an explicit owning repository
+  ansible.builtin.assert:
+    that: software_local_directories | difference(software_local_sources | map(attribute='path') | list) | length == 0
+
+- name: Initialize the list of missing local recipe paths
+  ansible.builtin.set_fact:
+    software_local_resolved: []
+
+- name: Resolve only local packages not already installed
+  ansible.builtin.include_tasks: local-source.yml
+  loop: "{{ software_local_sources }}"
+  loop_control:
+    loop_var: software_local_spec
+  when:
+    - software_local_spec.path in software_local_directories
+    - software_local_spec.packages | difference(software_installed.stdout_lines) | length > 0
+
+- name: Inspect selected local PKGBUILD directories without updating personal repositories
   become: true
   become_user: "{{ dots_user }}"
   environment: "{{ software_user_environment }}"
   ansible.builtin.command:
     argv: [/usr/bin/makepkg, --printsrcinfo]
-    chdir: "{{ dots_home }}/docs/{{ item }}"
-  loop: "{{ software_local_directories }}"
+    chdir: "{{ item }}"
+  loop: "{{ software_local_resolved }}"
   register: software_local_metadata
   changed_when: false
 
@@ -214,7 +234,7 @@
           - --install
           - --needed
           - --noconfirm
-        chdir: "{{ dots_home }}/docs/{{ item }}"
+        chdir: "{{ item }}"
       loop: "{{ software_local_missing }}"
       changed_when: true
   always:

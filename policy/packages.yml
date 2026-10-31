@@ -1,0 +1,16 @@
+---
+# Official Arch repositories. No full-system upgrade, removal, or global pip mutation.
+# Opinionated application extras are separately selectable, not fleet membership.
+shell: [fish, starship, btop, jq, curl, wget, ripgrep, fd, bat, eza, fzf, zoxide, broot, trash-cli, unzip, openssh, python]
+git: [git]
+ssh: [openssh]
+tmux: [tmux, python]
+editor: [helix, neovim]
+agents: [nodejs, npm, uv, task, timew, tmux, python, python-pydantic, python-dateutil]
+mail: [aerc, isync, notmuch, goimapnotify, w3m, msmtp, gnupg, libsecret, keyutils, python-requests]
+cliproxyapi: [go, git, jq, tailscale]
+forgejo: [docker, docker-compose, acl]
+website: [nodejs, npm, git]
+system: [keyd, realtime-privileges, tailscale, openssh]
+desktop: [hyprland, hyprpaper, hypridle, hyprlock, waybar, wofi, mako, kitty, alacritty, yazi, mpv, imv, zathura, zathura-pdf-mupdf, evince, chromium, wl-clipboard, xdg-desktop-portal-hyprland, pipewire, pipewire-pulse, wireplumber, fcitx5, fcitx5-chinese-addons, fcitx5-configtool, polkit-kde-agent, syncthing]
+software: [firefox, thunderbird, libreoffice-fresh, gimp, inkscape, blender, krita, ardour, qpwgraph, wine-staging, winetricks, keepassxc, obs-studio, qbittorrent, yt-dlp, ffmpeg, rustup, base-devel, cmake, ninja]

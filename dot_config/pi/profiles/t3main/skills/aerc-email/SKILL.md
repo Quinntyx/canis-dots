@@ -113,7 +113,8 @@ notmuch show --format=json --entire-thread=false -- "$MESSAGE_QUERY"
 ## Stage 6: Stop or diagnose
 
 1. Missing local setup ends with that host-capability limitation. Do not install/configure mail or
-   launch background services. Cross-host skill availability is managed by chezmoi host gates.
+   launch background services. Ansible inventory eligibility gates mail/skill availability; a
+   component selection cannot enable mail on an ineligible host. Configuration changes use edit-config.
 2. A mutation request needs confirmation of exact messages/action, then a separately authorized
    procedure. A read/search request is not consent to repair, synchronize, or mutate mail.
 3. For authorized refresh diagnosis, inspect bounded relevant service state and recent redacted logs.

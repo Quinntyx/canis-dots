@@ -1,8 +1,8 @@
 ---
 name: edit-config
 description: "Use when creating, changing, or removing persistent configuration or dotfiles.
-  Owns source resolution, publication and scoped apply; delegates Claude settings semantics to native
-  /update-config without bypassing chezmoi or the actual manager."
+  Owns Ansible source resolution, publication and scoped deployment; delegates Claude settings
+  semantics to native /update-config without bypassing Ansible or the actual manager."
 metadata:
   type: procedure
 ---
@@ -11,126 +11,153 @@ metadata:
 
 ## Input Contract
 
-- Requested configuration change, exact destination paths, active host/profile, and permitted effects.
-- Access to the owning source and manager; chezmoi source normally lives at `~/.local/share/chezmoi`.
-- Publication/application ownership: this agent, a coordinator, or an explicit source-only handoff.
-- Approval before tracking secrets or nonportable machine-specific values.
+- Requested configuration change, exact destination paths, inventory host/profile, and allowed effects.
+- Access to the verified Ansible controller checkout and the target's actual owning manager.
+- Source, commit, push, and deployment ownership: this agent, a coordinator, or a source-only handoff.
+- Explicit approval for secret provisioning or new host-specific values and their destination scope.
 
 ## Output Contract
 
-- Changes in the authoritative source, with validated rendering and only owned targets applied.
-- For an assigned complete chezmoi lifecycle: owned changes committed and pushed before application.
-- For source-only, no-push, or coordinator scope: validated source changes and pending effects named.
-- Task paths clean after completed application; unrelated source changes and live drift untouched.
-- A concise receipt distinguishing source, publication, application, and runtime validation.
+- Validated changes in authoritative source, never an incidental edit to a managed live destination.
+- Assigned commits/pushes on the task branch before any separately authorized targeted deployment.
+- Source-only, no-push, no-deploy, and coordinator boundaries preserved with pending effects named.
+- Only owned hosts/components changed; unrelated source edits and live drift remain untouched.
+- A receipt distinguishing source, publication, deployment, and actual runtime/activation evidence.
 
 # Entrypoint
 
 ## Stage 1: Establish ownership and scope
 
-1. Read the target and relevant neighboring source, instructions, and manager configuration.
-   Record exact task-owned paths and baseline changes; never broaden them to make global status clean.
-2. Query `chezmoi managed --path-style absolute -- "$target"` for the exact destination and inspect
-   source/external declarations. Use `chezmoi source-path -- "$target"` to locate an established
-   source, not as proof of management: it can calculate a path that does not exist.
-3. Classify the owner using Other managers below. A chezmoi target goes to Stage 2: Edit source.
-   A package/plugin/generated target goes to Stage 1A: Follow the owning manager. A genuinely
-   unmanaged personal configuration goes to Stage 1B: Decide adoption. Unclear ownership ends at
-   Stage 5: Report with the missing evidence; it never defaults to a direct edit.
+1. Read the target's relevant source, neighboring instructions, and repository operating docs. Record
+   exact task paths, baseline changes, selected inventory host, active profile, and permitted effects.
+   Claude has no Pi profile selector. Resolve Pi's active profile only when Pi is the requested
+   configuration target; use its runtime context/environment, not cwd or a copied profile name.
+2. Locate the controller checkout from an explicitly supplied verified source or the deployment
+   marker `~/.config/ansible/dots-source.json`. It records `source_root` and `inventory_hostname`.
+   For local deployment, `source_root` identifies the controller checkout; for remote deployment it
+   identifies a path on the controller, not necessarily a checkout on the target. Verify repository
+   identity and host selection before using it. A missing/inaccessible marker is not permission to
+   guess a source path or edit live files; an authorized source-only checkout needs no deployment.
+3. From that checkout use `scripts/dots-source` for the exact destination, following its documented
+   host-selection interface. Check the resolved source and host eligibility in
+   `roles/<component>/manifest.yml` (`source`, `dest`, `mode`) and inventory variables. The resolver
+   reports unmanaged targets rather than manufacturing source paths; inspect symlinks, upstream
+   resource declarations, and Other managers before concluding the file is user-editable.
+4. An owned Ansible target goes to Stage 2: Edit source. A package/plugin/generated/upstream target
+   goes to Stage 1A. Genuinely unmanaged personal configuration goes to Stage 1B. Ambiguous ownership
+   or an unavailable controller ends at Stage 5: Report with the missing evidence.
 
 ## Stage 1A: Follow the owning manager
 
-1. Locate the user's editable declaration, override, or owned upstream repository. Inspect installed
-   files for identity only. Read the Git procedure before repository setup or publication.
-2. Make the authorized change in that source and use the manager's supported update mechanism.
-   Keep secrets out of process arguments and logs. Do not install missing software; report its
-   user-run setup command or other prerequisite.
-3. Verify the selected installed revision/effective configuration, then go to Stage 5: Report.
-   With coordinator ownership, stop at validated source and name the remaining update instead.
+1. Locate the editable declaration, supported override, or verified user-owned upstream repository.
+   Inspect installed files for identity only. Read `../git/SKILL.md` before source setup/publication.
+2. Change only that authorized source and update only the affected package through its manager when
+   assigned. Upstream-owned skills stay upstream-owned: change their acquisition declaration or
+   owning source, not a downloaded copy. Do not adopt package caches as personal configuration.
+3. Verify the installed revision/effective configuration when installation is assigned. Otherwise
+   stop at validated source. Go to Stage 5 with pending manager updates or activation named.
 
 ## Stage 1B: Decide adoption
 
-1. Consider adoption only for durable personal configuration that belongs on the intended machines.
-   Generated output, downloaded packages, credentials, caches, sessions, and databases stay unmanaged.
-2. If adoption is authorized, import the current live content deliberately with correct source
-   attributes and narrow exclusions, then go to Stage 2: Edit source. Do not sweep a whole directory
-   into management. Otherwise make only an authorized direct edit to genuinely unmanaged content,
-   validate it, and go to Stage 5: Report explaining why it remains unmanaged.
+1. Consider adoption only for authorized durable personal configuration needed on selected hosts.
+   Generated outputs, package downloads, caches, sessions, databases, OAuth stores, and identities
+   remain outside normal manifests. A resolver's unmanaged result alone does not establish ownership.
+2. For approved adoption, inspect current live content without importing secrets/runtime state. Add
+   ordinary files/templates and a narrow manifest entry with explicit destination/mode in the owning
+   role, plus the intended inventory eligibility; then go to Stage 2. Do not import whole live trees.
+3. Otherwise make only an explicitly authorized direct edit to genuinely unmanaged content, validate
+   it, and go to Stage 5 explaining why it stays unmanaged. Unclear ownership stays blocked.
 
 ## Stage 2: Edit source
 
-1. Change only the resolved source paths. For Claude settings JSON, load native `/update-config`
-   through `Skill` when exposed: it owns current settings, permissions and hook semantics. Supply
-   the exact authoritative source path and source-only editing boundary; this skill still owns
-   publication/application. Other configuration keeps its own manager's procedure. If the native
-   skill is absent, consult the installed schema/docs and state the limitation rather than install
-   a replacement. Preserve source attributes and unrelated edits; reconcile live drift deliberately.
-2. Keep credentials and runtime state outside tracked source. Add narrow destination-relative
-   exclusions to `.chezmoiignore` when needed. Existing committed secrets require an explicit
-   revocation/history-cleanup decision, not merely an ignore entry.
-3. Use host/profile templates or capability gates for genuine machine differences. Check the current
-   host and a relevant alternate render without exposing unrelated data or secrets.
-4. Run application syntax checks and inspect the owned diff. Run `git diff --check` in source.
-   Validate only the relevant rendered destinations and supporting declarations.
-5. A validated self-owned complete lifecycle goes to Stage 3: Publish. Source-only, coordinator,
-   no-commit, or no-push scope goes to Stage 5: Report with the appropriate stages pending.
-   Failed validation stays in Stage 2 for repair or ends at Stage 5 with a precise blocker.
+1. Edit only the resolved source in the assigned checkout. For Claude settings JSON, load native
+   `/update-config` through `Skill` when exposed; it owns settings, permission, and hook semantics.
+   Supply the exact authoritative source path and source-only boundary. This skill still owns
+   publication/deployment. If absent, consult the installed schema/docs and report the limitation
+   rather than installing a substitute or writing the live target. The repository uses root `ansible.cfg`,
+   `inventory/hosts.yml`, `inventory/group_vars`, `inventory/host_vars`, `playbooks/site.yml`, and
+   `roles/<component>/{files,templates}` with `manifest.yml` destination/mode entries. Preserve explicit
+   permissions, executable bits, links, templates, and unrelated edits. Source filenames no longer
+   encode destination semantics through legacy manager prefixes.
+2. Reconcile relevant live drift deliberately; do not overwrite source just because a tool rewrote
+   live settings. Use inventory/group/host variables for genuine host/network differences and keep
+   server-only roles gated. Component selection narrows eligible hosts; it cannot grant eligibility.
+3. Keep plaintext secrets out of Git, argv, logs, diffs, and artifacts. Approved provisioned secrets
+   use Ansible Vault in `encrypted_files/<host>/...` under `policy/secrets.yml`; passwords stay outside
+   the repository and on the controller. Secret tasks need protected parents, explicit restrictive
+   modes, `no_log: true`, and `diff: false`. Runtime/auth state stays local unless separately approved.
+   Mixed config/secrets that cannot be split need a decision before import. An already committed
+   secret requires revocation/history-cleanup scope; encryption now does not erase old plaintext.
+4. Run application syntax checks, repository changed-file checks, and `git diff --check`; inspect
+   the complete owned diff. Validate relevant host variants and manifest ownership without exposing
+   unrelated data. Use the repository's documented Ansible syntax/check-mode path when available;
+   check mode is supplementary evidence, not proof of runtime behavior or permission to deploy.
+5. For assigned commits/pushes go to Stage 3: Publish. Source-only/coordinator/no-commit work goes
+   to Stage 5 with validated paths and remaining effects. Failed checks return here or end with a
+   precise blocker; do not install host software to fill a missing prerequisite silently.
 
 ## Stage 3: Publish
 
-1. Read `../git/SKILL.md` for assigned publication, then verify the intended source branch/upstream.
-   Stage exact task paths, review their staged diff, and commit only those paths. Existing unrelated staged content must not enter this commit.
-2. Push the assigned branch normally and verify its remote SHA. Preserve concurrent changes and
-   unrelated untracked files; do not ask to clean them up or include them for cosmetic cleanliness.
-3. A verified push goes to Stage 4: Apply owned targets. A failed/uncertain push goes to Stage 5:
-   Report with application pending, after checking whether the remote accepted the commit.
+1. Follow `../git/SKILL.md`. Verify the assigned branch/upstream, stage exact owned paths, inspect the
+   staged diff, and commit only those paths. Preserve unrelated staged changes and active worktrees.
+   Use the task branch; configuration work does not require switching or merging to `main`.
+2. Push only when assigned, verify the accepted remote SHA, and leave unrelated dirt untouched.
+   A commit-only/cherry-pick handoff ends at Stage 5. A failed/uncertain push is reconciled by reading
+   the remote before retrying; deployment remains pending.
+3. A verified push plus deployment authority goes to Stage 4. A source-only/no-deploy instruction
+   ends at Stage 5 even after publication. Publishing source does not itself authorize application.
 
-## Stage 4: Apply owned targets
+## Stage 4: Deploy owned scope
 
-1. For each exact owned file inspect `chezmoi diff -- "$target"`, then run
-   `chezmoi apply --exclude=scripts -- "$target"`. List individual files rather than a parent
-   containing another agent's work. For a missing owned parent, create only its directory entry
-   first with `chezmoi apply --recursive=false --exclude=scripts -- "$owned_parent"`, shallowest
-   first. Do not recurse through it to create one file. Broad apply needs whole-configuration scope.
-2. Changes to shared templates, ignore rules, or externals require an explicit affected-target list.
-   Review it before applying; a shared declaration is not permission to reconcile all drift.
-   Inspect applicable hooks too. For file-only work exclude unassigned scripts with
-   `--exclude=scripts`; run a necessary authorized hook deliberately, not as an unrelated side effect.
-3. For removals, confirm the exact target and source ownership. Ignoring a path or deleting its
-   source does not remove an existing destination. Use supported manager removal or authorized
-   recoverable cleanup; do not use a global apply as a deletion mechanism.
-4. Re-run relevant rendered syntax/effective-configuration checks. Require empty output from
-   `chezmoi diff -- "$target"` and `chezmoi status -- "$target"` for owned managed targets.
-   Explicitly ignored/removed targets are verified by their intended absence instead.
-5. Task-owned drift returns to Stage 2 for deliberate reconciliation. Passing checks go to Stage 5:
-   Report. Unrelated drift is outside scope and does not block completion.
+1. Read `scripts/deploy` usage and the selected inventory/role tasks and handlers. The wrapper uses
+   `inventory/hosts.yml` and `playbooks/site.yml`; its default is the local inventory host. Prefer
+   explicit `--host HOST` with `--components csv` for the task. `--all` requires fleet-wide authority;
+   omitting component selection requires whole-host scope. Do not substitute broad raw playbook runs.
+2. Enumerate every affected destination and side effect of those components, including shared
+   templates, external downloads, services, and handlers. Component scope is not exact-file scope:
+   if it would apply unrelated changes, stop for a narrower supported plan rather than claim an
+   exact-file deployment. Preserve concurrent edits and unrelated live drift.
+3. Preview only the authorized host/components:
+
+   ```sh
+   scripts/deploy --host "$host" --components "$components" --check --diff
+   ```
+
+   Prevent secret diffs before running it; check mode can skip unsupported tasks and may still invoke
+   reads/commands. Do not run even a preview against live inventory when the assignment prohibits it.
+   Review the plan before the authorized same-scope deployment without `--check`; `--diff` remains
+   subject to secret policy.
+4. Validate actual rendered content, modes/links, and relevant application behavior. Repeat the
+   same-scope check for unexplained task-owned drift; an idempotence claim needs a real second run
+   when authorized, not inference from check mode. Verify the deployment marker separately from
+   application activation. Do not reconcile other hosts/components merely for global cleanliness.
+5. Source removal or omission from a manifest is not automatic live deletion. Removal needs explicit
+   target ownership and authorized manager cleanup/recoverable deletion. Failed owned checks return
+   to Stage 2; passing checks go to Stage 5. Keep service/reload effects distinct from file writes.
 
 ## Stage 5: Report
 
-1. State changed source/destination paths, source owner, commit/push result where assigned, exact
-   applied targets, checks, and any pending reload or other lifecycle effect.
-2. Distinguish a source handoff from applied configuration and actual running behavior. Mention
-   unrelated drift only if it affects the task; do not turn its presence into new work.
+1. Name changed source/destination paths, controller/host/components, branch/commit/push result where
+   assigned, exact deployed scope, checks run, and any pending reload or fresh-session action.
+2. Distinguish source-ready, published, deployed, and active. State missing access/tool evidence and
+   coordinator effects explicitly. Unrelated drift matters only when it blocks the assigned scope.
 
 # Other managers
 
-- Package managers own installed application files and libraries. Use supported user overrides or
-  change the package's owned source; do not patch installed files or adopt them into chezmoi.
-- Claude plugin managers and Pi's Git/npm package manager own fetched plugins, extensions, and skill caches.
-  Change an owned fork and its installation declaration, then update only that package through its
-  manager. Record the installed revision rather than assuming a successful pull means activation.
-- Generated files belong to their generator, schema, template, or runtime settings. Change that
-  source or a documented override; preserve generated state unless regeneration is assigned.
-- Symlinks and wrappers can cross ownership boundaries. Resolve the actual target and declarations
-  before choosing a source. A missing chezmoi entry does not mean the file is safe to edit directly.
-- `.chezmoiignore` describes destination-relative paths and is tracked policy. Ignored entries are
-  omitted from desired state; they are neither secret-history cleanup nor automatic file deletion.
+- Package/plugin managers and Pi's Git/npm manager own installed files and fetched skill caches.
+  Change supported overrides or owning source, then use the exact package's supported update path.
+- Generators own their outputs: change the template/schema/settings or documented override.
+- Resolve symlink/wrapper ownership before editing. An unmanaged resolver result is not a bypass.
+- Manifests are allowlists, not recursive directory adoption or pruning. Runtime state is omitted;
+  `policy/secrets.yml` controls permitted encrypted-secret destinations, not secret-history cleanup.
 
 # Claude Code ownership
 
-- `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and owned personal skills can be chezmoi targets.
-  Native `/update-config` or `/config` is not an ownership override: persistent managed changes go
-  through resolved source and the lifecycle above, not a second write to the live destination.
-- `~/.claude.json` contains runtime/auth/MCP state; use supported Claude MCP/settings commands for that state.
-- Never adopt `~/.claude/plugins/cache`, transcripts, credentials, or generated installed-plugin registries.
-- Changes to skills/hooks must be checked in a fresh Claude session; T3 injects its own MCP and settings.
+- `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, and user-owned personal skills can be Ansible
+  targets. Native `/update-config` or `/config` is not an ownership override: persistent managed
+  changes go through resolved source, not a second live write.
+- `~/.claude.json` contains runtime/auth/MCP state; use supported Claude MCP/settings commands for it.
+- Plugin caches, transcripts, credentials, and generated installed-plugin registries stay outside
+  normal manifests. Approved encrypted provisioning is separate from adopting mutable auth state.
+- Skill/hook changes need fresh-session discovery checks. T3 injects its own MCP and settings;
+  files on disk are not proof that an already running Claude session reloaded them.

@@ -35,9 +35,10 @@ metadata:
    - PR drafting, publication, revision, splitting, or review responses: `pr/SKILL.md`.
    - Issue research, duplicate checks, drafting, publication, revision, or responses: `issues/SKILL.md`.
    Children are read-through routes, not independently advertised commands under Pi discovery.
-3. For chezmoi configuration, keep its existing `main` checkout and use `../edit-config/SKILL.md`.
-   Follow assigned source/publication/application ownership and return that receipt. Basic repository
-   operations continue to Stage 2: Resolve source.
+3. For Ansible-managed configuration, use `../edit-config/SKILL.md` to resolve the controller
+   checkout, inventory host, and exact destination's manifest owner. Retain the assigned task branch;
+   no fixed checkout path or `main` requirement applies. Follow assigned source/commit/push/deployment
+   ownership and return that receipt. Basic repository operations continue to Stage 2: Resolve source.
 
 ## Stage 2: Resolve source
 
@@ -114,8 +115,10 @@ metadata:
   under an explicit delivery request or an applicable established repository convention.
 - In an existing personal `dev` checkout, requested implementation normally includes owned commits
   and ordinary pushes unless local-only, no-push, or coordinator ownership narrows the task.
-- Requested chezmoi configuration normally includes owned commits/pushes on `main` and targeted apply;
-  `edit-config` owns the precise lifecycle and handoff exceptions.
+- Requested Ansible configuration follows `edit-config`: commit/push owned source on the assigned
+  task branch when authorized, then perform only separately authorized host/component deployment.
+  Source-only, no-push, no-deploy, and coordinator limits take precedence; editing or publication
+  does not implicitly authorize merging into `main` or live application.
 - Source implementation is distinct from PR/issue/comment publication, merging, hosting migration,
   visibility changes, deployment, and installing into live profiles. Honor each task's actual scope.
 - Preserve histories, unrelated changes, worktrees, and active user processes. Approved filesystem

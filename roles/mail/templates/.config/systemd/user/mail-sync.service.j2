@@ -1,0 +1,13 @@
+#jinja2:variable_start_string:'[[[',variable_end_string:']]]'
+[Unit]
+Description=Mail sync (mbsync + notmuch index)
+
+[Service]
+Type=oneshot
+ExecStart=[[[ dots_home ]]]/.local/bin/mail-sync.sh
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+Environment=PPI_PI_ROOT=[[[ dots_home ]]]/.config/pi
+Environment=PATH=[[[ dots_home ]]]/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,11 @@
+[
+  {
+    "source": ".ssh/config.d/50-lab.conf",
+    "dest": ".ssh/config.d/50-lab.conf",
+    "mode": "0600",
+    "kind": "file",
+    "hosts": [
+      "syssec-canis"
+    ]
+  }
+]

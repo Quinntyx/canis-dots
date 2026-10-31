@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""Read-only availability check against this Arch machine's existing sync databases."""
+from pathlib import Path
+import subprocess
+import sys
+import yaml
+ROOT = Path(__file__).resolve().parents[1]
+groups = yaml.safe_load((ROOT / 'policy/packages.yml').read_text())
+packages = {name for values in groups.values() for name in values}
+packages |= {line.split('#', 1)[0].strip() for line in (ROOT / 'docs/backups/private_araveia/packages/pacman.txt').read_text().splitlines()} - {'', 'chezmoi'}
+software = yaml.safe_load((ROOT / 'roles/software/vars/main.yml').read_text())
+packages |= set(software['software_official_prerequisites'])
+result = subprocess.run(['pacman', '-Si', *sorted(packages)], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'})
+missing = [line for line in result.stderr.splitlines() if 'was not found' in line or 'error:' in line]
+print(f'{len(packages)} distinct official packages queried without refresh/install; {len(missing)} unavailable entries')
+for line in missing:
+    print(line)
+sys.exit(result.returncode)

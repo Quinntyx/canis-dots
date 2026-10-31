@@ -1,0 +1,23 @@
+---
+- name: Provision isolated mail OAuth helper
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/software/tasks/aur.yml"
+  vars:
+    dots_aur_name: "{{ mail_package }}"
+  loop: [oama-bin, cyrus-sasl-xoauth2-git]
+  loop_control:
+    loop_var: mail_package
+  when: dots_manage_packages and not dots_sandbox
+- name: Create private mail directories but never adopt messages or OAuth state
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0700'
+  loop:
+    - "{{ dots_home }}/docs/mail"
+    - "{{ dots_home }}/.local/state/mail-router"
+    - "{{ dots_home }}/.local/share/oama"
+  when: not dots_sandbox
+- name: Enable mail timers and push notification service
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  vars:
+    dots_units: "{{ dots_service_units.mail }}"

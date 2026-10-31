@@ -1,0 +1,16 @@
+---
+# Upstream owns these entrypoints. Change the pinned acquisition declaration,
+# not the installed resource. Existing vendored Cloudflare resources retain
+# their baseline hashes and upstream ownership in the normal source manifest.
+- dest: .claude/skills/wrangler/SKILL.md
+  url: https://raw.githubusercontent.com/cloudflare/skills/e44f580f9c4fa3bf268e284ae7706c7954ba31fd/skills/wrangler/SKILL.md
+  checksum: sha256:a39de5c69f50e88759736a6ec7ad07f402c15f7a58a3224bcf979dce42013b13
+- dest: .config/pi/profiles/t3main/skills/wrangler/SKILL.md
+  url: https://raw.githubusercontent.com/cloudflare/skills/e44f580f9c4fa3bf268e284ae7706c7954ba31fd/skills/wrangler/SKILL.md
+  checksum: sha256:a39de5c69f50e88759736a6ec7ad07f402c15f7a58a3224bcf979dce42013b13
+- dest: .claude/skills/freya/SKILL.md
+  url: https://raw.githubusercontent.com/marc2332/freya/ca9a356cbcccaad0ab8898f3ed064b65414aa47b/plugins/freya/skills/freya/SKILL.md
+  checksum: sha256:c020f978b837c6243089628e08f80f5f81c1798154542c9e34a5737d9949facf
+- dest: .config/pi/profiles/t3main/skills/freya/SKILL.md
+  url: https://raw.githubusercontent.com/marc2332/freya/ca9a356cbcccaad0ab8898f3ed064b65414aa47b/plugins/freya/skills/freya/SKILL.md
+  checksum: sha256:c020f978b837c6243089628e08f80f5f81c1798154542c9e34a5737d9949facf

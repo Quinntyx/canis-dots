@@ -1,0 +1,81 @@
+# [Created by task 3.4.2 8/16/2026 06:03:58]
+# araveia keeps task data on the ~/docs disk so it survives OS reinstalls.
+# Hooks stay at the default ~/.task/hooks, owned by the agents role.
+{% if inventory_hostname == 'araveia' %}
+data.location=~/docs/.task
+{% else %}
+data.location=~/.task
+{% endif %}
+news.version=3.4.2
+
+# To use the default location of the XDG directories,
+# move this configuration file from ~/.taskrc to ~/.config/task/taskrc and update location config as follows:
+
+#data.location=~/.local/share/task
+#hooks.location=~/.config/task/hooks
+
+# Color theme (uncomment one to use)
+#include light-16.theme
+include light-256.theme
+#include bubblegum-256.theme
+#include dark-16.theme
+#include dark-256.theme
+#include dark-red-256.theme
+#include dark-green-256.theme
+#include dark-blue-256.theme
+#include dark-violets-256.theme
+#include dark-yellow-green.theme
+#include dark-gray-256.theme
+#include dark-gray-blue-256.theme
+#include solarized-dark-256.theme
+#include solarized-light-256.theme
+#include no-color.theme
+
+
+# est: compact human-readable effort (string: 0.5h, 2.5h, 1d)
+uda.est.type=string
+uda.est.label=EST
+
+# Fixed local-time window for immovable tasks such as classes.
+# Values use 24-hour HH:MM in America/Chicago.
+uda.starttime.type=string
+uda.starttime.label=START
+uda.endtime.type=string
+uda.endtime.label=END
+uda.location.type=string
+uda.location.label=LOC
+uda.transport.type=string
+uda.transport.label=MODE
+uda.transport.values=car,no-car
+
+# Show the complete actionable day, including fixed-time commitments.
+report.ready.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description,urgency
+report.ready.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
+report.ready.sort=urgency-
+
+# Keep the future list consistent with the ready report.
+report.list.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description
+report.list.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION
+report.list.sort=scheduled+,starttime+,due+
+
+# Show actionable work for today, including carried tasks.
+report.daily.description=Daily actionable task overview
+report.daily.filter=+READY
+report.daily.columns=id,start.age,entry.age,depends,priority,project,tags,recur,scheduled.countdown,due.relative,until.remaining,description,urgency
+report.daily.labels=ID,Active,Age,Deps,P,Project,Tag,Recur,S,Due,Until,Description,Urg
+report.daily.sort=urgency-
+
+# Show the same actionable task set as daily, ordered by staged time.
+report.schedule.description=Chronological staged schedule
+report.schedule.filter=+READY
+report.schedule.columns=id,scheduled,starttime,endtime,location,transport,est,tags,due,description,urgency
+report.schedule.labels=ID,SCHED,START,END,LOC,MODE,EST,TAGS,DUE,DESCRIPTION,URG
+report.schedule.sort=starttime+,urgency-
+uda.travel.type=string
+uda.travel.label=Travel
+
+# Block todo list: the omn requirements a block covers, one bullet each,
+# formatted "- <one-glance item> [omn:<record id>]". The Taskwarrior
+# description stays a single glance-level title; this UDA carries detail.
+uda.todo.type=string
+uda.todo.label=Todos

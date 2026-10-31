@@ -1,7 +1,7 @@
 # Curated araveia software
 
 The parent playbook's **software** component includes `roles/software` **only on
-araveia**, and **last**, after restoring the docs disk, account files and Forgejo.
+araveia**, and **last**, after restoring account configuration and starting Forgejo.
 Local omn PKGBUILDs fetch from the Forgejo hosted on this machine. Membership and
 host selection belong to the parent; importing the role alone is not a host guard.
 This is not a replay of every package once installed on the old machine.
@@ -24,7 +24,7 @@ line, comments allowed), rather than copying a stale second list:
 | --- | --- |
 | `docs/backups/private_araveia/packages/pacman.txt` | Native `pacman -Qq`, then `pacman -S --needed --noconfirm` for missing names only. `chezmoi` is deliberately excluded. |
 | `docs/backups/private_araveia/packages/aur.txt` | Missing names only, one at a time through EndeavourOS's yay. If missing, yay is built as the account from `https://aur.archlinux.org/yay.git` in an isolated workspace. |
-| `docs/backups/private_araveia/packages/local.txt` | Restored `~/docs/` paths; `makepkg --printsrcinfo` determines real package names, and installed packages are skipped. Missing source or a failed package is an error, not a silent success. |
+| `docs/backups/private_araveia/packages/local.txt` | Existing `~/docs/` recipe paths are used without pulling/resetting their repositories. For missing packages whose recipe is absent, `roles/software/vars/local-sources.yml` acquires the exact declared owning repo/ref into a package-source cache. Installed packages are skipped. `makepkg --printsrcinfo` verifies recipe identities; failures are not hidden. |
 
 Explicit additional official prerequisites include ACL support for Ansible's
 unprivileged become, sudo, CA certificates, base-devel, Git, Python, Node/npm,
@@ -73,9 +73,9 @@ resolved from `dots_home`, not the controller's account:
 Pi profile declarations and restored checkouts belong to the parent file-restore
 component and Pi's own package manager. This role installs the CLI, **not** a
 blanket `pi update --extensions` across all caches/profiles. Existing versions,
-refs and dirty state remain untouched. Missing extension caches/dependencies are
-not claimed reconciled by this role; use the supported Pi manager for the
-specific affected package after reviewing its declaration. There is no cache
+refs and dirty state remain untouched. This role does not reconcile extension caches/dependencies itself. The parent's
+agents role runs Pi's supported `pi update` in explicitly selected profile
+environments when the profile settings checksum lacks a successful receipt. There is no cache
 mutation disguised as software restoration.
 
 ## Explicitly unmanaged / not completed by this role

@@ -1,0 +1,8 @@
+{
+  "shell": [], "git": [], "ssh": [], "tmux": ["shell"],
+  "editor": ["shell"], "agents": ["shell", "git"],
+  "desktop": ["shell"], "mail": ["shell"],
+  "cliproxyapi": ["shell", "git"], "forgejo": ["shell"],
+  "website": ["forgejo", "git"],
+  "system": [], "software": ["shell", "git", "forgejo"]
+}

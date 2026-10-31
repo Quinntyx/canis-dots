@@ -1,0 +1,21 @@
+---
+- name: Inspect the existing local recipe without adopting its repository
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/docs/{{ software_local_spec.path }}/PKGBUILD"
+  register: software_local_recipe
+- name: Create the managed package-source cache only when the recipe is absent
+  ansible.builtin.file:
+    path: "{{ dots_home }}/.cache/ansible-dots/package-sources"
+    state: directory
+    mode: '0755'
+  when: not software_local_recipe.stat.exists
+- name: Acquire a missing recipe from its declared owning repository and exact ref
+  ansible.builtin.git:
+    repo: "{{ software_local_spec.repo }}"
+    dest: "{{ dots_home }}/.cache/ansible-dots/package-sources/{{ software_local_spec.packages[0] }}"
+    version: "{{ software_local_spec.version }}"
+    force: false
+  when: not software_local_recipe.stat.exists
+- name: Record the available recipe path without rewriting personal source
+  ansible.builtin.set_fact:
+    software_local_resolved: "{{ software_local_resolved + [dots_home ~ '/docs/' ~ software_local_spec.path if software_local_recipe.stat.exists else dots_home ~ '/.cache/ansible-dots/package-sources/' ~ software_local_spec.packages[0] ~ '/' ~ software_local_spec.subdir] }}"

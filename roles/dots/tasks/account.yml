@@ -1,0 +1,16 @@
+---
+- name: Select the reviewed login shell without replacing account identity
+  ansible.builtin.user:
+    name: "{{ dots_user }}"
+    shell: /usr/bin/fish
+  become: true
+- name: Keep user service managers alive without an interactive login
+  ansible.builtin.command:
+    argv: [loginctl, enable-linger, "{{ dots_user }}"]
+    creates: "/var/lib/systemd/linger/{{ dots_user }}"
+  become: true
+- name: Wait for the target account's user service bus
+  ansible.builtin.wait_for:
+    path: "/run/user/{{ dots_uid }}/bus"
+    timeout: 30
+  when: not ansible_check_mode

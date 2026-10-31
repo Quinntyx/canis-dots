@@ -1,0 +1,8 @@
+[
+  {"dest":"/etc/keyd/default.conf","owner":"user","component":"system","source":"roles/system/files/keyd-default.conf","mode":"0644"},
+  {"dest":"/etc/hosts","owner":"os-with-scoped-override","component":"system","source":"roles/system/tasks/main.yml","mode":"0644"},
+  {"dest":"/etc/systemd/system/cloudflared.service","owner":"cloudflared-enrollment","component":"system","source":null,"policy":"Preserve enrolled unit and credentials; enable existing unit only. Never adopt token-bearing service text into public source."},
+  {"dest":"/etc/fstab","owner":"os-installer","component":"system","source":null,"policy":"Preserve machine-specific disks, UUIDs and mounts. No partitioning, formatting, disk restore or fstab rewriting."},
+  {"dest":"/etc/firewalld","owner":"firewalld","component":"system","source":null,"policy":"Preserve working network and zones; do not replay a historical firewall dump or interrupt remote access."},
+  {"dest":"/etc/pacman.conf","owner":"pacman-local-repositories","component":"system","source":null,"policy":"Preserve configured repositories and mirrors; package role does not replace OS package configuration."}
+]

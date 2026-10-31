@@ -1,0 +1,14 @@
+---
+- name: Converge selected user service state
+  ansible.builtin.systemd_service:
+    name: "{{ unit }}"
+    scope: user
+    enabled: true
+    state: "{{ 'restarted' if dots_configuration_changed else 'started' }}"
+    daemon_reload: "{{ dots_configuration_changed }}"
+  loop: "{{ dots_units }}"
+  loop_control:
+    loop_var: unit
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ dots_uid }}"
+  when: dots_manage_services and not dots_sandbox

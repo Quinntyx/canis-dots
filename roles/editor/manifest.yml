@@ -1,0 +1,152 @@
+[
+  {
+    "source": ".config/helix/config.toml",
+    "dest": ".config/helix/config.toml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/helix/languages.toml",
+    "dest": ".config/helix/languages.toml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/helix/themes/everforest_light_transparent.toml",
+    "dest": ".config/helix/themes/everforest_light_transparent.toml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/colors/everforest.lua",
+    "dest": ".config/nvim/colors/everforest.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/.gitignore",
+    "dest": ".config/nvim/.gitignore",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/init.lua",
+    "dest": ".config/nvim/init.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/harmonize-status.lua",
+    "dest": ".config/nvim/lua/harmonize-status.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/knobs.default.lua",
+    "dest": ".config/nvim/lua/knobs.default.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/load/ai.lua",
+    "dest": ".config/nvim/lua/load/ai.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/load/completion.lua",
+    "dest": ".config/nvim/lua/load/completion.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/load/core.lua",
+    "dest": ".config/nvim/lua/load/core.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/load/git.lua",
+    "dest": ".config/nvim/lua/load/git.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/load/lsp.lua",
+    "dest": ".config/nvim/lua/load/lsp.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/plugins/gitsigns-cfg.lua",
+    "dest": ".config/nvim/lua/plugins/gitsigns-cfg.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/plugins/harmonize-cfg.lua",
+    "dest": ".config/nvim/lua/plugins/harmonize-cfg.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/plugins/nvim-cmp-cfg.lua",
+    "dest": ".config/nvim/lua/plugins/nvim-cmp-cfg.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/plugins/nvim-treesitter-cfg.lua",
+    "dest": ".config/nvim/lua/plugins/nvim-treesitter-cfg.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/plugins/which-key-cfg.lua",
+    "dest": ".config/nvim/lua/plugins/which-key-cfg.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/setup-final-fixes.lua",
+    "dest": ".config/nvim/lua/setup-final-fixes.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/setup-updates.lua",
+    "dest": ".config/nvim/lua/setup-updates.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/setup.lua",
+    "dest": ".config/nvim/lua/setup.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/statusline.lua",
+    "dest": ".config/nvim/lua/statusline.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/tmux-persistence.lua",
+    "dest": ".config/nvim/lua/tmux-persistence.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/nvim/lua/utils.lua",
+    "dest": ".config/nvim/lua/utils.lua",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/pager-helix.sh",
+    "dest": ".local/bin/pager-helix.sh",
+    "mode": "0700",
+    "kind": "file"
+  }
+]

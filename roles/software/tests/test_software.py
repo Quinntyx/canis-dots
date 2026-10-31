@@ -70,7 +70,7 @@ class BridgeTests(unittest.TestCase):
 class RoleTests(unittest.TestCase):
     def test_task_surfaces_are_builtin_only_and_cleanup_is_unconditional(self):
         task_keywords = {"name", "become", "become_user", "environment", "when", "loop",
-                         "loop_control", "register", "changed_when", "failed_when", "block", "always"}
+                         "loop_control", "register", "changed_when", "failed_when", "block", "always", "check_mode"}
 
         def inspect(tasks):
             for task in tasks:

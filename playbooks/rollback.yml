@@ -1,0 +1,30 @@
+---
+- name: Restore explicit encrypted configuration preimages without deleting new files
+  hosts: workstations
+  gather_facts: true
+  vars:
+    dots_restore_system: false
+  tasks:
+    - name: Require explicit root scope to belong to the main server
+      ansible.builtin.assert:
+        that:
+          - not dots_restore_system or inventory_hostname in groups['main_server']
+          - dots_restore_backup is defined
+    - name: Encrypt the current owned preimages before restoring a previous version
+      dots_backup:
+        backup_entries_from: "{{ dots_restore_backup }}"
+        home: "{{ '/' if dots_restore_system else dots_home }}"
+        host: "{{ inventory_hostname ~ ('-system' if dots_restore_system else '') }}"
+        vault_root: "{{ dots_vault_root }}"
+      become: "{{ dots_restore_system }}"
+      no_log: true
+      diff: false
+    - name: Restore recorded file and link preimages privately
+      dots_restore:
+        backup: "{{ dots_restore_backup }}"
+        host: "{{ inventory_hostname }}"
+        home: "{{ '/' if dots_restore_system else dots_home }}"
+        system: "{{ dots_restore_system }}"
+      become: "{{ dots_restore_system }}"
+      no_log: true
+      diff: false

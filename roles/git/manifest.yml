@@ -1,0 +1,8 @@
+[
+  {
+    "source": ".gitconfig",
+    "dest": ".gitconfig",
+    "mode": "0644",
+    "kind": "file"
+  }
+]

@@ -1,0 +1,39 @@
+---
+- name: Add target account to the explicitly approved Docker group
+  ansible.builtin.user:
+    name: "{{ dots_user }}"
+    groups: docker
+    append: true
+  become: true
+- name: Start the managed Docker engine
+  ansible.builtin.systemd_service:
+    name: docker.service
+    enabled: true
+    state: started
+  become: true
+- name: Inspect current Docker socket ACL
+  ansible.builtin.command:
+    argv: [getfacl, --numeric, --omit-header, /run/docker.sock]
+  register: dots_docker_acl
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
+- name: Allow the existing user manager to use Docker without a forced logout
+  ansible.builtin.command:
+    argv: [setfacl, -m, "u:{{ dots_uid }}:rw", /run/docker.sock]
+  become: true
+  changed_when: true
+  when: not ansible_check_mode and ('user:' ~ dots_uid ~ ':rw-') not in dots_docker_acl.stdout
+- name: Start Forgejo without enabling an unenrolled runner
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  vars:
+    dots_units: "{{ dots_service_units.forgejo }}"
+- name: Wait for the existing forge to be healthy before using self-hosted sources
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/healthz
+    status_code: 200
+  register: dots_forge_health
+  until: dots_forge_health.status | default(0) == 200
+  retries: 30
+  delay: 2
+  when: not ansible_check_mode

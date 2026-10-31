@@ -1,0 +1,24 @@
+---
+# The site is a separate repository published by its own Forgejo Actions pipeline.
+# Machine configuration must neither mirror its content into dots nor push/deploy it.
+- name: Restore the website's clean source checkout through Git
+  ansible.builtin.git:
+    repo: "{{ dots_website_repo }}"
+    dest: "{{ dots_home }}/docs/host/quinntyx-dev"
+    version: "{{ dots_website_revision }}"
+    force: false
+  when: not dots_sandbox and dots_manage_externals
+- name: Check for the existing private Actions runner enrollment
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/docs/host/forgejo/runner-data/runner-config.yml"
+  register: dots_runner
+  when: not dots_sandbox and dots_manage_services
+- name: Start the already-enrolled runner without publishing the website
+  ansible.builtin.command:
+    argv: [docker, compose, --profile, runner, up, -d, --no-recreate, runner]
+    chdir: "{{ dots_home }}/docs/host/forgejo"
+  register: dots_runner_start
+  changed_when: "'Started' in dots_runner_start.stderr or 'Created' in dots_runner_start.stderr"
+  when: not dots_sandbox and dots_manage_services and not ansible_check_mode and dots_runner.stat.exists
+  no_log: true
+  diff: false

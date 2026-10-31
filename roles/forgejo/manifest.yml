@@ -1,0 +1,249 @@
+[
+  {
+    "source": "docs/host/forgejo/docker-compose.yml.j2",
+    "dest": "docs/host/forgejo/docker-compose.yml",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/css/custom.css",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/css/custom.css",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/css/theme-auto.css",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/css/theme-auto.css",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/css/theme-dark.css",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/css/theme-dark.css",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/css/theme-light.css",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/css/theme-light.css",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_AMS-Regular.73ea273a.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_AMS-Regular.73ea273a.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Caligraphic-Bold.a1abf90d.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Caligraphic-Bold.a1abf90d.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Caligraphic-Regular.d6484fce.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Caligraphic-Regular.d6484fce.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Fraktur-Bold.931d67ea.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Fraktur-Bold.931d67ea.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Fraktur-Regular.172d3529.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Fraktur-Regular.172d3529.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Main-Bold.39890742.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Main-Bold.39890742.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Main-BoldItalic.20f389c4.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Main-BoldItalic.20f389c4.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Main-Italic.fe2176f7.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Main-Italic.fe2176f7.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Main-Regular.f650f111.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Main-Regular.f650f111.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Math-BoldItalic.dcbcbd93.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Math-BoldItalic.dcbcbd93.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Math-Italic.6d3d25f4.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Math-Italic.6d3d25f4.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_SansSerif-Bold.95591a92.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_SansSerif-Bold.95591a92.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_SansSerif-Italic.7d393d38.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_SansSerif-Italic.7d393d38.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_SansSerif-Regular.cd5e231e.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_SansSerif-Regular.cd5e231e.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Script-Regular.c81d1b2a.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Script-Regular.c81d1b2a.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Size1-Regular.6eec866c.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Size1-Regular.6eec866c.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Size2-Regular.2960900c.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Size2-Regular.2960900c.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Size3-Regular.e1951519.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Size3-Regular.e1951519.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Size4-Regular.e418bf25.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Size4-Regular.e418bf25.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/KaTeX_Typewriter-Regular.c295e7f7.woff2",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/KaTeX_Typewriter-Regular.c295e7f7.woff2",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/fonts/codicon.4a477f66.ttf",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/fonts/codicon.4a477f66.ttf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/apple-touch-icon.png",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/apple-touch-icon.png",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/avatar_default.png",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/avatar_default.png",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/favicon.png",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/favicon.png",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/favicon.svg",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/favicon.svg",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/loading.svg",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/loading.svg",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/logo.png",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/logo.png",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/public/assets/img/logo.svg",
+    "dest": "docs/host/forgejo/forgejo/gitea/public/assets/img/logo.svg",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/templates/base/head_navbar.tmpl",
+    "dest": "docs/host/forgejo/forgejo/gitea/templates/base/head_navbar.tmpl",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/templates/custom/header.tmpl",
+    "dest": "docs/host/forgejo/forgejo/gitea/templates/custom/header.tmpl",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/templates/home.tmpl",
+    "dest": "docs/host/forgejo/forgejo/gitea/templates/home.tmpl",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/templates/repo/home.tmpl",
+    "dest": "docs/host/forgejo/forgejo/gitea/templates/repo/home.tmpl",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": "docs/host/forgejo/forgejo/custom/templates/user/dashboard/.keep",
+    "dest": "docs/host/forgejo/forgejo/gitea/templates/user/dashboard/.keep",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/default.target.wants/forgejo.service",
+    "dest": ".config/systemd/user/default.target.wants/forgejo.service",
+    "mode": "0644",
+    "kind": "link",
+    "target": "../forgejo.service"
+  },
+  {
+    "source": ".config/systemd/user/forgejo.service",
+    "dest": ".config/systemd/user/forgejo.service",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/forgejo-tailscale-setup.sh",
+    "dest": ".local/bin/forgejo-tailscale-setup.sh",
+    "mode": "0700",
+    "kind": "file"
+  }
+]

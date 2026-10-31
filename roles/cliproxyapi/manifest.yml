@@ -1,0 +1,56 @@
+[
+  {
+    "source": ".config/cliproxyapi/README.md",
+    "dest": ".config/cliproxyapi/README.md",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/cliproxyapi/config.yaml",
+    "dest": ".config/cliproxyapi/config.yaml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/cliproxyapi.service",
+    "dest": ".config/systemd/user/cliproxyapi.service",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/cliproxyapi",
+    "dest": ".local/bin/cliproxyapi",
+    "mode": "0700",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/cliproxyapi-auth",
+    "dest": ".local/bin/cliproxyapi-auth",
+    "mode": "0700",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/cliproxyapi-burn",
+    "dest": ".local/bin/cliproxyapi-burn",
+    "mode": "0700",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/cliproxyapi-key",
+    "dest": ".local/bin/cliproxyapi-key",
+    "mode": "0700",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/cliproxyapi-prepare-pi",
+    "dest": ".local/bin/cliproxyapi-prepare-pi",
+    "mode": "0700",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/cliproxyapi-update",
+    "dest": ".local/bin/cliproxyapi-update",
+    "mode": "0700",
+    "kind": "file"
+  }
+]

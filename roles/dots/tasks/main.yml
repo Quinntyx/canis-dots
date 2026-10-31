@@ -1,0 +1,81 @@
+---
+- name: Install reviewed distribution prerequisites
+  ansible.builtin.include_tasks: packages.yml
+  when: dots_manage_packages and not dots_sandbox
+
+- name: Provision the actual account and user service manager
+  ansible.builtin.include_tasks: account.yml
+  when: dots_manage_services and dots_manage_packages and not dots_sandbox
+
+- name: Resolve Docker's actual socket group before rendering Compose
+  ansible.builtin.getent:
+    database: group
+    key: docker
+    fail_key: "{{ not ansible_check_mode }}"
+  when: "'forgejo' in dots_selected and not dots_sandbox"
+
+- name: Use the target Docker GID, never the controller's or a fixed numeric GID
+  ansible.builtin.set_fact:
+    dots_docker_group_gid: "{{ ansible_facts.getent_group.docker[1] if ansible_facts.getent_group.docker else 0 }}"
+  when: "'forgejo' in dots_selected and not dots_sandbox"
+
+- name: Create only owned destination parents
+  dots_parents:
+    home: "{{ dots_home }}"
+    directories: "{{ (dots_files + dots_secret_files + [{'dest': '.config/ansible/dots-source.json'}]) | dots_directories }}"
+    private: [.ssh, .ssh/config.d, .config/ansible, .config/oama, .local/share/cliproxyapi, .config/pi/agent, .local/state/ansible-dots]
+
+- name: Build deterministic allowlisted public-source bundle
+  dots_bundle:
+    root: "{{ dots_controller_root }}"
+    entries: "{{ dots_files }}"
+  register: dots_bundle_result
+
+- name: Install ordinary user-owned configuration without recursive adoption
+  ansible.builtin.unarchive:
+    src: "{{ dots_bundle_result.path }}"
+    dest: "{{ dots_home }}"
+    extra_opts: ['--no-same-owner']
+  register: dots_copied
+
+- name: Render selected host templates
+  ansible.builtin.template:
+    src: "{{ dots_controller_root }}/roles/{{ item.component }}/templates/{{ item.source }}"
+    dest: "{{ dots_home }}/{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    backup: false
+    follow: false
+  loop: "{{ dots_files | selectattr('kind', 'equalto', 'template') | list }}"
+  loop_control:
+    label: "{{ item.component }}:{{ item.dest }}"
+  register: dots_rendered
+
+- name: Install explicit symlinks without touching their target trees
+  dots_links:
+    home: "{{ dots_home }}"
+    entries: "{{ dots_files | selectattr('kind', 'equalto', 'link') | list }}"
+  register: dots_linked
+
+- name: Install authenticated Vault payloads privately
+  ansible.builtin.copy:
+    src: "{{ item.source }}"
+    dest: "{{ dots_home }}/{{ item.dest }}"
+    mode: '0600'
+    decrypt: true
+    backup: false
+  loop: "{{ dots_secret_files }}"
+  register: dots_secrets_copied
+  no_log: true
+  diff: false
+
+- name: Track configuration change for lifecycle convergence
+  ansible.builtin.set_fact:
+    dots_configuration_changed: "{{ dots_copied.changed or dots_rendered.changed or dots_linked.changed or dots_secrets_copied.changed }}"
+
+- name: Reload user units only for real configuration changes
+  ansible.builtin.systemd_service:
+    scope: user
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ dots_uid }}"
+  when: dots_manage_services and not dots_sandbox and dots_configuration_changed

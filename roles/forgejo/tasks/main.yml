@@ -1,0 +1,4 @@
+---
+- name: Integrate the existing server identity without managing its data tree
+  ansible.builtin.include_tasks: server.yml
+  when: not dots_sandbox and dots_manage_services

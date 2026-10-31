@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run with: python docs/host/tests/test_tmux_persistence.py (in chezmoi source)."""
+"""Run with: python docs/host/tests/test_tmux_persistence.py (in the controller checkout)."""
 import contextlib
 from pathlib import Path
 import signal
@@ -10,10 +10,9 @@ import unittest
 from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[3]
-HELPER = SOURCE / "private_dot_local/bin/executable_tmux-persist"
+HELPER = SOURCE / "roles/tmux/files/.local/bin/tmux-persist"
 if not HELPER.is_file():
-    SOURCE = Path(subprocess.check_output(["chezmoi", "source-path"], text=True).strip())
-    HELPER = SOURCE / "private_dot_local/bin/executable_tmux-persist"
+    raise RuntimeError("Run tests from a complete Ansible source checkout; never use installed configuration")
 
 
 def pane(index):
@@ -157,11 +156,11 @@ class PersistenceTests(unittest.TestCase):
             self.module.interrupted(signal.SIGTERM, None)
 
     def test_systemd_does_not_impose_another_save_or_restore_wait_deadline(self):
-        service = (SOURCE / "dot_config/systemd/user/tmux-resurrect-save.service").read_text()
+        service = (SOURCE / "roles/tmux/files/.config/systemd/user/tmux-resurrect-save.service").read_text()
         self.assertIn("TimeoutStartSec=infinity", service)
 
     def test_timer_spaces_runs_from_completion_not_start(self):
-        timer = (SOURCE / "dot_config/systemd/user/tmux-resurrect-save.timer").read_text()
+        timer = (SOURCE / "roles/tmux/files/.config/systemd/user/tmux-resurrect-save.timer").read_text()
         self.assertIn("OnUnitInactiveSec=1min", timer)
         self.assertNotIn("OnUnitActiveSec=", timer)
 

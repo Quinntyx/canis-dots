@@ -1,0 +1,10 @@
+---
+# Fixed membership, not inferred from T3 connections or requested tags.
+dots_components: [shell, git, ssh, tmux, editor, agents, desktop, mail, cliproxyapi, forgejo, website, system, software]
+dots_network: tailnet
+dots_main_server: true
+dots_docs: "{{ dots_home }}/docs"
+dots_cliproxyapi_repo: https://git.quinntyx.dev/quinntyx/CLIProxyAPI.git
+dots_cliproxyapi_revision: main
+dots_website_repo: https://git.quinntyx.dev/quinntyx/quinntyx-dev.git
+dots_website_revision: main

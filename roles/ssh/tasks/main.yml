@@ -1,0 +1,11 @@
+---
+- name: Include the lab-only SSH fragment without replacing personal SSH configuration
+  ansible.builtin.blockinfile:
+    path: "{{ dots_home }}/.ssh/config"
+    create: true
+    mode: '0600'
+    insertbefore: BOF
+    marker: '# {mark} ANSIBLE-DOTS LAB INCLUDE'
+    block: 'Include config.d/50-lab.conf'
+    backup: false
+  when: inventory_hostname == 'syssec-canis'

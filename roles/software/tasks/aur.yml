@@ -1,0 +1,59 @@
+---
+- name: Check whether the reviewed AUR package is already installed
+  ansible.builtin.command:
+    argv: [pacman, -Q, "{{ dots_aur_name }}"]
+  register: dots_aur_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+- name: Install the reviewed missing AUR package without a persistent sudo bypass
+  when: dots_aur_installed.rc != 0 and not ansible_check_mode
+  block:
+    - name: Require an explicitly pinned recipe
+      ansible.builtin.assert:
+        that: dots_aur_name in dots_aur_revisions
+    - name: Install official build prerequisites
+      ansible.builtin.package:
+        name: [base-devel, git]
+        state: present
+      become: true
+    - name: Create user-owned build parent
+      ansible.builtin.file:
+        path: "{{ dots_home }}/.cache/ansible-dots/aur"
+        state: directory
+        mode: '0755'
+    - name: Fetch reviewed AUR recipe as the unprivileged target user
+      ansible.builtin.git:
+        repo: "https://aur.archlinux.org/{{ dots_aur_name }}.git"
+        dest: "{{ dots_home }}/.cache/ansible-dots/aur/{{ dots_aur_name }}"
+        version: "{{ dots_aur_revisions[dots_aur_name] }}"
+        force: false
+    - name: Read declared build metadata without running the recipe as root
+      ansible.builtin.slurp:
+        src: "{{ dots_home }}/.cache/ansible-dots/aur/{{ dots_aur_name }}/.SRCINFO"
+      register: dots_aur_srcinfo
+    - name: Resolve official dependencies from the reviewed metadata
+      ansible.builtin.set_fact:
+        dots_aur_dependencies: "{{ (dots_aur_srcinfo.content | b64decode | regex_findall('(?m)^\\s*(?:depends|makedepends|checkdepends)(?:_x86_64)? = (.+)$')) | map('regex_replace', '[<>=].*$', '') | unique | list }}"
+    - name: Install the recipe's official dependencies through pacman
+      ansible.builtin.package:
+        name: "{{ dots_aur_dependencies }}"
+        state: present
+      become: true
+      when: dots_aur_dependencies | length > 0
+    - name: Build without root or an embedded sudo password
+      ansible.builtin.command:
+        argv: [makepkg, --noconfirm, --cleanbuild]
+        chdir: "{{ dots_home }}/.cache/ansible-dots/aur/{{ dots_aur_name }}"
+      changed_when: true
+    - name: Ask makepkg for the exact package artifact paths
+      ansible.builtin.command:
+        argv: [makepkg, --packagelist]
+        chdir: "{{ dots_home }}/.cache/ansible-dots/aur/{{ dots_aur_name }}"
+      register: dots_aur_artifacts
+      changed_when: false
+    - name: Install the built artifacts with Ansible's scoped privilege escalation
+      ansible.builtin.command:
+        argv: "{{ ['pacman', '-U', '--noconfirm', '--needed'] + dots_aur_artifacts.stdout_lines }}"
+      become: true
+      changed_when: true

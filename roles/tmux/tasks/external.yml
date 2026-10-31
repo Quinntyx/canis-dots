@@ -1,0 +1,22 @@
+---
+- name: Create public upstream cache and plugin destination
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ dots_home }}/.cache/ansible-dots"
+    - "{{ dots_home }}/.local/share/tmux/plugins/tmux-resurrect"
+- name: Fetch checksum-pinned resurrect source
+  ansible.builtin.get_url:
+    url: https://codeload.github.com/tmux-plugins/tmux-resurrect/tar.gz/cff343cf9e81983d3da0c8562b01616f12e8d548
+    checksum: sha256:9f1dda18554291ee7f8a0f499e2af90bbadc2ebceb7a995bb13b76529fe0c5c9
+    dest: "{{ dots_home }}/.cache/ansible-dots/tmux-resurrect-cff343cf.tar.gz"
+    mode: '0644'
+- name: Extract pinned upstream plugin without adopting other plugin directories
+  ansible.builtin.unarchive:
+    src: "{{ dots_home }}/.cache/ansible-dots/tmux-resurrect-cff343cf.tar.gz"
+    dest: "{{ dots_home }}/.local/share/tmux/plugins/tmux-resurrect"
+    remote_src: true
+    extra_opts: [--strip-components=1, --no-same-owner]
+  when: not ansible_check_mode

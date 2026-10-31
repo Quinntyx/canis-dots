@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""Resolve exact declared ownership. Prints paths/metadata, never file contents."""
+import argparse
+import json
+import os
+from pathlib import Path
+import socket
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('destination', help='Home-relative, ~/path, or absolute with --home')
+parser.add_argument('--host', default=socket.gethostname().split('.')[0])
+parser.add_argument('--home', default=str(Path.home()))
+args = parser.parse_args()
+os.environ['ANSIBLE_CONFIG'] = str(ROOT / 'ansible.cfg')
+try:
+    inventory = json.loads(subprocess.check_output(['ansible-inventory', '--list'], cwd=ROOT, text=True))['_meta']['hostvars']
+except (OSError, subprocess.CalledProcessError):
+    sys.exit('Install ansible-core first; ownership is not guessed without inventory')
+if args.host not in inventory:
+    sys.exit('Unknown inventory host; ownership and eligibility are not inferred')
+eligible = inventory[args.host]['dots_components']
+destination = args.destination.removeprefix('~/')
+absolute_system = False
+if destination.startswith('/'):
+    try:
+        destination = str(Path(destination).relative_to(args.home))
+    except ValueError:
+        absolute_system = True
+found = []
+if absolute_system:
+    registry = json.loads((ROOT / 'policy/system.yml').read_text())
+    for entry in registry:
+        if entry['dest'] == destination:
+            found.append(dict(entry, source_root=str(ROOT), inventory_hostname=args.host,
+                              entry_eligible='system' in eligible, editable=False,
+                              note='Use the declared owning role/manager; never edit an installed system file'))
+else:
+    for manifest in (ROOT / 'roles').glob('*/manifest.yml'):
+        for entry in json.loads(manifest.read_text()):
+            if entry['dest'] == destination:
+                allowed = manifest.parent.name in eligible and (not entry.get('hosts') or args.host in entry['hosts'])
+                source = manifest if entry['kind'] == 'link' else manifest.parent / ('templates' if entry['kind'] == 'template' else 'files') / entry['source']
+                found.append(dict(entry, source_root=str(ROOT), component=manifest.parent.name,
+                                  controller_source=str(source), inventory_hostname=args.host,
+                                  entry_eligible=allowed, editable=allowed and entry.get('owner', 'user') == 'user'))
+    for entry in json.loads((ROOT / 'policy/secrets.yml').read_text()).get(args.host, []):
+        if entry['dest'] == destination:
+            found.append(dict(entry, owner='secret', editable=False, entry_eligible=entry['component'] in eligible,
+                              source_root=str(ROOT), inventory_hostname=args.host,
+                              declaration=str(ROOT / 'policy/secrets.yml'),
+                              controller_source=str(ROOT / '.vault/encrypted_files' / args.host / (destination + '.vault')),
+                              note='Use scripts/vault-import; never copy plaintext into normal manifests'))
+    import yaml  # Installed with the sole prerequisite, ansible-core.
+    for entry in yaml.safe_load((ROOT / 'policy/externals.yml').read_text()):
+        if entry['dest'] == destination:
+            found.append(dict(entry, owner='upstream', editable=False, entry_eligible='agents' in eligible,
+                              source_root=str(ROOT), inventory_hostname=args.host,
+                              controller_source=str(ROOT / 'policy/externals.yml')))
+if not found:
+    print('Unmanaged destination: verify the actual manager before editing', file=sys.stderr)
+    sys.exit(2)
+print(json.dumps(found, indent=2))

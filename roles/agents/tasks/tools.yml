@@ -1,0 +1,20 @@
+---
+- name: Create the account-owned CLI prefix
+  ansible.builtin.file:
+    path: "{{ dots_home }}/.npm-global"
+    state: directory
+    mode: '0755'
+- name: Check explicitly pinned agent tool manifests
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/.npm-global/lib/node_modules/{{ item.name }}/package.json"
+  loop: "{{ dots_npm_tools }}"
+  register: dots_agent_tools
+- name: Install missing agent CLIs through npm, not generated-cache edits
+  ansible.builtin.command:
+    argv: [npm, install, --global, --prefix, "{{ dots_home }}/.npm-global", --no-audit, --no-fund, "{{ item.item.name }}@{{ item.item.version }}"]
+  loop: "{{ dots_agent_tools.results }}"
+  when: not item.stat.exists and not ansible_check_mode
+  changed_when: true
+  environment:
+    HOME: "{{ dots_home }}"
+    NPM_CONFIG_PREFIX: "{{ dots_home }}/.npm-global"

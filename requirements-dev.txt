@@ -1,0 +1,2 @@
+# Verification only; deployment uses the machine's installed ansible-core.
+ansible-core==2.19.14

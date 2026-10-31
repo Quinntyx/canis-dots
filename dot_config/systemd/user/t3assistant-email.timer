@@ -1,0 +1,10 @@
+[Unit]
+Description=Create the independent daily email review thread
+
+[Timer]
+OnCalendar=*-*-* 08:05:00 America/Chicago
+Persistent=true
+Unit=t3assistant-email.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,102 @@
+#!/usr/bin/python -I
+"""Temporary, root-owned pacman bridge. No shell; fail closed on unknown flags."""
+import os
+from pathlib import Path
+import re
+import sys
+
+BUILD_ROOT = {{ software_build.path | to_json }}
+PACKAGE = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_.+-]*/)?[A-Za-z0-9@_+][A-Za-z0-9@_.+:-]*(?:[<>=]+[A-Za-z0-9@_.+:-]+)?\Z")
+ARCHIVE = re.compile(r".+\.pkg\.tar(?:\.(?:zst|xz|gz|bz2|lz4|lrz|lzo|Z))?\Z")
+
+
+def validate(arguments, build_root=BUILD_ROOT):
+    """Return whether a strictly bounded request is read-only, or raise ValueError."""
+    if arguments == ["--dots-validate"]:
+        return True
+    operation = None
+    operands = []
+    query = False
+    query_only = False
+    index = 0
+    ended = False
+    while index < len(arguments):
+        value = arguments[index]
+        index += 1
+        if value == "--" and not ended:
+            ended = True
+            continue
+        if not ended and value.startswith("-"):
+            if value in ("--config", "--color", "--print-format"):
+                if index >= len(arguments):
+                    raise ValueError("missing option value")
+                parameter = arguments[index]
+                index += 1
+                if value == "--config" and parameter != "/etc/pacman.conf":
+                    raise ValueError("only system pacman.conf is allowed")
+                if value == "--color" and parameter not in ("auto", "always", "never"):
+                    raise ValueError("invalid color option")
+                continue
+            aliases = {"--sync": "S", "--upgrade": "U", "--database": "D",
+                       "--query": "Q", "--deptest": "T"}
+            if value in aliases:
+                kind = aliases[value]
+            elif re.fullmatch(r"-(?:[SUD][qioplsg]*|[QT][a-z]*)", value):
+                kind = value[1]
+                query = query or (kind == "S" and any(flag in value[2:] for flag in "iplsg"))
+            else:
+                if value in ("--needed", "--noconfirm", "--asdeps", "--asexplicit",
+                             "--noprogressbar", "--quiet", "--verbose", "-q"):
+                    continue
+                if value in ("--info", "--list", "--search", "--groups", "--print",
+                             "-i", "-l", "-s", "-g", "-p"):
+                    query = True
+                    continue
+                if value in ("--foreign", "--native", "--explicit", "--deps",
+                             "--unrequired", "--owns", "--check", "--upgrades",
+                             "-m", "-n", "-e", "-d", "-t", "-o", "-k", "-u"):
+                    # Such flags may qualify queries, never sync/upgrade/database.
+                    query_only = True
+                    continue
+                raise ValueError("unsupported pacman option: " + value)
+            if operation is not None:
+                raise ValueError("multiple operations are forbidden")
+            operation = kind
+        else:
+            operands.append(value)
+    if operation is None:
+        raise ValueError("missing operation")
+    if (query and operation not in ("S", "Q", "T")) or (query_only and operation not in ("Q", "T")):
+        raise ValueError("query flags cannot qualify a mutation")
+    if operation == "U":
+        if not operands or query:
+            raise ValueError("upgrade requires built archives")
+        root = Path(build_root).resolve(strict=True)
+        for operand in operands:
+            artifact = Path(operand).resolve(strict=True)
+            if not artifact.is_relative_to(root) or not artifact.is_file() or not ARCHIVE.fullmatch(artifact.name):
+                raise ValueError("archive outside isolated build workspace")
+    elif any(not PACKAGE.fullmatch(operand) for operand in operands):
+        raise ValueError("only package names are allowed")
+    if operation in ("S", "D") and not query and not operands:
+        raise ValueError("empty package mutation is forbidden")
+    return operation in ("Q", "T") or query
+
+
+def main():
+    arguments = sys.argv[1:]
+    try:
+        readonly = validate(arguments)
+    except (ValueError, OSError) as error:
+        sys.exit("dots-software pacman bridge: " + str(error))
+    if arguments == ["--dots-validate"]:
+        return
+    if not readonly and os.geteuid() != 0:
+        os.execv("/usr/bin/sudo", ["sudo", "-n", str(Path(__file__).resolve()), *arguments])
+    # Ignore user PACMAN, PATH, LD_*, and package-manager configuration variables.
+    os.execve("/usr/bin/pacman", ["pacman", *arguments],
+              {"PATH": "/usr/bin:/bin", "LANG": "C", "HOME": "/root" if os.geteuid() == 0 else os.environ["HOME"]})
+
+
+if __name__ == "__main__":
+    main()

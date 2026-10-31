@@ -1,0 +1,122 @@
+---
+- name: Set up tools in the actual target account
+  become: true
+  become_user: "{{ dots_user }}"
+  environment: "{{ software_user_environment }}"
+  block:
+    - name: Create account-owned tool directories
+      ansible.builtin.file:
+        path: "{{ dots_home }}/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop: [.npm-global, .local/bin, .cache/pi-ptc]
+
+    - name: Inspect requested npm package manifests
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/.npm-global/lib/node_modules/{{ item.name }}/package.json"
+      loop: "{{ software_npm_packages }}"
+      register: software_npm_manifests
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Install only missing global npm CLIs at the account prefix
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/npm
+          - install
+          - --global
+          - --prefix
+          - "{{ dots_home }}/.npm-global"
+          - --no-audit
+          - --no-fund
+          - "{{ item.item.name }}"
+      loop: "{{ software_npm_manifests.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: not item.stat.exists
+      changed_when: true
+
+    - name: Query the existing Rust toolchain without changing its selection
+      ansible.builtin.command:
+        argv: [/usr/bin/rustup, show, active-toolchain]
+      register: software_rust_toolchain
+      failed_when: software_rust_toolchain.rc not in [0, 1]
+      changed_when: false
+
+    - name: Initialize Rust stable only when no toolchain is selected
+      ansible.builtin.command:
+        argv: [/usr/bin/rustup, default, stable]
+      when: software_rust_toolchain.rc == 1
+      changed_when: true
+
+    - name: Install only missing Cargo CLIs
+      ansible.builtin.command:
+        argv: [cargo, binstall, --no-confirm, "{{ item }}"]
+        creates: "{{ dots_home }}/.cargo/bin/{{ item }}"
+      loop: "{{ software_cargo_packages }}"
+
+    - name: Inspect optional preserved layer-shell source
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/docs/src/layer-shell/Cargo.toml"
+      register: software_layer_shell
+
+    - name: Install layer-shell-rs from preserved source without updating it
+      environment: "{{ software_user_environment | combine({'CARGO_TARGET_DIR': dots_home + '/.cache/dots-software/cargo'}) }}"
+      ansible.builtin.command:
+        argv: [cargo, install, --locked, --path, "{{ dots_home }}/docs/src/layer-shell"]
+        creates: "{{ dots_home }}/.cargo/bin/layer-shell-rs"
+      when: software_layer_shell.stat.exists
+
+    - name: Query the managed Python 3.14 interpreter
+      ansible.builtin.command:
+        argv: [/usr/bin/uv, python, find, --managed-python, '3.14']
+      register: software_python
+      failed_when: software_python.rc not in [0, 1, 2]
+      changed_when: false
+
+    - name: Install Python 3.14 through the packaged uv tool
+      ansible.builtin.command:
+        argv: [/usr/bin/uv, python, install, '3.14']
+      when: software_python.rc != 0
+      changed_when: true
+
+    - name: Create the PTC environment without clearing an existing environment
+      ansible.builtin.command:
+        argv: [/usr/bin/uv, venv, --python, '3.14', "{{ dots_home }}/.cache/pi-ptc/python-env"]
+        creates: "{{ dots_home }}/.cache/pi-ptc/python-env/pyvenv.cfg"
+
+    - name: Query PTC scientific packages
+      ansible.builtin.command:
+        argv: [/usr/bin/uv, pip, list, --python, "{{ dots_home }}/.cache/pi-ptc/python-env/bin/python", --format, json]
+      register: software_ptc_packages
+      changed_when: false
+
+    - name: Install missing PTC scientific dependencies without upgrading existing packages
+      ansible.builtin.command:
+        argv: >-
+          {{ ['/usr/bin/uv', 'pip', 'install', '--python', dots_home + '/.cache/pi-ptc/python-env/bin/python']
+             + (['matplotlib', 'numpy', 'pandas', 'pillow']
+                | difference(software_ptc_packages.stdout | from_json | map(attribute='name') | map('lower') | list)) }}
+      when: >-
+        ['matplotlib', 'numpy', 'pandas', 'pillow']
+        | difference(software_ptc_packages.stdout | from_json | map(attribute='name') | map('lower') | list) | length > 0
+      changed_when: true
+
+    - name: Inspect optional preserved astala-downloader source
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/docs/src/astala-downloader/main/pyproject.toml"
+      register: software_astala
+
+    - name: Install astala-downloader without forcing a reinstall or pulling its source
+      ansible.builtin.command:
+        argv: [/usr/bin/uv, tool, install, "{{ dots_home }}/docs/src/astala-downloader/main"]
+        creates: "{{ dots_home }}/.local/bin/astala-downloader"
+      when: software_astala.stat.exists
+
+    - name: Report source-dependent optional tool gaps
+      ansible.builtin.debug:
+        msg: >-
+          Optional source tools absent: layer-shell-rs={{ not software_layer_shell.stat.exists }},
+          astala-downloader={{ not software_astala.stat.exists }}. See docs/SOFTWARE.md;
+          no replacement source was cloned and these tools are not claimed installed.
+      when: not software_layer_shell.stat.exists or not software_astala.stat.exists

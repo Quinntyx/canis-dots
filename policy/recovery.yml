@@ -1,0 +1,34 @@
+{
+  "araveia": {
+    "home": [
+      {"path": ".ssh", "kind": "tree", "required": true},
+      {"path": ".gnupg", "kind": "tree", "required": true},
+      {"path": ".config/pi/agent/auth.json", "kind": "file", "required": true},
+      {"path": ".config/pi/agent/antigravity-accounts.json", "kind": "file", "required": false},
+      {"path": ".config/pi/agent/deepseek-router.json", "kind": "file", "required": false},
+      {"path": ".config/pi/profiles/omn-assistant/config/gcal-sync/client_secret.json", "kind": "file", "required": false},
+      {"path": ".config/fish/conf.d/canvas-private.fish", "kind": "file", "required": false},
+      {"path": ".local/share/cliproxyapi", "kind": "tree", "required": true, "exclude": ["secrets.json"]},
+      {"path": ".local/share/cliproxyapi/secrets.json", "kind": "file", "required": true},
+      {"path": ".local/state/oama", "kind": "tree", "required": false},
+      {"path": ".config/mail-router", "kind": "tree", "required": false},
+      {"path": ".config/gh/hosts.yml", "kind": "file", "required": false},
+      {"path": ".local/share/forgejo-cli/keys.json", "kind": "file", "required": false},
+      {"path": ".git-credentials", "kind": "file", "required": false},
+      {"path": ".codex/auth.json", "kind": "file", "required": false},
+      {"path": ".claude.json", "kind": "file", "required": false},
+      {"path": ".config/opencode/antigravity-accounts.json", "kind": "file", "required": false}
+    ],
+    "system": [
+      {"path": "var/lib/tailscale/tailscaled.state", "kind": "file", "required": true},
+      {"path": "etc/cloudflared/token", "kind": "file", "required": true},
+      {"path": "etc/ssh/ssh_host_ed25519_key", "kind": "file", "required": false, "mode": "0600"},
+      {"path": "etc/ssh/ssh_host_ed25519_key.pub", "kind": "file", "required": false, "mode": "0644"},
+      {"path": "etc/ssh/ssh_host_rsa_key", "kind": "file", "required": false, "mode": "0600"},
+      {"path": "etc/ssh/ssh_host_rsa_key.pub", "kind": "file", "required": false, "mode": "0644"},
+      {"path": "etc/ssh/ssh_host_ecdsa_key", "kind": "file", "required": false, "mode": "0600"},
+      {"path": "etc/ssh/ssh_host_ecdsa_key.pub", "kind": "file", "required": false, "mode": "0644"}
+    ]
+  },
+  "syssec-canis": {"home": [], "system": []}
+}

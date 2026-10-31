@@ -349,3 +349,23 @@
   vars:
     config_dest: ".config/pi/profiles/t3main/models.json"
     config_target: "../../agent/models.json"
+- name: Link the coursework profile's shared authentication
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: .config/pi/profiles/t3assistant/auth.json
+    config_target: ../../agent/auth.json
+    config_preserve_existing: true
+- name: Link the coursework profile's shared model configuration
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: .config/pi/profiles/t3assistant/models.json
+    config_target: ../../agent/models.json
+- name: Link the coursework mail skill only on the mail-capable node
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: .config/pi/profiles/t3assistant/skills/aerc-email
+    config_target: ../../t3main/skills/aerc-email
+  when: inventory_hostname == 'araveia'
+- name: Configure the main node's existing coursework integration
+  ansible.builtin.include_tasks: coursework.yml
+  when: inventory_hostname == 'araveia'

@@ -10,6 +10,36 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PlainAnsibleTests(unittest.TestCase):
+    def test_concurrent_coursework_profile_keeps_remote_private_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            home = base / 'home'
+            home.mkdir()
+            role = {'role': 'agents', 'tasks_from': 'coursework'}
+            first = self.run_role(home, role=role)
+            self.assertEqual(first.returncode, 0, first.stdout)
+            target = home / '.config/t3assistant/config.json'
+            self.assertEqual(json.loads(target.read_text())['token_file'],
+                             str(home / '.local/state/t3assistant/oauth-token.json'))
+            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+            override = home / '.local/state/t3assistant/config.private.json'
+            override.parent.mkdir(parents=True)
+            payload = '{"fixture_secret": "never-log-this-coursework-override"}\n'
+            override.write_text(payload)
+            override.chmod(0o600)
+            result = self.run_role(home, role=role)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(target.read_text(), payload)
+            self.assertNotIn('never-log-this-coursework-override', result.stdout)
+            self.assertEqual(override.read_text(), payload)
+            self.assertIn('changed=0', self.run_role(home, role=role).stdout)
+            target.rename(base / 'previous-config')
+            outside = base / 'outside'
+            outside.write_text('unmanaged')
+            target.symlink_to(outside)
+            self.assertNotEqual(self.run_role(home, role=role).returncode, 0)
+            self.assertEqual(outside.read_text(), 'unmanaged')
+
     def test_no_custom_runtime_framework(self):
         self.assertFalse((ROOT / 'plugins').exists())
         for name in ['fresh.yml', 'rollback.yml']:
@@ -38,7 +68,9 @@ class PlainAnsibleTests(unittest.TestCase):
                      'dots_manage_externals': False, 'dots_install_agent_tools': False,
                      'dots_controller_root': str(ROOT), 'dots_configuration_changed': False,
                      **(variables or {})},
-            'roles': [role],
+            'roles': [role] if isinstance(role, str) else [],
+            'tasks': [{'ansible.builtin.import_role': {'name': role['role'],
+                       'tasks_from': role['tasks_from']}}] if isinstance(role, dict) else [],
             'post_tasks': [{'ansible.builtin.assert': {'that': list(assertions)}}] if assertions else []}]))
         command = ['ansible-playbook', '-i', str(inventory), str(play)]
         if check:

@@ -1,0 +1,44 @@
+---
+# Carry forward the concurrently merged profile without activating automation or
+# importing its target-local private configuration into the controller or Git.
+- name: Inspect the restored coursework private configuration on this target
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/.local/state/t3assistant/config.private.json"
+    follow: false
+    get_checksum: false
+  register: coursework_private_source
+  no_log: true
+- name: Require an ordinary private coursework configuration if present
+  ansible.builtin.assert:
+    that: not coursework_private_source.stat.exists or (coursework_private_source.stat.isreg | default(false) and not coursework_private_source.stat.islnk | default(false))
+    fail_msg: Inspect the restored coursework private configuration before deploying.
+  no_log: true
+- name: Read only the explicitly restored target-local coursework override
+  ansible.builtin.slurp:
+    src: "{{ dots_home }}/.local/state/t3assistant/config.private.json"
+  register: coursework_private_config
+  when: coursework_private_source.stat.exists
+  no_log: true
+- name: Render private coursework configuration or its public defaults
+  ansible.builtin.include_tasks:
+    file: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+    apply:
+      no_log: true
+      diff: false
+  vars:
+    config_template: .config/t3assistant/config.json.j2
+    config_dest: .config/t3assistant/config.json
+    config_mode: '0600'
+  no_log: true
+- name: Render the main node's coursework MCP connection
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: .config/pi/profiles/t3assistant/mcp.json.j2
+    config_dest: .config/pi/profiles/t3assistant/mcp.json
+    config_mode: '0644'
+- name: Render the coursework provider instance proposal
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: .config/t3assistant/provider-instance.json.j2
+    config_dest: .config/t3assistant/provider-instance.json
+    config_mode: '0644'

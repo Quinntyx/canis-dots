@@ -108,8 +108,9 @@ docs/backups/araveia/reference
 .pi/agent/session-store
 .pi/agent/models-store.json
 
-# Coursework automation runs on the authoritative desktop; clients use T3 remotely.
+# Host-local services and coursework automation run on the authoritative desktop.
 {{ if ne .chezmoi.hostname "araveia" }}
+.local/share/t3code-fork/hosting/nginx.conf
 .config/t3assistant
 .config/pi/profiles/t3assistant/mcp.json
 .config/systemd/user/t3assistant-coursework.service

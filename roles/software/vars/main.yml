@@ -35,9 +35,8 @@ software_conflict_guards:
     resolution: Replace jack2 with pipewire-jack interactively (sudo pacman -S pipewire-jack) if desired.
 # Executable directory; tests point it at bounded mocks, never real installers.
 software_bindir: /usr/bin
-# Untrusted package/build code runs in a new session without a controlling TTY
-# after discarding the account's cached sudo credentials, so it cannot reuse
-# Ansible's become authentication. Only the root-owned bridge grant remains.
+# Account-local CLI installers cannot reuse cached sudo credentials. PKGBUILDs
+# use the separate login-disabled build account in builds.yml, with no grant.
 software_untrusted_argv:
   - "{{ software_bindir }}/setsid"
   - --wait
@@ -69,5 +68,5 @@ software_account_environment:
   RUSTUP_HOME: "{{ dots_home }}/.rustup"
   UV_TOOL_DIR: "{{ dots_home }}/.local/share/uv/tools"
   UV_TOOL_BIN_DIR: "{{ dots_home }}/.local/bin"
-# The parent's loopback Git rewrite reaches self-hosted origins from this host.
+# Optional explicit Git transport overrides, never a rewritten personal checkout.
 software_user_environment: "{{ software_account_environment | combine(dots_git_environment | default({})) }}"

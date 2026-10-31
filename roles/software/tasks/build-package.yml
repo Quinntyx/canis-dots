@@ -1,0 +1,78 @@
+---
+- name: Acquire only the declared package recipe under the build account
+  become: true
+  become_user: "{{ software_builder_user }}"
+  environment: "{{ dots_git_environment | default({}) | combine({'HOME': software_builder_home, 'PATH': '/usr/bin:/bin', 'GIT_TERMINAL_PROMPT': '0'}) }}"
+  ansible.builtin.git:
+    repo: "{{ software_recipe.repo }}"
+    dest: "{{ software_builder_home }}/{{ software_recipe.name }}"
+    version: "{{ software_recipe.version }}"
+    # This is a dedicated build cache, never a personal checkout. pkgver()
+    # may modify tracked recipe files even when a previous build failed.
+    force: true
+- name: Evaluate package metadata without privilege or caller credentials
+  become: true
+  become_user: "{{ software_builder_user }}"
+  environment: "{{ dots_git_environment | default({}) | combine({'HOME': software_builder_home, 'PATH': '/usr/bin:/bin', 'GIT_TERMINAL_PROMPT': '0'}) }}"
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/setpriv', '--no-new-privs', software_bindir + '/makepkg', '--printsrcinfo'] }}"
+    chdir: "{{ [software_builder_home, software_recipe.name, software_recipe.subdir] | path_join | normpath }}"
+  register: software_srcinfo
+  changed_when: false
+- name: Select this architecture's declared build and runtime dependencies
+  ansible.builtin.set_fact:
+    software_build_dependencies: >-
+      {{ software_srcinfo.stdout_lines
+         | select('match', '^\s*(make|check)?depends(_' ~ ansible_facts.architecture ~ ')? = ')
+         | map('regex_replace', '^\s*[^=]+ = ', '') | unique | list }}
+- name: Query dependencies without executing package code as root
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/pacman', '-T', '--'] + software_build_dependencies }}"
+  register: software_missing_dependencies
+  failed_when: software_missing_dependencies.rc not in [0, 127]
+  changed_when: false
+  when: software_build_dependencies | length > 0
+- name: Install missing official dependencies with the normal package manager
+  become: true
+  become_user: root
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/pacman', '-S', '--needed', '--noconfirm', '--'] + software_missing_dependencies.stdout_lines }}"
+  when: software_missing_dependencies.rc | default(0) == 127
+  changed_when: true
+- name: Build the selected recipe without privilege escalation or cached sudo
+  become: true
+  become_user: "{{ software_builder_user }}"
+  environment: "{{ dots_git_environment | default({}) | combine({'HOME': software_builder_home, 'PATH': '/usr/bin:/bin', 'GIT_TERMINAL_PROMPT': '0'}) }}"
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/setpriv', '--no-new-privs', software_bindir + '/makepkg', '--force', '--cleanbuild', '--noconfirm', '--noprogressbar'] }}"
+    chdir: "{{ [software_builder_home, software_recipe.name, software_recipe.subdir] | path_join | normpath }}"
+  changed_when: true
+- name: Ask the unprivileged package manager for this build's exact artifact paths
+  become: true
+  become_user: "{{ software_builder_user }}"
+  environment: "{{ dots_git_environment | default({}) | combine({'HOME': software_builder_home, 'PATH': '/usr/bin:/bin', 'GIT_TERMINAL_PROMPT': '0'}) }}"
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/setpriv', '--no-new-privs', software_bindir + '/makepkg', '--packagelist'] }}"
+    chdir: "{{ [software_builder_home, software_recipe.name, software_recipe.subdir] | path_join | normpath }}"
+  register: software_expected_artifacts
+  changed_when: false
+- name: Find the completed package files in this recipe directory only
+  ansible.builtin.find:
+    paths: "{{ [software_builder_home, software_recipe.name, software_recipe.subdir] | path_join | normpath }}"
+    patterns: ['*.pkg.tar.zst', '*.pkg.tar.xz', '*.pkg.tar.gz']
+    file_type: file
+    excludes: ['*-debug-*']
+    recurse: false
+  register: software_built_archives
+- name: Select only current, regular artifacts inside the controlled recipe directory
+  ansible.builtin.set_fact:
+    software_install_archives: "{{ software_built_archives.files | map(attribute='path') | intersect(software_expected_artifacts.stdout_lines) | sort }}"
+- name: Require a completed package before installation
+  ansible.builtin.assert:
+    that: software_install_archives | length > 0
+- name: Install built artifacts using root pacman, never a package-supplied sudo command
+  become: true
+  become_user: root
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/pacman', '-U', '--needed', '--noconfirm', '--'] + software_install_archives }}"
+  changed_when: true

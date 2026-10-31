@@ -1,0 +1,33 @@
+---
+- name: Verify the docs filesystem was already restored and mounted
+  ansible.builtin.command:
+    argv: [findmnt, --noheadings, --output, UUID, --mountpoint, "{{ dots_docs }}"]
+  register: dots_data_mount
+  changed_when: false
+  check_mode: false
+- name: Refuse to populate an unmounted or different data disk
+  ansible.builtin.assert:
+    that: dots_data_mount.stdout | trim == dots_docs_uuid
+    fail_msg: Restore and mount the preserved docs disk before normal deployment. Ansible does not recover or format disks.
+- name: Check the existing Forgejo installation lock without exposing its configuration
+  ansible.builtin.slurp:
+    src: "{{ dots_docs }}/host/forgejo/forgejo/gitea/conf/app.ini"
+  register: dots_forge_existing
+  no_log: true
+- name: Refuse to initialize an empty Forgejo over missing personal data
+  ansible.builtin.assert:
+    that: "dots_forge_existing.content | b64decode is search('(?im)^INSTALL_LOCK\\s*=\\s*true\\s*$')"
+    fail_msg: Restore the existing Forgejo database/configuration first.
+  no_log: true
+- name: Inspect the restored Tailscale address before starting dependent services
+  ansible.builtin.command:
+    argv: [tailscale, ip, -4]
+  register: dots_existing_tailnet
+  changed_when: false
+  check_mode: false
+  when: dots_manage_services
+- name: Require the enrolled network identity rather than guessing a new bind address
+  ansible.builtin.assert:
+    that: dots_tailnet_ip in dots_existing_tailnet.stdout_lines
+    fail_msg: Restore or reauthenticate the existing Tailscale node before deployment.
+  when: dots_manage_services

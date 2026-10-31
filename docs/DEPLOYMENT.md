@@ -1,158 +1,144 @@
-# Deployment and ownership
+# Deployment
 
-## Existing-machine boundary
+## Model
 
-The default entrypoint is `scripts/deploy`; only Ansible Core 2.19+ needs to be
-installed manually on the existing Arch-family machines. Python is included with
-Ansible. The wrapper does not install software until invoked for a deployment.
-It can run locally on either enrolled machine, or from araveia over ordinary SSH.
-SSH connectivity, host-key trust, the target login, sudo authority, usable pacman
-repositories, and existing network/data/auth state are inputs, not guessed values.
-Use `--user` or a personal SSH `User` declaration when target logins differ.
+This repository is ordinary Ansible Core source. The existing EndeavourOS
+restore procedure runs **first** after a reinstall. Normal Ansible then converges
+configuration, packages, user services and the main node's integrations. It does
+not format/mount disks, recreate identities or restore databases.
 
-This is a configuration/software migration, **not a bare-metal backup image**.
-It does not partition/format disks, recover arbitrary personal data, rewrite
-kernel/GPU configuration, import a whole `/etc` snapshot, fabricate Tailscale
-keys, or perform provider sign-ins. `scripts/deploy --fresh` is the explicit
-**local araveia reinstall** route: it mounts the existing UUID, requires matching
-account/data ownership and a locked existing Forgejo install, validates the
-private legacy snapshot, restores only `policy/recovery.yml`, and adds that
-single UUID mount to fstab. It declares resolver and token-file tunnel
-integration rather than replaying system dumps. System preimages are encrypted
-before those named configuration changes. The existing data remains in place.
+Run as the intended normal target account. `dots_home`, `dots_user` and `dots_uid`
+come from that account's gathered facts, not a hard-coded home. Privileged tasks
+use `become: true`; account-local tools remain unprivileged. Only araveia and
+syssec-canis are enrolled, regardless of T3 connections or tailnet discovery.
 
-The system role uses firewalld's manager CLI for additive named `tailscale` zone
-rules (SSH, mosh, proxy 8317), interface association, and public SSH; it preserves
-unrelated zones/rules and does not replay old development-server/public-port
-rules. A missing zone is activated with one validated reload only during explicit
-fresh recovery (permanent SSH access is added first); existing nodes lacking the
-zone fail for inspection instead of dropping unrelated runtime-only rules. An unexpected custom interface zone fails
-for inspection. `policy/system.yml` records the exact owners. See
-[recovery](RECOVERY.md) for data/identity inputs and retry boundaries.
+## Commands
 
-Normal deployment checks the enrolled main-node Tailscale address for both
-Forgejo and the proxy **before any application mutation**. Explicit fresh recovery
-installs bootstrap prerequisites and restores the existing node identity first.
-It intentionally fails early on the wrong identity instead of exposing a proxy on
-a guessed public interface. Main-only IP bindings live in inventory, not lab
-files. Package prerequisites are selected only from eligible components.
+```sh
+./scripts/deploy                     # this enrolled machine, local connection
+./scripts/deploy --host syssec-canis  # remote, ordinary SSH
+./scripts/deploy --all               # both hosts, serial: 1
+./scripts/deploy --check --diff       # read-only preview, not install proof
+```
 
-## Source layout
+Arguments after the wrapper's optional host selector are standard
+`ansible-playbook` arguments. It prompts for sudo and encrypted Vault files.
+For direct invocation, set `ANSIBLE_CONFIG` to this checkout's ansible.cfg if
+running from another directory; the wrapper changes into the checkout for you.
+For a deliberately noninteractive local invocation, `DOTS_UNATTENDED=1` suppresses
+only the sudo prompt; provide standard Ansible become/Vault credentials yourself.
+Forgejo uses `ansible-playbook` directly, not this convenience variable.
 
-- `ansible.cfg`: inventory/plugins; host-key verification on; no retry files or
-  target syslog containing module parameters.
-- `inventory/hosts.yml`: explicit membership. `main_server` contains only araveia;
-  `lab` contains only syssec-canis. No T3 connection catalog feeds inventory.
-- `inventory/group_vars/all.yml`: defaults; actual user/home/UID come from facts.
-  `inventory/host_vars/*.yml`: eligibility and genuine host/network differences.
-- `policy/components.json`: dependency closure. Both wrapper and filter enforce
-  that every requested component and dependency is eligible on that host.
-- `roles/<component>/manifest.yml`: JSON (valid YAML) allowlists with `source`,
-  `dest`, `kind`, `mode`, optional `hosts`, `owner`, and layout-link metadata.
-  Most entries default to user ownership; upstream mirrors and runtime outputs
-  are explicitly distinguished. `files/` and `templates/` use actual names,
-  **not** legacy private/executable/dot filename encodings.
-- `roles/*/tasks`: package/acquisition/service lifecycles, not recursive adoption.
-- `policy/packages.yml`: official prerequisites; `roles/software/vars` and the
-  curated historical package lists describe additional actively used software.
-- `policy/externals.yml`: exact-ref, checksum-pinned upstream entrypoints.
-- `policy/secrets.yml`: exact allowed private file destinations by host/component.
-- `.vault/`: ignored local encrypted secrets and per-host preimage archives.
-- `.artifacts/`, `.venv/`: ignored development outputs, never target configuration.
+```sh
+ansible-playbook playbooks/site.yml --limit araveia -c local --ask-become-pass
+# Add --ask-vault-pass or standard ANSIBLE_VAULT_PASSWORD_FILE when needed.
+```
 
-`policy/migration.json` accounts for every original tracked file and its original
-SHA-256. Historical dispositions are evidence, not an alternate live manager.
+`--tags shell`, `--tags tmux` etc. use Ansible's ordinary tag behavior, not custom
+dependency selection. Common prerequisites still run. Prefer the complete play
+for an initial post-restore deployment. A failed target stops the serial play;
+fix it and rerun. Unchanged files/installed packages remain untouched; failed
+builds and incomplete Pi extension reconciliations are retried.
 
-## Ownership resolution
+## Source ownership
 
-Use `scripts/dots-source --host HOST --home /actual/target/home DESTINATION`.
-Home-relative destinations need no `--home`. It prints the controller source,
-component, eligibility, and whether the item is user-editable. It never prints
-file contents. Unknown destinations remain unmanaged; upstream assets point to
-acquisition policy; secrets point to the Vault import route; system destinations
-point to their role/manager rather than inviting direct `/etc` edits.
+`roles/<component>/tasks/config.yml` names ordinary `copy`, `template` and `file`
+operations through small shared task includes in `roles/common/tasks/`. Static
+file sources are destination-shaped under `files/<host-scope>/<mode>/`. For
+example `.config/fish/config.fish` is the shell role's
+`files/common/0644/.config/fish/config.fish`.
 
-The deployed private marker `~/.config/ansible/dots-source.json` records
-`source_root`, `inventory_hostname`, and last selected components. For a remote
-deployment, `source_root` is a **controller path**, not necessarily a target path.
-Verify that checkout's repository identity. A missing marker never authorizes
-editing generated/package-managed configuration directly.
+The tree copy checks destination directories and files without following links,
+does not delete unrelated files, and keeps executable/private file modes explicit.
+Templates retain literal embedded syntaxes with standard Jinja header delimiters.
+Runtime-owned credentials and personal repositories are not recursively adopted.
+Upstream skills are obtained by their owner/acquisition instructions, not modified
+to contain local policy. Native handlers restart only declared affected services. Vault file deliveries
+name affected roles with `services`, rather than restarting every service.
 
-Symlinked destination ancestors are rejected, rather than following them into an
-unowned tree. Layout links to shared Pi authentication/cache locations are
-created only when absent; existing runtime files/directories are preserved and
-not read into ordinary configuration backups. Provider credentials, sessions,
-model caches, npm/Git package caches and identities are not user source.
+Araveia-only roles are system, desktop, mail, CLIProxyAPI, Forgejo, website source
+and curated software. The lab receives shell/Git/SSH/tmux/editor/agent setup only;
+its personal SSH config is preserved and receives an isolated config.d include.
+Main role data checks refuse an unmounted/wrong docs filesystem, empty Forgejo
+installation, or a different Tailscale address before application writes.
 
-## Lifecycle order and activation
+## Forgejo Actions: one-time setup
 
-The playbook resolves ownership and authenticates encrypted inputs/preimages
-before installs or file writes. It installs selected prerequisites, prepares the
-real account/user manager, and writes only declared files/templates/links. A
-non-secret allowlist bundle makes the large static-resource set efficient without
-copying whole live directories. Private parents and explicit file modes are
-applied; no recursive ownership reset or pruning occurs.
+The workflow in `.forgejo/workflows/ansible.yml` uses the existing runner with an
+`ubuntu-latest` label capable of starting Docker jobs. Its job containers install
+controller/test dependencies; this does not install tools on the runner host.
+The runner must be able to resolve and SSH to both inventory hostnames, including
+araveia itself, through the existing network. Do not expose target SSH publicly
+or disable host-key verification to make a job succeed. Verify name resolution
+from an actual job container, not only from the runner host. If short names are
+not resolvable there, set each host's ordinary inventory `ansible_host` to its
+verified reachable address/FQDN and use matching entries in `ANSIBLE_KNOWN_HOSTS`.
 
-System integration and Forgejo start before self-hosted source acquisition.
-Forgejo's existing repositories/databases are **never copied, reinitialized, or
-pruned**. The supported user unit runs Compose. The Docker group GID is gathered,
-not hardcoded. The Docker daemon requires the data mount at boot, and the user
-unit requires the mount and existing `app.ini`. Per-process Git URL rewrites use
-loopback on araveia, with source reachability checked after Forgejo health; no
-persistent personal Git rewrite or public tunnel is needed to fetch its sources.
-An explicit account socket ACL allows the already-running user
-manager to use Docker without forcing logout; Docker membership is root-equivalent.
-The website remains its own repository and its own Actions deployment pipeline:
-Ansible checks out source without forcing dirty work, and starts a runner only
-when an existing private enrollment is available. It does not publish site
-content or mint runner credentials. Theme sources keep their literal Go-template
-syntax and are installed in Forgejo's actual `gitea/` custom path.
+Add these **repository Actions secrets** in Forgejo:
 
-Tmux uses pinned tmux-resurrect, its existing main-server-only persistence helper
-and timer, with unbounded completion-aware restore/save behavior preserved.
-Existing tmux reloads only after configuration changes; no tmux server is created
-merely to deploy files. Mail restores programs/config/hooks and starts selected
-user units, but never copies messages, notmuch indexes, or OAuth stores into Git.
+| Secret | Value |
+| --- | --- |
+| `ANSIBLE_VAULT_PASSWORD` | Password for the encrypted files committed here |
+| `ANSIBLE_SSH_PRIVATE_KEY` | Deployment key whose public half is authorized on both normal accounts |
+| `ANSIBLE_KNOWN_HOSTS` | Verified SSH host-key lines for araveia and syssec-canis |
+| `ANSIBLE_SSH_USER` | Normal login account used on both machines |
+| `ANSIBLE_BECOME_PASSWORD` | Its sudo password on both machines |
 
-The proxy is built from its owning clean Git checkout, with an exact successful
-build receipt. A failed upgrade is retried even if the checkout already advanced.
-Changed binary or secret/configuration triggers service restart. Its secrets
-remain outside public YAML and arrive through Vault. Desktop files apply without
-forcibly restarting the compositor, display manager, browser, or audio session.
+The initial workflow assumes the same login name and sudo password on both
+machines. If they differ, use ordinary inventory host variables with Vault-
+encrypted per-host passwords instead of this shared CI variable override.
+Never put the actual values into the workflow. Set up/verify SSH authorization
+through your existing trusted administration channel; Ansible cannot bootstrap
+its own missing remote access. For key-only noninteractive sudo, deliberately
+configure the chosen policy separately instead of silently granting NOPASSWD.
 
-Agent CLIs use account-owned npm prefixes. Pi profile resources are acquired
-through **Pi's supported package manager** under explicit profile environments;
-no caches are edited as source, and the active `ppi` selection is not switched.
-A successful settings-checksum receipt avoids rolling package updates on every
-unchanged deployment. Manually clear only the affected receipt after reviewing a
-recovery need; normal package updates belong to the manager's specific update
-route. Existing provider authentication remains local. Upstream mirrored skills
-keep their original baseline hashes/ownership; change acquisition/source
-ownership, not downloaded copies.
+PRs and `main` pushes run source/disposable checks. Only a successful `main`
+check permits deployment; `workflow_dispatch` is also restricted to main.
+Deployments are serialized without cancelling one halfway through a host. The
+normal play serializes the two hosts. The runner/Forgejo version must support
+job-level `concurrency`; verify that on the existing installation before enabling
+automatic deployment. An offline lab machine makes deployment
+fail rather than silently claiming the fleet was updated. Inspect the job and
+rerun after restoring access; there is no unattended retry daemon or auto-merge.
 
-Curated application software runs last, after self-hosted Git is healthy. Missing
-local PKGBUILDs are acquired at declared refs into a package-source cache if the
-original personal checkout is unavailable; existing personal repos are never
-pulled/reset/cleaned. See [software](SOFTWARE.md) for the bounded package-build
-privilege contract and intentionally unsupported vendor installers.
+Secrets exist only in the deployment step. Native Vault reads a temporary private
+password file; SSH uses a temporary private key and verified known_hosts. A trap
+removes the temporary directory using Ansible's file module. Commands never
+contain password values. Job containers are disposable. Forgejo's encryption is
+not an offline backup: retain the Vault password outside Forgejo so reinstalling
+its host does not create a recovery dependency cycle.
 
-## Selection and adding a host
+Same-repository workflow authors are trusted with deployment secrets under the
+owner's chosen two-user/owner-merge trust model. Branch checks are an operational
+approval convention, not a claim that branch writers cannot access repository
+secrets by changing workflows. Workflow files and secrets are not enabled or
+executed by source validation. Keep this PR open until the owner merges it.
 
-Defaults deploy the local short hostname only, never the whole inventory. Unknown
-hosts fail closed. `--all` is a distinct explicit fleet-wide action. Omitting
-`--components` selects that host's full allowed set; dependencies are added but
-cannot grant server eligibility. The playbook repeats the membership checks, so
-raw role requests are not an eligibility bypass.
+### Forgejo and runner activation
 
-Before enrolling another machine, verify its actual hostname/OS/login/network,
-add explicit `inventory/hosts.yml` membership and host variables, choose its
-components, and add only approved secret policy. Never treat a shared T3 device
-or observed tailnet peer as consent to configure it. Test its configuration in a
-disposable home before any authorized real run.
+Forgejo's change handler force-recreates only the `forgejo` container, so mounted
+configuration/template changes activate even if Compose YAML is unchanged. It
+does not recreate the Actions runner that may be executing this deployment.
+The website role starts an already-enrolled runner with `--no-recreate`. Runner
+image/definition changes therefore require a separately scheduled, explicit
+runner recreation when no job is running; merging this repository does not
+silently replace its own running executor.
 
-`--config-only` disables packages, external acquisition and service activation;
-it is useful for an already-provisioned account, not a substitute for bootstrap.
-`--plan` only resolves inventory selection and makes no key/configuration writes.
-`--check --diff` reads live state but skips actual builds/installers and suppresses
-secret diffs. Missing fresh-host prerequisites can make check mode fail; check
-mode does not prove package installation, network availability, or activation.
+Before the reinstall, update the separate restore procedure's old chezmoi step;
+see [Recovery](RECOVERY.md). This source's deny-all `.chezmoiignore` also prevents
+a forgotten legacy apply from putting the Ansible tree into your home.
+
+## Rollback and verification
+
+Revert the unwanted source commit, review/merge the revert, and redeploy. This
+restores desired configuration only. It does not downgrade packages, reconstruct
+deleted files, restore a database/schema, revoke credentials, reverse groups or
+restore a whole machine. Use the existing separate backups for those operations.
+
+`./scripts/check static` checks syntax/source ownership and whitespace.
+`deployment` runs real Ansible in disposable homes including standard Vault;
+`software` records package/build/Pi decisions with executable substitutes;
+`tmux` checks the persistence protocol. `all` runs them together. No real
+installation, sudo/SSH, provider sign-in, service activation or visual capture is
+claimed by these tests. Only explicit real-host deployment can exercise those
+remaining boundaries.

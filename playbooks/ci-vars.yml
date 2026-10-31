@@ -1,0 +1,4 @@
+---
+# Expressions only: values live in Forgejo's protected job environment, not Git.
+ansible_user: "{{ lookup('ansible.builtin.env', 'ANSIBLE_SSH_USER') }}"
+ansible_become_password: "{{ lookup('ansible.builtin.env', 'ANSIBLE_BECOME_PASSWORD') }}"

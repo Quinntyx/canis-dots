@@ -1,4 +1,9 @@
 ---
+- name: Track ssh configuration changes separately
+  ansible.builtin.set_fact:
+    dots_configuration_changed: false
+- name: Install ssh configuration
+  ansible.builtin.include_tasks: config.yml
 - name: Include the lab-only SSH fragment without replacing personal SSH configuration
   ansible.builtin.blockinfile:
     path: "{{ dots_home }}/.ssh/config"

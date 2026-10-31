@@ -5,7 +5,6 @@ mock in a disposable directory. Become is disabled (with a nonexistent become
 executable as a tripwire), so nothing installs, authenticates, or starts. These
 runs prove task decisions and argv, not live package installation.
 """
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -69,9 +68,15 @@ if name == 'uv':
     if args[:2] == ['pip', 'list']:
         done(0, '[]')
     done()
-if name == 'makepkg' and args == ['--packagelist']:
+if name == 'makepkg':
     base = os.getcwd()
-    done(0, f'{base}/fixture-bin-1-1-x86_64.pkg.tar.zst\n{base}/fixture-bin-debug-1-1-x86_64.pkg.tar.zst')
+    if args == ['--printsrcinfo']:
+        done(0, Path('.SRCINFO').read_text())
+    if args == ['--packagelist']:
+        done(0, f'{base}/fixture-bin-1-1-x86_64.pkg.tar.zst\n{base}/fixture-bin-debug-1-1-x86_64.pkg.tar.zst')
+    Path('fixture-bin-1-1-x86_64.pkg.tar.zst').write_text('mock package, never installed')
+    Path('fixture-bin-debug-1-1-x86_64.pkg.tar.zst').write_text('mock debug package')
+    done()
 if name == 'pi':
     failing = (state / 'pi-fail').read_text().split() if (state / 'pi-fail').exists() else []
     done(1 if Path(os.environ['PI_CODING_AGENT_DIR']).name in failing else 0)
@@ -79,11 +84,9 @@ done()
 '''
 
 
-def load_filter():
-    spec = importlib.util.spec_from_file_location('dots_filter', ROOT / 'plugins/filter/dots.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def profiles(host):
+    values = yaml.safe_load((ROOT / 'roles/agents/vars/main.yml').read_text())
+    return values['dots_pi_shared_dirs'] + (values['dots_pi_main_dirs'] if host == 'araveia' else [])
 
 
 @unittest.skipUnless(PLAYBOOK, 'Install project-local ansible-core to run fresh-host decision tests')
@@ -104,6 +107,7 @@ class FreshHostDecisions(unittest.TestCase):
         for name in ('pacman', 'rustup', 'npm', 'cargo', 'cargo-binstall', 'uv', 'makepkg', 'yay', 'sudo'):
             (self.bindir / name).symlink_to(mock)
         (self.bindir / 'setsid').symlink_to(shutil.which('setsid'))
+        (self.bindir / 'setpriv').symlink_to(shutil.which('setpriv'))
 
     def play(self, tasks, variables):
         playbook = self.base / 'play.yml'
@@ -218,48 +222,43 @@ class FreshHostDecisions(unittest.TestCase):
         (self.state / 'installed').write_text('pipewire-jack\nglibc\nbase-devel\n')
         playbook_git = dict(GIT_ENVIRONMENT, GIT_CONFIG_COUNT='2', GIT_CONFIG_KEY_1='url.file://' + str(self.base / 'aur') + '/.insteadOf',
                             GIT_CONFIG_VALUE_1='https://aur.archlinux.org/')
-        tasks = [{'ansible.builtin.include_tasks': str(ROOT / 'roles/software/tasks/aur.yml'),
-                  'vars': {'dots_aur_name': 'fixture-bin'}}]
-        result, calls = self.play(tasks, {'software_bindir': str(self.bindir), 'dots_aur_revisions': {'fixture-bin': revision},
-                                          'dots_git_environment': playbook_git})
+        tasks = [{'ansible.builtin.include_tasks': str(ROOT / 'roles/software/tasks/build-package.yml')}]
+        result, calls = self.play(tasks, {'software_bindir': str(self.bindir),
+            'software_builder_user': 'fixture', 'software_builder_home': str(self.base / 'builder'),
+            'ansible_facts': {'architecture': 'x86_64'},
+            'software_recipe': {'name': 'fixture-bin', 'repo': str(recipe), 'version': revision, 'subdir': '.'}})
         self.assertEqual(result.returncode, 0, result.stdout[-8000:])
         pacman = [c['args'] for c in calls if c['cmd'] == 'pacman']
-        self.assertIn(['-T', '--', 'base-devel', 'git'], pacman)
-        self.assertIn(['-S', '--needed', '--noconfirm', '--', 'git'], pacman)
         # jack is already provided by pipewire-jack, so no default jack2 is pulled in.
-        self.assertIn(['-T', '--', 'jack', 'glibc'], pacman)
+        self.assertIn(['-T', '--', 'jack', 'glibc>=2.40'], pacman)
         self.assertFalse([a for a in pacman if a[:1] == ['-S'] and 'jack' in a])
         upgrade = [a for a in pacman if a[:1] == ['-U']]
         self.assertEqual(len(upgrade), 1)
         self.assertTrue(upgrade[0][-1].endswith('/fixture-bin-1-1-x86_64.pkg.tar.zst'))
         self.assertFalse([a for a in upgrade[0] if '-debug-' in a])
-        self.assert_untrusted(calls, 'makepkg')
+        recipe_tasks = (ROOT / 'roles/software/tasks/build-package.yml').read_text()
+        self.assertIn('--no-new-privs', recipe_tasks)
+        self.assertNotIn('sudo', '\n'.join(line for line in recipe_tasks.splitlines() if not line.startswith('#') and 'name:' not in line))
 
     # --- agents role ------------------------------------------------------
 
     def agents(self, host):
-        dots_files = load_filter().entries(['agents'], host)
-        for entry in dots_files:
-            if entry['dest'].endswith('/settings.json') and 'pi' in entry['dest']:
-                path = self.home / entry['dest']
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(json.dumps({'fixture': entry['dest']}))
+        for directory in profiles(host):
+            path = self.home / directory / 'settings.json'
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({'fixture': directory}))
         pi = self.home / '.npm-global/bin/pi'
         pi.parent.mkdir(parents=True, exist_ok=True)
         if not pi.exists():
             pi.symlink_to(self.base / 'mock.py')
-        tasks = [{'ansible.builtin.include_role': {'name': str(ROOT / 'roles/agents')}}]
-        variables = {'dots_files': dots_files, 'dots_bindir': str(self.bindir), 'dots_install_agent_tools': True,
+        tasks = [{'ansible.builtin.include_role': {'name': str(ROOT / 'roles/agents'), 'tasks_from': 'install'}}]
+        variables = {'inventory_hostname': host, 'dots_bindir': str(self.bindir), 'dots_install_agent_tools': True,
                      'dots_manage_externals': False, 'dots_controller_root': str(ROOT),
                      'dots_npm_tools': [{'name': '@earendil-works/pi-coding-agent', 'version': '1.4.0'}]}
         return self.play(tasks, variables)
 
     def expected_dirs(self, host):
-        dirs = {str(Path(e['dest']).parent) for e in load_filter().entries(['agents'], host)
-                if e['dest'] == '.pi/agent/settings.json'
-                or (e['dest'].startswith('.config/pi/profiles/') and e['dest'].count('/') == 4
-                    and e['dest'].endswith('/settings.json'))}
-        return {str(self.home / d) for d in dirs}
+        return {str(self.home / directory) for directory in profiles(host)}
 
     def test_every_declared_profile_reconciles_extensions_without_self_update(self):
         result, calls = self.agents('araveia')
@@ -351,8 +350,14 @@ class FreshSourcePolicy(unittest.TestCase):
 
     def test_untrusted_build_policy_disables_cached_credentials_and_debug_splits(self):
         builds = (ROOT / 'roles/software/tasks/builds.yml').read_text()
-        self.assertIn('Defaults:{{ dots_user }} timestamp_timeout=0', builds)
-        self.assertIn('OPTIONS+=(!debug)', builds)
+        self.assertNotIn('/etc/sudoers', builds)
+        builder = (ROOT / 'roles/software/tasks/builder.yml').read_text()
+        self.assertIn('name: dots-builder', builder)
+        self.assertIn('shell: /usr/bin/nologin', builder)
+        recipe = (ROOT / 'roles/software/tasks/build-package.yml').read_text()
+        self.assertIn('--no-new-privs', recipe)
+        self.assertIn("excludes: ['*-debug-*']", recipe)
+        self.assertIn('intersect(software_expected_artifacts.stdout_lines)', recipe)
         for path in ('roles/software/tasks/builds.yml', 'roles/software/tasks/tools.yml'):
             for task in yaml.safe_load((ROOT / path).read_text()):
                 for inner in task.get('block', [task]):

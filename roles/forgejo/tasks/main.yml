@@ -1,4 +1,9 @@
 ---
+- name: Track forgejo configuration changes separately
+  ansible.builtin.set_fact:
+    dots_configuration_changed: false
+- name: Install forgejo configuration
+  ansible.builtin.include_tasks: config.yml
 - name: Integrate the existing server identity without managing its data tree
   ansible.builtin.include_tasks: server.yml
   when: not dots_sandbox and dots_manage_services

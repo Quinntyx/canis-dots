@@ -1,0 +1,24 @@
+---
+- name: Install the host's official prerequisites
+  ansible.builtin.include_tasks: packages.yml
+  when: dots_manage_packages and not dots_sandbox
+- name: Prepare the account and user service manager
+  ansible.builtin.include_tasks: account.yml
+  when: dots_manage_packages and dots_manage_services and not dots_sandbox
+- name: Resolve the real Docker socket group before rendering Compose
+  ansible.builtin.getent:
+    database: group
+    key: docker
+    fail_key: "{{ not ansible_check_mode }}"
+  when: inventory_hostname == 'araveia' and not dots_sandbox
+- name: Use the target Docker GID rather than the controller's
+  ansible.builtin.set_fact:
+    dots_docker_group_gid: "{{ ansible_facts.getent_group.docker[1] | default(0) }}"
+  when: inventory_hostname == 'araveia' and not dots_sandbox
+- name: Install optional explicitly declared Vault files
+  ansible.builtin.include_tasks: secret.yml
+  loop: "{{ vault_files | default([]) }}"
+  loop_control:
+    loop_var: vault_file
+    label: encrypted-file
+  no_log: true

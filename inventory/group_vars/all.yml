@@ -1,27 +1,26 @@
 ---
 dots_components: [shell, git, ssh, tmux, editor, agents]
-dots_server_components: [mail, cliproxyapi, forgejo, website, system, software]
 dots_sandbox: false
 dots_manage_packages: true
 dots_manage_services: true
 dots_manage_externals: true
 dots_install_agent_tools: true
 dots_controller_root: "{{ playbook_dir | dirname }}"
-dots_vault_root: "{{ dots_controller_root }}/.vault"
 dots_home: "{{ ansible_facts.user_dir }}"
 dots_user: "{{ ansible_facts.user_id }}"
 dots_uid: "{{ ansible_facts.user_uid }}"
 dots_tailnet_ip: 100.110.255.43
 # Per-process Git override, not a persistent user Git configuration change.
 # Bootstrap must not depend on this same host's public tunnel being up first.
-dots_git_environment: "{{ {'GIT_CONFIG_COUNT': '1', 'GIT_CONFIG_KEY_0': 'url.http://127.0.0.1:3000/.insteadOf', 'GIT_CONFIG_VALUE_0': 'https://git.quinntyx.dev/'} if inventory_hostname == 'araveia' and 'forgejo' in (dots_selected | default([])) else {} }}"
+dots_git_environment: "{{ {'GIT_CONFIG_COUNT': '1', 'GIT_CONFIG_KEY_0': 'url.http://127.0.0.1:3000/.insteadOf', 'GIT_CONFIG_VALUE_0': 'https://git.quinntyx.dev/'} if inventory_hostname == 'araveia' else {} }}"
 dots_service_units:
   tmux: [tmux-resurrect-save.timer]
   mail: [mail-sync.timer, goimapnotify.service]
   cliproxyapi: [cliproxyapi.service]
   forgejo: [forgejo.service]
   desktop: [sunsetr-resume.timer, meal-water-sync.service]
-dots_secret_files: []
+vault_files: []
+dots_changed_secret_roles: []
 dots_aur_revisions:
   oama-bin: 84b247806a036c8f7a2491dae92259fefcfb3487
   cyrus-sasl-xoauth2-git: 74f6ea03ca59d284685ed9446ad1f1b8d1ce82cf

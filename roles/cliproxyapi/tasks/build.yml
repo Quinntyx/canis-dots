@@ -4,12 +4,13 @@
     path: "{{ dots_home }}/docs/src/CLIProxyAPI"
     state: directory
     mode: '0755'
-- name: Converge the canonical clean checkout without force-resetting user work
+- name: Clone missing proxy source without updating a personal checkout
   ansible.builtin.git:
     repo: "{{ dots_cliproxyapi_repo }}"
     dest: "{{ dots_home }}/docs/src/CLIProxyAPI/main"
     version: "{{ dots_cliproxyapi_revision }}"
     force: false
+    update: false
   environment: "{{ dots_git_environment }}"
   register: dots_proxy_checkout
 - name: Check the managed proxy binary

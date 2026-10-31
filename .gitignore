@@ -8,6 +8,7 @@ __pycache__/
 # Defense in depth; never treat an ignore rule as encryption or backup.
 vault-pass*
 *.vault
+!secrets/*.vault
 .env
 .env.*
 auth.json

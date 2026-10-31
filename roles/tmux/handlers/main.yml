@@ -1,0 +1,11 @@
+---
+- name: Restart tmux services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: user
+    daemon_reload: true
+    state: restarted
+  loop: ["tmux-resurrect-save.timer"]
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ dots_uid }}"
+  when: dots_manage_services and not dots_sandbox

@@ -1,98 +1,68 @@
 ---
-- name: Explicitly scoped workstation and server configuration
+- name: Configure enrolled workstations after their data has been restored
   hosts: workstations
   gather_facts: true
-  vars:
-    dots_requested_components: []
+  serial: 1
+  # Empty public files are valid; encrypt real values with ansible-vault edit.
+  vars_files:
+    - "../secrets/{{ inventory_hostname }}.yml"
   pre_tasks:
-    - name: Resolve dependencies within host eligibility
-      ansible.builtin.set_fact:
-        dots_selected: "{{ dots_requested_components | dots_select(dots_components) }}"
-      tags: [always]
-    - name: Enforce server membership independently of component requests
+    - name: Require an explicitly enrolled ordinary account
       ansible.builtin.assert:
         that:
-          - inventory_hostname in groups['workstations']
-          - "(dots_selected | intersect(dots_server_components) | length == 0) or (inventory_hostname in groups.get('main_server', []))"
-          - not ansible_check_mode or not dots_sandbox or dots_home != ansible_facts.user_dir
-          - not dots_sandbox or dots_home != ansible_facts.user_dir
+          - inventory_hostname in ['araveia', 'syssec-canis']
+          - dots_user != 'root'
           - dots_home is match('^/')
           - dots_home != '/'
-          - dots_user != 'root'
+          - not dots_sandbox or dots_home != ansible_facts.user_dir
+        fail_msg: Use the intended normal account; tests must supply a disposable home.
+    - name: Verify the home directory itself is not a link
+      ansible.builtin.stat:
+        path: "{{ dots_home }}"
+        follow: false
+      register: dots_home_check
+    - name: Require the existing account home
+      ansible.builtin.assert:
+        that:
+          - dots_home_check.stat.isdir | default(false)
+          - not dots_home_check.stat.islnk | default(false)
         quiet: true
-      tags: [always]
-    - name: Validate the actual preserved data disk before any application writes
-      dots_storage:
-        path: "{{ dots_docs }}"
-        uuid: "{{ dots_docs_uuid }}"
-        uid: "{{ dots_uid }}"
-        require_forge: "{{ 'forgejo' in dots_selected }}"
-      when: not dots_sandbox and inventory_hostname == 'araveia' and dots_selected | intersect(['forgejo', 'website', 'mail', 'software', 'cliproxyapi']) | length > 0
-      tags: [always]
-    - name: Inspect the main node's enrolled tailnet identity before application mutations
-      ansible.builtin.command:
-        argv: ["{{ dots_tailscale_binary | default('/usr/bin/tailscale') }}", ip, -4]
-      register: dots_preflight_tailnet
-      changed_when: false
-      check_mode: false
-      failed_when: false
-      when: dots_selected | intersect(['cliproxyapi', 'forgejo']) | length > 0 and dots_manage_services and not dots_sandbox
-      tags: [always]
-    - name: Refuse service binds on a missing or wrong network identity
-      ansible.builtin.assert:
-        that:
-          - dots_preflight_tailnet.rc | default(1) == 0
-          - dots_tailnet_ip in dots_preflight_tailnet.stdout_lines | default([])
-        fail_msg: >-
-          A first reinstall needs scripts/deploy --fresh. If recovery already
-          completed, do not replay old credentials: run sudo tailscale up to
-          reauthenticate a revoked/expired node and retain the original enrolled
-          address through the Tailscale admin console. Then retry scripts/deploy.
-          Forgejo and the proxy require the exact inventory address.
-      when: dots_selected | intersect(['cliproxyapi', 'forgejo']) | length > 0 and dots_manage_services and not dots_sandbox
-      tags: [always]
-    - name: Resolve explicitly owned files
-      ansible.builtin.set_fact:
-        dots_files: "{{ dots_selected | dots_entries(inventory_hostname) }}"
-      tags: [always]
-    - name: Require provisioned service credentials before any mutations
-      ansible.builtin.assert:
-        that:
-          - "'cliproxyapi' not in dots_selected or (dots_secret_files | selectattr('component', 'equalto', 'cliproxyapi') | list | length > 0) or dots_sandbox"
-        fail_msg: Run scripts/deploy to enroll/authenticate required secrets before deployment.
-      tags: [always]
-    - name: Authenticate encrypted controller preimages before any file changes
-      dots_backup:
-        home: "{{ dots_home }}"
-        host: "{{ inventory_hostname }}"
-        entries: "{{ dots_files + dots_secret_files + ([{'dest': '.ssh/config'}] if 'ssh' in dots_selected and inventory_hostname == 'syssec-canis' else []) }}"
-        vault_root: "{{ dots_vault_root }}"
-        secrets: "{{ dots_secret_files }}"
-      no_log: true
-      tags: [always]
-    - name: Authenticate root-owned preimages before installing any packages
-      dots_backup:
-        home: /
-        host: "{{ inventory_hostname }}-system"
-        entries: "{{ ([{'dest': 'etc/keyd/default.conf'}, {'dest': 'etc/hosts'}] if 'system' in dots_selected else []) + ([{'dest': 'etc/systemd/system/docker.service.d/20-dots-storage.conf'}] if 'forgejo' in dots_selected else []) }}"
-        vault_root: "{{ dots_vault_root }}"
-      become: true
-      no_log: true
-      when: dots_selected | intersect(['system', 'forgejo']) | length > 0 and not dots_sandbox and dots_manage_services
-      tags: [always]
+    - name: Check existing araveia data and network identity before application writes
+      ansible.builtin.include_tasks: preflight.yml
+      when: inventory_hostname == 'araveia' and not dots_sandbox
   roles:
-    - role: dots
-  tasks:
-    - name: Run selected component lifecycles
-      ansible.builtin.include_role:
-        name: "{{ item }}"
-      loop: "{{ ['system', 'forgejo', 'website', 'shell', 'git', 'ssh', 'tmux', 'editor', 'agents', 'desktop', 'mail', 'cliproxyapi', 'software'] | select('in', dots_selected) | list }}"
-      when:
-        - (dots_controller_root ~ '/roles/' ~ item ~ '/tasks/main.yml') is file
-        - item != 'software' or dots_manage_packages
-    - name: Record source identity without changing profile identity
-      ansible.builtin.copy:
-        content: "{{ {'source_root': dots_controller_root, 'inventory_hostname': inventory_hostname, 'components': dots_selected} | to_nice_json }}\n"
-        dest: "{{ dots_home }}/.config/ansible/dots-source.json"
-        mode: '0600'
-      diff: false
+    - role: common
+      tags: [always]
+    - role: system
+      when: inventory_hostname == 'araveia'
+      tags: [system]
+    - role: forgejo
+      when: inventory_hostname == 'araveia'
+      tags: [forgejo]
+    - role: shell
+      tags: [shell]
+    - role: git
+      tags: [git]
+    - role: ssh
+      tags: [ssh]
+    - role: tmux
+      tags: [tmux]
+    - role: editor
+      tags: [editor]
+    - role: agents
+      tags: [agents]
+    - role: desktop
+      when: inventory_hostname == 'araveia'
+      tags: [desktop]
+    - role: mail
+      when: inventory_hostname == 'araveia'
+      tags: [mail]
+    - role: cliproxyapi
+      when: inventory_hostname == 'araveia'
+      tags: [cliproxyapi]
+    - role: website
+      when: inventory_hostname == 'araveia'
+      tags: [website]
+    - role: software
+      when: inventory_hostname == 'araveia'
+      tags: [software]

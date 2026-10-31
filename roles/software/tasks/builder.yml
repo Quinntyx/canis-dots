@@ -1,0 +1,11 @@
+---
+- name: Create the isolated build account with no login, password or sudo group
+  become: true
+  become_user: root
+  ansible.builtin.user:
+    name: dots-builder
+    system: true
+    create_home: true
+    home: /var/lib/dots-builder
+    shell: /usr/bin/nologin
+    password_lock: true

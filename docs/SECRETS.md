@@ -1,94 +1,89 @@
-# Secrets and encrypted preimages
+# Secrets: ordinary Ansible Vault and Forgejo Actions
 
-## Normal existing-machine deployment
+There is no custom encrypted-file registry, automatic credential import or local
+Vault store. Credentials already restored to their application's runtime paths
+remain runtime state. Nothing reads the active home to manufacture Git contents.
 
-`./scripts/deploy` imports existing, explicitly allowlisted private files into
-`.vault/encrypted_files/<host>/<home-relative-destination>.vault` in memory, using
-Ansible Vault. It never imports a whole live tree or prints secret values. The
-policy is `policy/secrets.yml`; ordinary roles contain only configuration.
+## Optional encrypted host variables
 
-The controller creates `~/.config/ansible/vault-pass` with a random key if this is
-the first real deployment. The file is controller-owned, mode `0600`; its private
-parent is `0700`. Existing unsafe permissions, empty keys and symlinks are errors.
-The store and private payload parents are `0700`, ciphertext files `0600`.
-Override locations with `DOTS_VAULT_ROOT` and `DOTS_VAULT_PASSWORD_FILE` if needed.
-The key is **not sent to managed nodes**, stored in Git, printed, or put in argv.
-
-`--plan` creates nothing. `--check` does not create a persistent key/enroll files;
-it can inspect existing local allowlisted secrets without copying them to public
-source. A controller without the correct key cannot decrypt existing secrets or
-backups and must stop rather than overwrite them.
-
-Every selected host's enrolled secret and existing encrypted backup is
-authenticated before any host deployment begins. Required missing service
-credentials fail before mutation. Optional missing application credentials are
-not fabricated. Secrets are installed with restrictive modes, `no_log: true`,
-`diff: false`, and Ansible's normal encrypted transport/private temporary module
-execution. Never enable verbose/debug callbacks that dump module internals.
-
-## Backup, transfer and explicit import
-
-**Back up the Vault key separately from `.vault/`.** Losing the key loses the
-ability to restore the encrypted files. Git ignores both the store and common
-credential filenames. Git ignoring is not encryption and is not a backup.
-The main controller needs the store/key to deploy credentials to a replacement
-main node; an existing local machine can enroll its own permitted files on its
-first deployment. Normal SSH/Tailscale/provider authentication is preserved, not
-cloned between hosts.
-
-For an approved private file already available to the controller:
+`secrets/araveia.yml` and `secrets/syssec-canis.yml` start as public empty examples.
+Before adding a real password or token, encrypt the selected file, then edit it:
 
 ```sh
-./scripts/vault-import --host araveia \
-  --dest .local/share/cliproxyapi/secrets.json \
-  --source /private/location/secrets.json
+ansible-vault encrypt secrets/araveia.yml
+ansible-vault edit secrets/araveia.yml
+# Commit the ciphertext, never the password.
+git add secrets/araveia.yml
 ```
 
-This encrypts only an exact allowlisted destination and does **not** deploy it.
-It never prints the file. Use a protected source location and do not put secret
-values in command-line arguments. The default import replaces a previously
-authenticated payload only; deploy the affected component separately afterward.
-Changing the proxy secret triggers its service restart on deployment.
+Host files are loaded with native `vars_files`. Run with `--ask-vault-pass`, or
+set the standard `ANSIBLE_VAULT_PASSWORD_FILE` to an existing protected controller
+file. The local wrapper prompts when encrypted files exist. Wrong/missing keys
+fail standard Vault decryption; there is no key generator or silent enrollment.
 
-Provider `auth.json`, token caches, browser profiles, SSH keys, runner database,
-mail OAuth/keyring state, Tailscale node identity, Forgejo database and Cloudflare
-enrollment remain runtime-owned. Optional runner enrollment configuration may be
-encrypted explicitly by policy; the runner is not started without it. Do not turn
-a source resolver's unmanaged result into permission to adopt these trees.
+Encrypting a host file is optional if all application credentials have already
+been restored. Ansible still requires the relevant existing runtime credentials
+before starting their service. Provider/OAuth refresh, SSH identity, GPG keys,
+runner enrollment and missing personal data cannot be generated from Git.
 
-## Encrypted configuration rollback
+## Optional encrypted files
 
-Before installation, `dots_backup` takes **only declared destination preimages**
-on the target and sends them through Ansible to controller memory. It records
-regular-file bytes/modes, link targets, and absent destinations in an encrypted
-`.vault/backups/<host>/<UTC timestamp>.vault` artifact. It never writes a plaintext
-backup archive, follows a destination ancestor symlink, or adopts unlisted keys,
-messages or databases. Root-owned system overrides use `<host>-system`, with
-separate scope. Repeated identical preimages reuse the prior artifact.
+If a particular credential should be deployed by Ansible, make a Vault-encrypted
+file under `secrets/` and declare it in that host's variables:
 
-To restore a deliberately chosen artifact to the same enrolled host:
-
-```sh
-./scripts/rollback --host araveia --confirm-host araveia \
-  --backup .vault/backups/araveia/TIMESTAMP.vault --check
-./scripts/rollback --host araveia --confirm-host araveia \
-  --backup .vault/backups/araveia/TIMESTAMP.vault
+```yaml
+vault_files:
+  - src: cliproxyapi.vault
+    dest: .local/share/cliproxyapi/secrets.json
+    services: [cliproxyapi]
 ```
 
-Use `--system` only with an `araveia-system` artifact to restore the explicitly
-managed root-owned files; sudo is requested. Host/scope identity must match.
-Wrong-key/mismatched-host restoration fails without changes. A new encrypted
-preimage is taken before restoration. Neither keys nor decrypted archive contents
-are printed or placed in a plaintext controller JSON file.
+Create it using `ansible-vault create secrets/cliproxyapi.vault`, enter the secret
+in the editor, and commit only its Vault ciphertext. Native `copy` decrypts it on
+deployment and writes it with mode 0600, with logging/diffs suppressed. Parent
+paths and an existing destination must never be symlinks. This overwrites only
+an explicitly declared regular file; it never imports or recursively adopts
+private trees. List affected service role names in optional `services` (for
+example `mail`, `cliproxyapi`, or `forgejo`); only those roles are restarted when
+the file changes. Without that list, delivery alone does not restart a service.
+A malformed application credential is still an application error: Vault protects
+transport/storage but does not validate a provider's tokens or refresh them.
 
-This is **configuration rollback**, not disk imaging or package downgrade:
-restoration restores recorded files/links/modes, leaves newly created files in
-place when the old state was absent, never deletes unknown data, and does not
-undo package installation, the explicit fresh-install full OS upgrade, account
-groups, service enablement, or builds. `--fresh` also takes root configuration
-preimages for fstab/hostname/resolver/tunnel changes before writing them. Recovery
-of create-only private identities, mounted personal data, and manager-applied
-firewalld runtime/permanent rules is **not** undone by restoring a file artifact. Reload
-only the affected service after inspecting the restored configuration. Compare
-artifact timestamps carefully: the earliest pre-migration artifact, not the
-latest already-configured snapshot, is usually the intended migration rollback.
+`vault_files` can also hold ordinary source filenames **only when their contents
+are Ansible Vault ciphertext**. Do not commit `.env`, private SSH keys, plaintext
+auth JSON, generated stores, logs or database backups anywhere in this repository.
+`.gitignore` is defense in depth, not encryption or an authoritative allowlist.
+
+## Forgejo Actions repository secrets
+
+Use the same repository's Settings → Actions → Secrets. The deployment workflow
+expects `ANSIBLE_VAULT_PASSWORD`, `ANSIBLE_SSH_PRIVATE_KEY`,
+`ANSIBLE_KNOWN_HOSTS`, `ANSIBLE_SSH_USER`, and `ANSIBLE_BECOME_PASSWORD`.
+See [Deployment](DEPLOYMENT.md) for what they contain and runner prerequisites.
+
+The job puts the Vault password and SSH key into temporary owner-only files;
+Ansible reads the sudo password from the job environment through a plain variable
+expression. No password is put in Git, printed or supplied as a process argument.
+The job cleans up temporary files and its container is disposable. Secrets are
+only attached to the main-branch deployment step, not normal PR checks.
+
+The owner explicitly accepts that workflow authors in this repository are trusted
+with repository secrets. Protected main plus the owner's merge access is the
+operational deploy approval, not an additional secret-isolation guarantee.
+
+**Keep an offline copy of the Vault password.** Forgejo lives on araveia; its
+recovery cannot depend on retrieving the only password from that same Forgejo.
+Forgejo repository secrets are not automatically available to a local command;
+local interactive deployment and CI are separate credential delivery paths.
+
+## Rotation and rollback
+
+Use `ansible-vault edit` or `ansible-vault rekey`, commit the encrypted change,
+update the corresponding Forgejo secret when changing the Vault password, and
+redeploy. Configuration handlers activate affected services after successful
+configuration/build changes. Provider-side revocation is separate.
+
+A Git revert and redeploy restores tracked configuration, not runtime secret
+history, removed files, a database, installed packages or whole-machine state.
+Use the existing backups for those recovery operations. This repository no longer
+captures encrypted preimages or supplies a custom rollback command.

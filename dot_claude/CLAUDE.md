@@ -44,11 +44,18 @@
   authorizes that scope, but not an unmanaged workaround when its package manager fails.
 - This host uses EndeavourOS/pacman/yay; verify host evidence when operating elsewhere. No sudo
   privilege is assumed. Do not substitute curl-piped installers or downloaded global binaries.
-- Determine the owner before editing. Use chezmoi's resolved source for managed configuration;
-  package/plugin managers own installed outputs. Edit the supported override or verified owning
-  source, publish only assigned changes and update exact targets through the manager.
-- Do not patch installed Pi Git/npm caches, Claude plugin caches or generated application state.
-  Resolve symlinks and source identity; a missing chezmoi entry is not proof of editability.
+- Determine the owner before editing. For Ansible-managed configuration, read edit-config and use
+  the controller checkout's `scripts/dots-source` plus role manifest for exact destination ownership.
+  The deployment marker `~/.config/ansible/dots-source.json` records `source_root` and
+  `inventory_hostname`; on remote targets its source path identifies the controller, not necessarily
+  a local checkout. Edit verified source on the task branch; honor source-only/no-push/no-deploy scope.
+- Commit/push assigned source before separately authorized `scripts/deploy` host/component application.
+  Components are not exact-file filters. Approved secrets use Vault `encrypted_files/<host>/...`
+  under `policy/secrets.yml`; no plaintext secrets in Git, diffs or logs.
+- Package/plugin managers and generators retain their outputs. Change supported overrides or verified
+  owning source, not installed Pi Git/npm caches, Claude plugin caches or generated application state.
+  Preserve upstream-owned skills. Resolve symlinks and source identity; an unmanaged resolver result
+  is not proof of editability. Update only the assigned package/scope and preserve unrelated drift.
 - Personal hosting identity is quinntyx on Forgejo and Quinntyx on GitHub. Load the Git skill before
   repository setup/publication. Preserve unrelated changes and existing source associations.
 

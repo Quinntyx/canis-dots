@@ -87,4 +87,15 @@ When a request parses two ways, prefer the reading that requires capabilities on
 
 As an agent that runs outside of a container, you must be EXTREMELY careful about what system files you are allowed to touch. For example, files that are managed by another service/tool (eg. `Lazy`, `pacman`, etc.) are NOT to be edited directly.
 
-If a user asks you to edit something that is within a managed repository or folder and it is linked to a git repository that the user has access to (the user is `quinntyx` on both GitHub and git.quinntyx.dev), load the `git` skill and clone the repo, then make changes there. Then, identify the install path and the tool that manages that repository and update that config / run the relevant commands so that that tool pulls down the most recent changes, achieving the goal of applying the fix to the user's install without editing managed system files directly.  
+Determine the actual owner before editing. For Ansible-managed configuration, load `edit-config`:
+resolve exact destination ownership with the controller checkout's `scripts/dots-source` and role
+manifest, then edit that source. `~/.config/ansible/dots-source.json` records `source_root` and
+`inventory_hostname`; a remote target's marker identifies the controller, not a guaranteed local
+checkout. Preserve task-branch, source-only, no-push, and no-deploy boundaries. Commit/push assigned
+source before any separately authorized `scripts/deploy` host/component scope; a component is not
+an exact-file filter. Approved secrets use Vault `encrypted_files/<host>/...` and
+`policy/secrets.yml`, never plaintext Git or logs. Package/plugin managers and generators retain
+ownership of installed outputs. Load `git`, reuse verified source or clone through its procedure;
+change supported overrides or user-owned source and update only the assigned package/scope.
+The user is `quinntyx` on Forgejo and `Quinntyx` on GitHub. Preserve upstream-owned skills, generated
+state, and unrelated drift.

@@ -24,7 +24,8 @@
   become_user: "{{ dots_user }}"
   environment: "{{ software_user_environment }}"
   ansible.builtin.command:
-    argv: [/usr/bin/makepkg, --printsrcinfo]
+    # PKGBUILDs are executable code even when only printing metadata.
+    argv: "{{ software_untrusted_argv + [software_bindir + '/makepkg', '--printsrcinfo'] }}"
     chdir: "{{ item }}"
   loop: "{{ software_local_resolved }}"
   register: software_local_metadata
@@ -41,7 +42,7 @@
 
 - name: Find the EndeavourOS AUR helper
   ansible.builtin.stat:
-    path: /usr/bin/yay
+    path: "{{ software_bindir }}/yay"
   register: software_yay
 
 - name: Select local builds that are not yet installed
@@ -128,6 +129,8 @@
           PKGDEST={{ (software_build.path + '/packages') | quote }}
           LOGDEST={{ (software_build.path + '/logs') | quote }}
           PACMAN={{ (software_policy.path + '/pacman') | quote }}
+          # Detached -debug splits are not curated and collide across builds.
+          OPTIONS+=(!debug)
       changed_when: false
 
     - name: Create isolated artifact directories
@@ -158,7 +161,10 @@
         owner: root
         group: root
         mode: '0440'
-        content: "{{ dots_user }} ALL=(root) NOPASSWD: {{ software_policy.path }}/pacman *\n"
+        # Cached become credentials must not authorize build code's own sudo.
+        content: |
+          Defaults:{{ dots_user }} timestamp_timeout=0
+          {{ dots_user }} ALL=(root) NOPASSWD: {{ software_policy.path }}/pacman *
         validate: /usr/bin/visudo -cf %s
       changed_when: false
 
@@ -168,6 +174,7 @@
         - name: Clone yay PKGBUILD into the isolated workspace
           become: true
           become_user: "{{ dots_user }}"
+          environment: "{{ dots_git_environment | default({}) }}"
           ansible.builtin.git:
             repo: https://aur.archlinux.org/yay.git
             dest: "{{ software_build.path }}/yay-bootstrap"
@@ -178,14 +185,9 @@
           become_user: "{{ dots_user }}"
           environment: "{{ software_user_environment }}"
           ansible.builtin.command:
-            argv:
-              - /usr/bin/makepkg
-              - --config
-              - "{{ software_policy.path }}/makepkg.conf"
-              - --syncdeps
-              - --install
-              - --needed
-              - --noconfirm
+            argv: >-
+              {{ software_untrusted_argv + [software_bindir + '/makepkg', '--config', software_policy.path + '/makepkg.conf',
+                 '--syncdeps', '--install', '--needed', '--noconfirm'] }}
             chdir: "{{ software_build.path }}/yay-bootstrap"
           changed_when: true
 
@@ -198,26 +200,11 @@
              'XDG_CACHE_HOME': software_build.path + '/cache'
            }) }}
       ansible.builtin.command:
-        argv:
-          - /usr/bin/yay
-          - -S
-          - --needed
-          - --noconfirm
-          - --answerdiff
-          - None
-          - --answerclean
-          - None
-          - --builddir
-          - "{{ software_build.path }}/yay"
-          - --pacman
-          - "{{ software_policy.path }}/pacman"
-          - --sudo
-          - "{{ software_policy.path }}/sudo"
-          - --makepkgconf
-          - "{{ software_policy.path }}/makepkg.conf"
-          - --noremovemake
-          - --
-          - "{{ item }}"
+        argv: >-
+          {{ software_untrusted_argv + [software_bindir + '/yay', '-S', '--needed', '--noconfirm',
+             '--answerdiff', 'None', '--answerclean', 'None', '--builddir', software_build.path + '/yay',
+             '--pacman', software_policy.path + '/pacman', '--sudo', software_policy.path + '/sudo',
+             '--makepkgconf', software_policy.path + '/makepkg.conf', '--noremovemake', '--', item] }}
       loop: "{{ software_aur_missing }}"
       changed_when: true
 
@@ -226,14 +213,9 @@
       become_user: "{{ dots_user }}"
       environment: "{{ software_user_environment }}"
       ansible.builtin.command:
-        argv:
-          - /usr/bin/makepkg
-          - --config
-          - "{{ software_policy.path }}/makepkg.conf"
-          - --syncdeps
-          - --install
-          - --needed
-          - --noconfirm
+        argv: >-
+          {{ software_untrusted_argv + [software_bindir + '/makepkg', '--config', software_policy.path + '/makepkg.conf',
+             '--syncdeps', '--install', '--needed', '--noconfirm'] }}
         chdir: "{{ item }}"
       loop: "{{ software_local_missing }}"
       changed_when: true

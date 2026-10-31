@@ -84,7 +84,11 @@ are printed or placed in a plaintext controller JSON file.
 This is **configuration rollback**, not disk imaging or package downgrade:
 restoration restores recorded files/links/modes, leaves newly created files in
 place when the old state was absent, never deletes unknown data, and does not
-undo package installation, account groups, service enablement, or builds. Reload
+undo package installation, the explicit fresh-install full OS upgrade, account
+groups, service enablement, or builds. `--fresh` also takes root configuration
+preimages for fstab/hostname/resolver/tunnel changes before writing them. Recovery
+of create-only private identities, mounted personal data, and manager-applied
+firewalld runtime/permanent rules is **not** undone by restoring a file artifact. Reload
 only the affected service after inspecting the restored configuration. Compare
 artifact timestamps carefully: the earliest pre-migration artifact, not the
 latest already-configured snapshot, is usually the intended migration rollback.

@@ -1,0 +1,14 @@
+---
+- name: Inspect the exact scoped firewall rule in both manager stores
+  ansible.builtin.command:
+    argv: "{{ ['firewall-cmd'] + item + ['--zone=' ~ dots_firewall_rule.zone, '--query-' ~ dots_firewall_rule.kind ~ '=' ~ dots_firewall_rule.value] }}"
+  loop: [[--permanent], []]
+  register: dots_rule_state
+  changed_when: false
+  failed_when: dots_rule_state.rc not in [0, 1]
+- name: Add only a missing declared firewall rule
+  ansible.builtin.command:
+    argv: "{{ ['firewall-cmd'] + item.item + ['--zone=' ~ dots_firewall_rule.zone, ('--change-' if dots_firewall_rule.kind == 'interface' else '--add-') ~ dots_firewall_rule.kind ~ '=' ~ dots_firewall_rule.value] }}"
+  loop: "{{ dots_rule_state.results }}"
+  when: item.rc == 1
+  changed_when: true

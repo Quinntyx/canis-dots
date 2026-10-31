@@ -21,6 +21,60 @@ once, from the **existing legacy private snapshot** onto the fresh install.
   This tool restores none of that. Anything outside the policy stays in the
   snapshot for a deliberate, separate decision.
 
+## Run after reinstalling
+
+From a retained checkout/PR branch, as the normal sudo-capable account with
+Ansible installed and internet access:
+
+```sh
+./scripts/deploy --fresh
+```
+
+Do not format the separate docs disk. Keep UID `1000` for the existing data;
+no recursive `chown` is attempted. The only accepted filesystem is inventory's
+existing UUID `40eda021-8152-4dab-8be2-f19307298da2`. An empty or wrong disk and
+an absent/unlocked Forgejo `app.ini` fail before application writes. The installer
+may use a temporary hostname: `--fresh` explicitly selects the existing local
+araveia identity and restores its hostname through systemd, not inventory
+enrollment. `--fresh --check` checks only recovery and never simulates packages,
+services, or post-restore credentials. A pending mount ends check mode early.
+
+The fresh bootstrap refreshes package databases and performs the supported full
+Arch upgrade (`pacman -Syu`) with its bootstrap prerequisites; this is explicit
+`--fresh` behavior, not a new privilege granted to untrusted builds or ordinary
+repeat deployments. NetworkManager's global/DNS configuration is reloaded through
+`nmcli general reload conf` and `dns-full`, without restarting the service or
+cycling connections, so current connection DNS reaches systemd-resolved.
+
+Fetch the checkout over HTTPS, **before** creating fresh `~/.ssh` files or starting
+sshd. Installer-generated or test-generated keys/known_hosts conflict with the
+create-only restore. Stop and inspect such conflicts; never delete keys simply
+to force recovery. A fresh firewall may need one validated reload to activate
+its new tailnet zone; unrelated historical LAN trusted subnets are not restored.
+The fresh-only full OS upgrade and that one-time firewall activation are
+intentional effects of `--fresh`.
+
+The wrapper authenticates any existing Vault ciphertext before recovery; an old
+store without its original key fails without minting a replacement key. New
+installations with no existing store create their first private Vault key. Keep
+that key separate from `.vault/` when backing up. After recovery, allowlisted
+secrets are encrypted/enrolled before normal application convergence. Existing
+system configuration preimages are encrypted separately under the `araveia-system`
+backup namespace; package/data/identity recovery is not configuration rollback.
+
+A private `~/.local/state/dots/fresh-recovery.json` receipt is written before
+restored services start rotating credentials. A retry validates its account,
+disk and policy, then skips **all** snapshot replay and resumes normal deployment.
+Do not delete it to force old tokens over current state. If restoration failed
+before the receipt, create-only matching files can resume; no force overwrite
+route exists. A changed recovery policy/UID/UUID needs deliberate inspection.
+
+Before wiping the old OS, retain the checkout, original Vault/password if any,
+current private backup and personal data, and push worktree branches. The existing
+legacy snapshot does not include `~/.t3/worktrees`; no migration can recover
+uncommitted work after its disk is erased. Provider refresh-token rotation means
+an older snapshot may no longer authorize a provider.
+
 ## Snapshot layout
 
 ```
@@ -131,7 +185,12 @@ lists. For araveia:
     - `.config/pi/agent/antigravity-accounts.json`, the shared Pi auth that
       profile `auth.json` links target.
     - Every non-`docs/` destination in `policy/secrets.yml`.
-    - `.local/state/oama` and `.config/mail-router`.
+    - `.local/state/oama`, `.config/mail-router`, and Syncthing's
+      `.local/state/syncthing` identity/configuration.
+    - T3's private `userdata/secrets`, environment ID, settings, desktop/client
+      settings and keybindings. The ~1 GiB historical SQLite/session store,
+      attachments, browser captures and deleted-NVMe worktree references are not
+      adopted; recovery of that application data remains a separate operation.
     - `.config/gh/hosts.yml`, `.local/share/forgejo-cli/keys.json`,
       `.git-credentials`, `.codex/auth.json`, `.claude.json` and
       `.config/opencode/antigravity-accounts.json`.
@@ -171,22 +230,29 @@ the policy if the enrolled unit runs as a non-root user. Reuse the Tailscale nod
 key only after the old install is gone, so that two nodes never share one
 identity.
 
-Re-running is idempotent. Identical existing files count as `matched`. If a run
+Direct module re-running is idempotent while files are unchanged; the wrapper's
+receipt avoids re-running it after daemons rotate their state. Identical
+existing files count as `matched`. If a run
 fails mid-write (an I/O error after validation), only new files remain, and a
 re-run continues from there. Nothing is recorded for configuration rollback: to
 undo recovery, remove the created files manually. Every created path lies
 inside the enumerated policy entries.
 
-## Open blocker: stale OAuth state
+## External sign-ins cannot be manufactured
 
 OAuth refresh tokens rotate. The legacy script itself warned that an old
 snapshot can restore dead tokens: CLIProxyAPI pooled logins, Pi, oama,
 gcal-sync, and likely Codex/OpenCode/Antigravity. Recovery copies whatever the
 snapshot holds and does not test, refresh or re-mint credentials. The legacy
-restore notes already recorded gcal-sync as expired. **No refresh procedure is
-defined here.** How to detect and re-authenticate stale providers on the new
-install is still to be decided with the owner, and must not be improvised from
-this tool.
+restore notes already recorded gcal-sync as expired. If a provider returns an
+expired/revoked-token error, re-authenticate in that provider's owning application
+(Pi `/login`, Claude/Codex login flows, or the mail/calendar application's OAuth
+flow); never manufacture replacement tokens or print the old token. A revoked
+Tailscale identity must be re-enrolled through its admin console with the
+inventory's original address before binds can proceed. A revoked Cloudflare
+tunnel credential must be replaced through the tunnel owner. These account
+operations require you, not extra host packages, and are not claimed tested.
+Nothing in deployment silently re-enrolls identities to hide such a failure.
 
 ## Verification
 

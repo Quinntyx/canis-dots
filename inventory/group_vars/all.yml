@@ -12,6 +12,9 @@ dots_home: "{{ ansible_facts.user_dir }}"
 dots_user: "{{ ansible_facts.user_id }}"
 dots_uid: "{{ ansible_facts.user_uid }}"
 dots_tailnet_ip: 100.110.255.43
+# Per-process Git override, not a persistent user Git configuration change.
+# Bootstrap must not depend on this same host's public tunnel being up first.
+dots_git_environment: "{{ {'GIT_CONFIG_COUNT': '1', 'GIT_CONFIG_KEY_0': 'url.http://127.0.0.1:3000/.insteadOf', 'GIT_CONFIG_VALUE_0': 'https://git.quinntyx.dev/'} if inventory_hostname == 'araveia' and 'forgejo' in (dots_selected | default([])) else {} }}"
 dots_service_units:
   tmux: [tmux-resurrect-save.timer]
   mail: [mail-sync.timer, goimapnotify.service]
@@ -26,4 +29,3 @@ dots_aur_revisions:
 dots_npm_tools:
   - {name: '@earendil-works/pi-coding-agent', version: '1.4.0'}
   - {name: pi-profiles, version: '0.1.1'}
-dots_profiles: [main, t3main]

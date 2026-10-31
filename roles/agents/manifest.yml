@@ -2838,10 +2838,10 @@
     "kind": "file"
   },
   {
-    "source": ".config/pi/profiles/daily_assistant/npm/.gitignore",
+    "source": ".config/pi/profiles/daily_assistant/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/daily_assistant/npm/.gitignore",
     "mode": "0644",
-    "kind": "file"
+    "kind": "template"
   },
   {
     "source": ".config/pi/profiles/daily_assistant/npm/package-lock.json",
@@ -2915,10 +2915,10 @@
     "kind": "file"
   },
   {
-    "source": ".config/pi/profiles/design-subagents/npm/.gitignore",
+    "source": ".config/pi/profiles/design-subagents/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/design-subagents/npm/.gitignore",
     "mode": "0644",
-    "kind": "file"
+    "kind": "template"
   },
   {
     "source": ".config/pi/profiles/design-subagents/npm/package-lock.json",
@@ -3019,10 +3019,10 @@
     "kind": "file"
   },
   {
-    "source": ".config/pi/profiles/main/.gitignore",
+    "source": ".config/pi/profiles/main/.gitignore.j2",
     "dest": ".config/pi/profiles/main/.gitignore",
     "mode": "0644",
-    "kind": "file"
+    "kind": "template"
   },
   {
     "source": ".config/pi/profiles/main/setup.sh",
@@ -3049,10 +3049,10 @@
     "kind": "template"
   },
   {
-    "source": ".config/pi/profiles/main/npm/.gitignore",
+    "source": ".config/pi/profiles/main/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/main/npm/.gitignore",
     "mode": "0644",
-    "kind": "file"
+    "kind": "template"
   },
   {
     "source": ".config/pi/profiles/main/npm/package-lock.json",
@@ -5860,19 +5860,19 @@
     ]
   },
   {
-    "source": ".config/pi/profiles/omn-assistant/.gitignore",
+    "source": ".config/pi/profiles/omn-assistant/.gitignore.j2",
     "dest": ".config/pi/profiles/omn-assistant/.gitignore",
     "mode": "0644",
-    "kind": "file",
+    "kind": "template",
     "hosts": [
       "araveia"
     ]
   },
   {
-    "source": ".config/pi/profiles/omn-assistant/npm/.gitignore",
+    "source": ".config/pi/profiles/omn-assistant/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/omn-assistant/npm/.gitignore",
     "mode": "0644",
-    "kind": "file",
+    "kind": "template",
     "hosts": [
       "araveia"
     ]
@@ -6078,10 +6078,10 @@
     "kind": "file"
   },
   {
-    "source": ".config/pi/profiles/subagents/npm/.gitignore",
+    "source": ".config/pi/profiles/subagents/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/subagents/npm/.gitignore",
     "mode": "0644",
-    "kind": "file"
+    "kind": "template"
   },
   {
     "source": ".config/pi/profiles/subagents/npm/package-lock.json",
@@ -6269,10 +6269,10 @@
     "kind": "file"
   },
   {
-    "source": ".config/pi/profiles/t3main/.gitignore",
+    "source": ".config/pi/profiles/t3main/.gitignore.j2",
     "dest": ".config/pi/profiles/t3main/.gitignore",
     "mode": "0644",
-    "kind": "file"
+    "kind": "template"
   },
   {
     "source": ".config/pi/profiles/t3main/setup.sh",

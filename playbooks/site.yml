@@ -21,14 +21,35 @@
           - dots_user != 'root'
         quiet: true
       tags: [always]
-    - name: Require the main node's existing tailnet identity before any mutations
+    - name: Validate the actual preserved data disk before any application writes
+      dots_storage:
+        path: "{{ dots_docs }}"
+        uuid: "{{ dots_docs_uuid }}"
+        uid: "{{ dots_uid }}"
+        require_forge: "{{ 'forgejo' in dots_selected }}"
+      when: not dots_sandbox and inventory_hostname == 'araveia' and dots_selected | intersect(['forgejo', 'website', 'mail', 'software', 'cliproxyapi']) | length > 0
+      tags: [always]
+    - name: Inspect the main node's enrolled tailnet identity before application mutations
       ansible.builtin.command:
-        argv: [/usr/bin/tailscale, ip, -4]
+        argv: ["{{ dots_tailscale_binary | default('/usr/bin/tailscale') }}", ip, -4]
       register: dots_preflight_tailnet
       changed_when: false
       check_mode: false
-      failed_when: dots_preflight_tailnet.rc != 0 or dots_tailnet_ip not in dots_preflight_tailnet.stdout_lines
-      when: "'cliproxyapi' in dots_selected and dots_manage_services and not dots_sandbox"
+      failed_when: false
+      when: dots_selected | intersect(['cliproxyapi', 'forgejo']) | length > 0 and dots_manage_services and not dots_sandbox
+      tags: [always]
+    - name: Refuse service binds on a missing or wrong network identity
+      ansible.builtin.assert:
+        that:
+          - dots_preflight_tailnet.rc | default(1) == 0
+          - dots_tailnet_ip in dots_preflight_tailnet.stdout_lines | default([])
+        fail_msg: >-
+          A first reinstall needs scripts/deploy --fresh. If recovery already
+          completed, do not replay old credentials: run sudo tailscale up to
+          reauthenticate a revoked/expired node and retain the original enrolled
+          address through the Tailscale admin console. Then retry scripts/deploy.
+          Forgejo and the proxy require the exact inventory address.
+      when: dots_selected | intersect(['cliproxyapi', 'forgejo']) | length > 0 and dots_manage_services and not dots_sandbox
       tags: [always]
     - name: Resolve explicitly owned files
       ansible.builtin.set_fact:
@@ -53,13 +74,11 @@
       dots_backup:
         home: /
         host: "{{ inventory_hostname }}-system"
-        entries:
-          - {dest: etc/keyd/default.conf}
-          - {dest: etc/hosts}
+        entries: "{{ ([{'dest': 'etc/keyd/default.conf'}, {'dest': 'etc/hosts'}] if 'system' in dots_selected else []) + ([{'dest': 'etc/systemd/system/docker.service.d/20-dots-storage.conf'}] if 'forgejo' in dots_selected else []) }}"
         vault_root: "{{ dots_vault_root }}"
       become: true
       no_log: true
-      when: "'system' in dots_selected and not dots_sandbox and dots_manage_services"
+      when: dots_selected | intersect(['system', 'forgejo']) | length > 0 and not dots_sandbox and dots_manage_services
       tags: [always]
   roles:
     - role: dots

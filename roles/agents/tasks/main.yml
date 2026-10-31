@@ -1,13 +1,35 @@
 ---
-- name: Provision agent CLIs without changing active profile selection
-  ansible.builtin.include_tasks: tools.yml
-  when: dots_install_agent_tools and not dots_sandbox
-- name: Acquire explicitly upstream-owned skill resources
-  ansible.builtin.include_tasks: externals.yml
-  when: dots_manage_externals and not dots_sandbox
-- name: Reconcile declared profile resources through Pi's supported package manager
-  ansible.builtin.include_tasks: profile.yml
-  loop: "{{ dots_profiles }}"
-  loop_control:
-    loop_var: dots_profile
-  when: dots_install_agent_tools and not dots_sandbox
+- name: Provision agent tools and declared Pi resources
+  vars:
+    dots_agent_bindir: "{{ dots_bindir | default('/usr/bin') }}"
+    # npm/Pi package install scripts are untrusted: new session, no TTY and no
+    # cached sudo ticket from Ansible's earlier become authentication.
+    dots_agent_untrusted_argv:
+      - "{{ dots_agent_bindir }}/setsid"
+      - --wait
+      - /bin/sh
+      - -c
+      - '"$0" -K && exec "$@"'
+      - "{{ dots_agent_bindir }}/sudo"
+  block:
+    - name: Provision agent CLIs without changing active profile selection
+      ansible.builtin.include_tasks: tools.yml
+      when: dots_install_agent_tools and not dots_sandbox
+    - name: Acquire explicitly upstream-owned skill resources
+      ansible.builtin.include_tasks: externals.yml
+      when: dots_manage_externals and not dots_sandbox
+    # Every declared, host-eligible settings file is a Pi agent directory,
+    # including subagent profiles and the default ~/.pi/agent.
+    - name: Resolve declared Pi agent directories from this host's selected entries
+      ansible.builtin.set_fact:
+        dots_pi_agent_dirs: >-
+          {{ dots_files | map(attribute='dest')
+             | select('match', '^(\.config/pi/profiles/[^/]+|\.pi/agent)/settings\.json$')
+             | map('dirname') | unique | sort }}
+      when: dots_install_agent_tools and not dots_sandbox
+    - name: Reconcile declared profile resources through Pi's supported package manager
+      ansible.builtin.include_tasks: profile.yml
+      loop: "{{ dots_pi_agent_dirs }}"
+      loop_control:
+        loop_var: dots_pi_agent_dir
+      when: dots_install_agent_tools and not dots_sandbox

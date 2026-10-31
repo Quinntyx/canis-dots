@@ -1,0 +1,23 @@
+{
+  "patch": {},
+  "providerInstanceMutation": {
+    "operation": "create",
+    "instanceId": "pi_pi_t3assistant",
+    "instance": {
+      "driver": "pi",
+      "displayName": "Pi Coursework",
+      "enabled": true,
+      "environment": [
+        {
+          "name": "PI_CODING_AGENT_DIR",
+          "value": "{{ .chezmoi.homeDir }}/.config/pi/profiles/t3assistant",
+          "sensitive": false
+        }
+      ],
+      "config": {
+        "binaryPath": "{{ .chezmoi.homeDir }}/.npm-global/bin/pi",
+        "launchArgs": ""
+      }
+    }
+  }
+}

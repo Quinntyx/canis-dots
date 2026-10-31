@@ -1,0 +1,15 @@
+[Unit]
+Description=Prepare one daily email summary in T3 Code
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=%h/.config/t3assistant/config.json
+ConditionPathExists=%h/.local/state/t3assistant/oauth-token.json
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/docs/src/universal-data-management/main/adapters
+ExecStart=/usr/bin/python -B -m t3assistant --config %h/.config/t3assistant/config.json mail-tick
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+TimeoutStartSec=120
+NoNewPrivileges=true

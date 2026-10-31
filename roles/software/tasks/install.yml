@@ -1,0 +1,47 @@
+---
+- name: Validate target identity and platform before installing
+  ansible.builtin.assert:
+    that:
+      - dots_user is match('^[a-z_][a-z0-9_-]*[$]?$')
+      - dots_user != 'root'
+      - dots_home is match('^/[^\n]+$')
+      - dots_home != '/'
+      - ansible_facts.os_family == 'Archlinux'
+    fail_msg: Software requires an EndeavourOS/Arch target and its gathered non-root account home.
+
+- name: Resolve the actual target account home
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ dots_user }}"
+
+- name: Refuse a home that does not belong to the target account
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.getent_passwd[dots_user][4] == dots_home
+    fail_msg: dots_home must be the target account home resolved from passwd.
+
+- name: Query installed native package names
+  ansible.builtin.command:
+    argv: [/usr/bin/pacman, -Qq]
+  register: software_installed
+  changed_when: false
+
+- name: Select missing official packages
+  ansible.builtin.set_fact:
+    software_official_missing: "{{ software_official_packages | difference(software_installed.stdout_lines) | sort }}"
+    software_aur_missing: "{{ software_aur_packages | difference(software_installed.stdout_lines) | sort }}"
+
+- name: Install missing official packages without upgrading the machine
+  become: true
+  become_user: root
+  ansible.builtin.command:
+    argv: "{{ ['/usr/bin/pacman', '-S', '--needed', '--noconfirm', '--'] + software_official_missing }}"
+  when: software_official_missing | length > 0
+  changed_when: true
+
+# Local PKGBUILDs need an initialized Rust toolchain, not merely rustup's package.
+- name: Install account-owned toolchains and CLIs
+  ansible.builtin.include_tasks: tools.yml
+
+- name: Install AUR and local packages with a bounded privilege lifetime
+  ansible.builtin.include_tasks: builds.yml

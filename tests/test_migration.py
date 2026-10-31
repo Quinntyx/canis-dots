@@ -69,6 +69,12 @@ class MigrationContract(unittest.TestCase):
                     self.assertFalse(source.read_text().lstrip().startswith(('{"', '{\n', '[')), source)
         self.assertEqual(missing, [], 'A source existing locally is not proof it ships in a fresh clone')
 
+    def test_lifecycle_plugins_and_playbooks_are_publishable_too(self):
+        tracked = set(subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0'))
+        sources = list((ROOT / 'plugins').rglob('*.py')) + list((ROOT / 'playbooks').glob('*.yml')) + list((ROOT / 'roles').glob('*/tasks/*.yml'))
+        missing = [str(path.relative_to(ROOT)) for path in sources if str(path.relative_to(ROOT)) not in tracked]
+        self.assertEqual(missing, [], 'A local-only module/task can make the working tree pass but break every fresh clone')
+
     def test_no_active_legacy_manager(self):
         self.assertFalse((ROOT / '.chezmoiignore').exists())
         self.assertFalse((ROOT / '.chezmoiexternal.toml').exists())

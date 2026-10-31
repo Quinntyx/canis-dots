@@ -1,0 +1,13 @@
+---
+- name: Provision agent CLIs without changing active profile selection
+  ansible.builtin.include_tasks: tools.yml
+  when: dots_install_agent_tools and not dots_sandbox
+- name: Acquire explicitly upstream-owned skill resources
+  ansible.builtin.include_tasks: externals.yml
+  when: dots_manage_externals and not dots_sandbox
+- name: Reconcile declared profile resources through Pi's supported package manager
+  ansible.builtin.include_tasks: profile.yml
+  loop: "{{ dots_profiles }}"
+  loop_control:
+    loop_var: dots_profile
+  when: dots_install_agent_tools and not dots_sandbox

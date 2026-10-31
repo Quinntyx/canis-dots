@@ -1,0 +1,39 @@
+[
+  {
+    "source": ".config/systemd/user/timers.target.wants/tmux-resurrect-save.timer",
+    "dest": ".config/systemd/user/timers.target.wants/tmux-resurrect-save.timer",
+    "mode": "0644",
+    "kind": "link",
+    "target": "../tmux-resurrect-save.timer"
+  },
+  {
+    "source": ".config/systemd/user/tmux-resurrect-save.service",
+    "dest": ".config/systemd/user/tmux-resurrect-save.service",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/systemd/user/tmux-resurrect-save.timer",
+    "dest": ".config/systemd/user/tmux-resurrect-save.timer",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/tmux/persistence.conf",
+    "dest": ".config/tmux/persistence.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".tmux.conf",
+    "dest": ".tmux.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".local/bin/tmux-persist",
+    "dest": ".local/bin/tmux-persist",
+    "mode": "0700",
+    "kind": "file"
+  }
+]

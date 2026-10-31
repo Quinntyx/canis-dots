@@ -1,0 +1,160 @@
+[
+  {
+    "source": ".config/btop/btop.conf",
+    "dest": ".config/btop/btop.conf",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/btop/themes/.keep",
+    "dest": ".config/btop/themes/.keep",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/completions/auth.fish",
+    "dest": ".config/fish/completions/auth.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/completions/g.fish",
+    "dest": ".config/fish/completions/g.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/conf.d/rustup.fish",
+    "dest": ".config/fish/conf.d/rustup.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/config.fish",
+    "dest": ".config/fish/config.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/auth.fish",
+    "dest": ".config/fish/functions/auth.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/bright.fish",
+    "dest": ".config/fish/functions/bright.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/cc.fish",
+    "dest": ".config/fish/functions/cc.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/dev.fish",
+    "dest": ".config/fish/functions/dev.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/dim.fish",
+    "dest": ".config/fish/functions/dim.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/g.fish",
+    "dest": ".config/fish/functions/g.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/hx-copilot.fish.j2",
+    "dest": ".config/fish/functions/hx-copilot.fish",
+    "mode": "0644",
+    "kind": "template"
+  },
+  {
+    "source": ".config/fish/functions/mid.fish",
+    "dest": ".config/fish/functions/mid.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/off.fish",
+    "dest": ".config/fish/functions/off.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/on.fish",
+    "dest": ".config/fish/functions/on.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/pi-daily.fish",
+    "dest": ".config/fish/functions/pi-daily.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/quitwine.fish",
+    "dest": ".config/fish/functions/quitwine.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/reload.fish",
+    "dest": ".config/fish/functions/reload.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/srestart.fish",
+    "dest": ".config/fish/functions/srestart.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/srun.fish",
+    "dest": ".config/fish/functions/srun.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/br.fish",
+    "dest": ".config/fish/functions/br.fish",
+    "mode": "0644",
+    "kind": "link",
+    "target": "{{ dots_home }}/.local/share/broot/launcher/fish/br.fish",
+    "optional_target": true
+  },
+  {
+    "source": ".config/fish/functions/using.fish",
+    "dest": ".config/fish/functions/using.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/fish/functions/wl-cpf.fish",
+    "dest": ".config/fish/functions/wl-cpf.fish",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".config/starship.toml",
+    "dest": ".config/starship.toml",
+    "mode": "0644",
+    "kind": "file"
+  },
+  {
+    "source": ".npmrc.j2",
+    "dest": ".npmrc",
+    "mode": "0600",
+    "kind": "template"
+  }
+]

@@ -1,0 +1,29 @@
+---
+dots_components: [shell, git, ssh, tmux, editor, agents]
+dots_server_components: [mail, cliproxyapi, forgejo, website, system, software]
+dots_sandbox: false
+dots_manage_packages: true
+dots_manage_services: true
+dots_manage_externals: true
+dots_install_agent_tools: true
+dots_controller_root: "{{ playbook_dir | dirname }}"
+dots_vault_root: "{{ dots_controller_root }}/.vault"
+dots_home: "{{ ansible_facts.user_dir }}"
+dots_user: "{{ ansible_facts.user_id }}"
+dots_uid: "{{ ansible_facts.user_uid }}"
+dots_tailnet_ip: 100.110.255.43
+dots_service_units:
+  tmux: [tmux-resurrect-save.timer]
+  mail: [mail-sync.timer, goimapnotify.service]
+  cliproxyapi: [cliproxyapi.service]
+  forgejo: [forgejo.service]
+  desktop: [sunsetr-resume.timer, meal-water-sync.service]
+dots_secret_files: []
+dots_aur_revisions:
+  oama-bin: 84b247806a036c8f7a2491dae92259fefcfb3487
+  cyrus-sasl-xoauth2-git: 74f6ea03ca59d284685ed9446ad1f1b8d1ce82cf
+  sunsetr-bin: 9ba37fd031d1c499fa6a6b240ac6524eeda3b842
+dots_npm_tools:
+  - {name: '@earendil-works/pi-coding-agent', version: '1.4.0'}
+  - {name: pi-profiles, version: '0.1.1'}
+dots_profiles: [main, t3main]

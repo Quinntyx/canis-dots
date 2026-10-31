@@ -1,0 +1,13 @@
+---
+- name: Install the reviewed sunset scheduler
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/software/tasks/aur.yml"
+  vars:
+    dots_aur_name: sunsetr-bin
+  when: dots_manage_packages and not dots_sandbox
+- name: Enable selected desktop user services
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  vars:
+    dots_units: "{{ dots_service_units.desktop }}"
+- name: Load user desktop overrides only in a future login/session
+  ansible.builtin.debug:
+    msg: Desktop configuration installed; the current compositor and audio session are not forcibly restarted.

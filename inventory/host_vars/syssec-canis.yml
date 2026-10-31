@@ -1,0 +1,6 @@
+---
+# Local invocation uses the actual login/home, never /home/zlare or a guessed SSH user.
+# Remote invocation uses your SSH configuration or scripts/deploy --user LOGIN.
+dots_components: [shell, git, ssh, tmux, editor, agents]
+dots_network: lab
+dots_main_server: false

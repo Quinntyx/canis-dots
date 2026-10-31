@@ -1,0 +1,13 @@
+---
+- name: Require supported Arch-family target for package provisioning
+  ansible.builtin.assert:
+    that: ansible_facts.os_family == 'Archlinux'
+    fail_msg: Use --config-only on other Linux distributions; package/service provisioning is Arch-specific.
+- name: Read reviewed official package ownership
+  ansible.builtin.set_fact:
+    dots_package_groups: "{{ lookup('ansible.builtin.file', dots_controller_root ~ '/policy/packages.yml') | from_yaml }}"
+- name: Install prerequisites for the selected components
+  ansible.builtin.package:
+    name: "{{ dots_selected | map('extract', dots_package_groups) | flatten | unique | list }}"
+    state: present
+  become: true

@@ -1,0 +1,21 @@
+---
+- name: Install pinned upstream resurrect
+  ansible.builtin.include_tasks: external.yml
+  when: dots_manage_externals and not dots_sandbox
+- name: Enable persistence timer on eligible workstations
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
+  vars:
+    dots_units: "{{ dots_service_units.tmux }}"
+- name: Check for the user's main tmux server without creating one
+  ansible.builtin.command:
+    argv: [tmux, has-session]
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  register: dots_tmux_running
+  when: not dots_sandbox and dots_manage_services
+- name: Reload only an already-running main tmux server
+  ansible.builtin.command:
+    argv: [tmux, source-file, "{{ dots_home }}/.tmux.conf"]
+  changed_when: true
+  when: not dots_sandbox and dots_manage_services and dots_configuration_changed and dots_tmux_running.rc | default(1) == 0

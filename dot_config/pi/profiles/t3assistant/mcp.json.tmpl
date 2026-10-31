@@ -3,15 +3,17 @@
     "coursework": {
       "command": "/usr/bin/python",
       "args": [
+        "-B",
         "-m",
         "t3assistant",
         "--config",
         "{{ .chezmoi.homeDir }}/.config/t3assistant/config.json",
-        "serve"
+        "serve",
+        "--agent"
       ],
       "cwd": "{{ .chezmoi.homeDir }}/docs/src/universal-data-management/main/adapters",
       "exposure": "deferred",
-      "description": "Read Canvas assignment preparation state and track submission separately from learning debt. Live scheduler tick is an explicitly authorized operation; never submit work."
+      "description": "Read assignment preparation state and update learning gaps/review dates. Assignment threads cannot run coordinator ticks or change submission/preparation state; never submit work."
     }
   }
 }

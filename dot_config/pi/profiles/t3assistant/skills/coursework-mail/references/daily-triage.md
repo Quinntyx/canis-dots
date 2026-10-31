@@ -4,7 +4,9 @@
    America/Chicago. The coordinator owns persistent deduplication, continuation and a separate
    email-review budget; assignment launch caps and attention gates do not consume this budget.
    A duplicate/completed run returns its persisted receipt. A missing run claim is a blocker,
-   not authority to create another thread or start a scheduled job.
+   not authority to create another thread or start a scheduled job. Resolve the configured
+   [run helper](read-flags.md) before selection; use its `begin`, `search` and exact `read`
+   operations so successful candidate reads belong to the durable run.
 2. Load [priority decisions](priorities.md) and the relevant private profile overrides. Search the
    configured academic account by default, preserving the Omn triage account boundary. Other
    accounts require explicit triage configuration/authority. Use the existing index; sync,
@@ -13,8 +15,10 @@
    most 50 exact message IDs. Sort deterministically and retain pending IDs privately. On a
    continuation, re-enumerate and exclude processed IDs; changing `unread` invalidates offsets.
    Include any explicitly queued previously-read important item without restoring its unread tag.
-4. Select within the run's remaining review budget and read each selected exact message with
-   `notmuch show --format=json --entire-thread=false`. Parse the required MIME content; decoding
+4. Select within the run's remaining review budget and use the helper's `read --id RAW_ID`
+   for each selected candidate. A direct `notmuch show` alone does not register a successful
+   read for marking. Related context uses `read --id RAW_ID --evidence`, never a candidate read.
+   Parse the required MIME content; decoding
    failures, inaccessible attachments needed for classification and incomplete/truncated reads
    stay pending. A search hit or metadata preview alone is not reviewed. Use only relevant
    metadata/bodies, not unrelated history, remote images or executed attachments.

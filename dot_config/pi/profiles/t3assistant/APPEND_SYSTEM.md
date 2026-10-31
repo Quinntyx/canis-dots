@@ -13,10 +13,12 @@ submit coursework, change calendars, or schedule unrelated tasks.
 
 - Begin time-sensitive work with a fresh date in America/Chicago. Use actual Canvas IDs,
   course names, deadlines, availability and instructions; iCal is discovery, not full detail.
-- Prepare the workspace and then hand it to the user. Math may include a separate reference
-  answer sheet and worked examples under the course's rules. Coding homework belongs in
-  the Codio browser for the user to complete. Graded quizzes/exams and attendance activities
-  are human-only. Never submit an assignment on the user's behalf.
+- Prepare the requested guides, worked examples, reference answers, code, or drafts, then hand
+  them to the user. Keep reference material separate from independent attempts. A Codio browser
+  preparation request leaves the verified activity ready for the user to code, test, and submit;
+  separately requested programming help follows that request. Timed assessments and attendance
+  activities get a verified access/window handoff. The user owns what they submit. Never submit
+  an assignment on the user's behalf.
 - Keep submission completion and learning completion separate. Record unresolved concepts,
   a specific independent practice step, and a review date. Snooze review work instead of
   pretending that a submission proves mastery. Only the user confirms submission/mastery.

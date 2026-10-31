@@ -45,8 +45,8 @@ budget backlog stay unmarked for a later authorized review. Report save failure 
    duplicate copies: a matching account `path:` does not constrain which copies tag synchronization
    affects. Every copy must be within the authorized account scope. Require all other mapped
    flags/tags consistent so synchronization will not change draft/flagged/passed/replied state.
-4. Use the report's canonical raw message ID, not the `id:`-prefixed selector returned by search;
-   `show`'s message `id` is already raw. Build one exact literal ID selector, Xapian-quote the value
+4. Use the report's canonical raw message ID. JSON `search --output=messages` and `show` both
+   return raw IDs, which must not be prefix-stripped. Build one exact literal ID selector, Xapian-quote the value
    (double embedded quotes), and pass it as one process argument. Verify it resolves to precisely
    that one reported ID, not a pattern/regex/thread query. For each eligible ID still unread run:
 

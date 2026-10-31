@@ -2,7 +2,7 @@
   "$schema": "https://pi.dev/schemas/settings.schema.json",
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-6.1-sol",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "xhigh",
   "enabledModels": ["cliproxyapi/gpt-6.1-sol"],
   "defaultTools": ["read", "bash", "edit", "write", "tool_search"],
   "packages": [

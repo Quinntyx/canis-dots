@@ -10,8 +10,8 @@
    --format=json --output=messages --limit=50 --offset=N -- "$QUERY"`. Inspect selected metadata
    with `notmuch show --format=json --body=false --entire-thread=false -- "$EXACT_MESSAGE_QUERY"`.
    Read only relevant selected bodies using the same exact selector without `--body=false`.
-   `search --output=messages` returns `id:...` selectors: remove that selector prefix once before
-   building a quoted ID term. In contrast, `show`'s message `id` is already raw; do not strip it.
+   With `--format=json`, `search --output=messages` returns raw IDs, just like `show`'s message
+   `id`; do not strip an apparent `id:` prefix from either. Text search output uses selector prefixes.
    Xapian-quote literal values and pass queries as single process arguments. Retain canonical raw
    IDs in receipts. Do not expand a whole thread to obtain one assignment clarification.
 4. Continue relevant batches until covered or the invocation budget is reached. Persist/report

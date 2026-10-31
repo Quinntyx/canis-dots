@@ -40,6 +40,12 @@ class FullConfiguration(unittest.TestCase):
             variables = base / 'variables.json'
             variables.write_text(json.dumps({
                 'dots_home': str(base) + '/{{ inventory_hostname }}',
+                # Reproduce the CI container's actor even on a non-root host.
+                'ansible_facts': {'user_id': 'root', 'user_uid': 0, 'user_gid': 0, 'user_dir': '/root'},
+                # Synthetic target identity only: installs/acquisitions/services
+                # are disabled and no real account is created or modified.
+                'dots_user': 'dots-fixture',
+                'dots_uid': 12345,
                 'dots_sandbox': True,
                 'dots_manage_packages': False,
                 'dots_manage_services': False,

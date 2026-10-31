@@ -20,8 +20,11 @@ protocol tests.
   filtering, Vault delivery/wrong-key failure, declared service selection and
   refusing unexpected destination symlinks for static files/templates/secrets.
 - The two-host template/layout fixture exercises the public playbook for both
-  enrolled hosts with all live effects disabled. It preseeds public static bytes
-  using a local filesystem copy and skips the bulk static-transfer block. It is
+  enrolled hosts with all live effects disabled. It explicitly supplies a
+  synthetic ordinary target identity while simulating the CI container's root
+  actor facts. CI's inherited-root failure was reproduced locally before that
+  fixture correction; the production playbook's root-account guard is unchanged.
+  It preseeds public static bytes using a local filesystem copy and skips the bulk static-transfer block. It is
   template/layout coverage, **not** a complete live deployment or proof that every
   static file was transferred through Ansible. The separate shell fixture covers
   native static transfer; digest checks cover the reviewed static-source layout.
@@ -54,10 +57,12 @@ registration, website publication or visual behavior was changed or tested.
 Software substitutes prove decisions, not successful real installations.
 
 No repository deployment secrets were provisioned and no privileged Forgejo job
-was run. The workflow's actual execution, runner networking/concurrency support,
-and merge-triggered production deployment remain unverified until the owner
-configures the documented repository secrets and runner. Source validation does
-not grant permission to exercise those live effects.
+was run. PR source checks execute in the existing runner's test container; their
+results are recorded on the PR. The main-branch deployment job, SSH reachability
+from its runner, concurrency support and merge-triggered production deployment
+remain unverified until the owner configures the documented credentials and
+performs an authorized deployment. Source validation does not grant permission
+to exercise those live effects.
 
 The PR must remain open and unmerged. Configuration rollback is a Git
 revert/redeploy, not database, package, identity or personal-data recovery. See

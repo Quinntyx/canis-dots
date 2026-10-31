@@ -79,7 +79,7 @@ def atomic_private(path, data):
     os.replace(name, path)
 
 
-def prepare_secrets(host, components, vault_root, key, source_home, check):
+def prepare_secrets(host, components, vault_root, key, source_home, check, *, allow_missing_required=False):
     from ansible.parsing.vault import VaultLib, VaultSecret
     vault = VaultLib([('default', VaultSecret(key))])
     policy = json.loads((ROOT / 'policy/secrets.yml').read_text()).get(host, [])
@@ -115,7 +115,7 @@ def prepare_secrets(host, components, vault_root, key, source_home, check):
         source = source_home / entry['dest'] if source_home else None
         if source and source.is_file() and not source.is_symlink():
             enrolled.append((entry, payload, source))
-        elif entry.get('required'):
+        elif entry.get('required') and not allow_missing_required:
             raise ValueError(f'Missing enrolled secret for {host}: {entry["dest"]}. Run on its existing machine first or use scripts/vault-import.')
     for entry, payload, source in enrolled:
         if source:
@@ -141,6 +141,8 @@ def parser():
     p.add_argument('--ask-become-pass', action='store_true')
     p.add_argument('--no-become-prompt', action='store_true', help='For passwordless sudo / CI')
     p.add_argument('--config-only', action='store_true', help='Skip package provisioning and service activation')
+    p.add_argument('--fresh', action='store_true', help='Recover local araveia from its preserved docs disk before normal deployment')
+    p.add_argument('--snapshot', help='Private existing reinstall snapshot; default is ~/docs/backups/araveia (requires --fresh)')
     return p
 
 
@@ -154,18 +156,27 @@ def main(argv=None):
     inventory = json.loads(completed.stdout)
     known = inventory['_meta']['hostvars']
     local = socket.gethostname().split('.')[0]
-    hosts = sorted(known) if args.all else [args.host or local]
+    # --fresh is explicit authority to recover the already-enrolled local main
+    # node, even when the OS installer left a temporary hostname. UUID and saved
+    # Tailscale identity checks still bind this to araveia; no host is enrolled.
+    hosts = sorted(known) if args.all else [args.host or ('araveia' if args.fresh else local)]
     selections = []
     for host in hosts:
         if host not in known:
             raise ValueError(f'{host!r} is not enrolled. Add explicit inventory membership first; no inferred fleet deployment.')
         components = select_components(args.components.split(',') if args.components else None, known[host]['dots_components'])
         selections.append((host, components))
+    if args.snapshot and not args.fresh:
+        raise ValueError('--snapshot requires --fresh')
+    if args.fresh and (args.all or hosts != ['araveia'] or args.config_only or args.components):
+        raise ValueError('--fresh is only a full local araveia recovery; no fleet, remote, partial or config-only invocation')
     if args.plan:
-        print(json.dumps([{'host': h, 'connection': 'local' if h == local else 'ssh', 'components': c} for h,c in selections], indent=2))
+        print(json.dumps([{'host': h, 'connection': 'local' if h == local or args.fresh else 'ssh', 'components': c} for h,c in selections], indent=2))
         return 0
     vault_root = Path(os.environ.get('DOTS_VAULT_ROOT', ROOT / '.vault')).expanduser().absolute()
     key_path = Path(os.environ.get('DOTS_VAULT_PASSWORD_FILE', '~/.config/ansible/vault-pass')).expanduser().absolute()
+    if not key_path.exists() and vault_root.exists() and any(vault_root.rglob('*.vault')):
+        raise ValueError('Existing Vault ciphertext requires its original password file; restore DOTS_VAULT_PASSWORD_FILE before proceeding')
     key = password(key_path, create=not args.check)
     if not args.check:
         private_directory(vault_root)
@@ -175,22 +186,48 @@ def main(argv=None):
             key_path = Path(work) / 'vault-pass'
             key_path.write_bytes(key)
             key_path.chmod(0o600)
+        if args.fresh:
+            # Authenticate old ciphertext before even mounting or bootstrapping; only
+            # the missing-required check is deferred until private recovery completes.
+            for host, components in selections:
+                prepare_secrets(host, components, vault_root, key, Path.home(), True,
+                                allow_missing_required=True)
+            recovery = {'dots_controller_root': str(ROOT), 'ansible_python_interpreter': sys.executable,
+                        'dots_fresh_authorized': True, 'dots_vault_root': str(vault_root)}
+            if args.snapshot:
+                recovery['dots_recovery_snapshot'] = str(Path(args.snapshot).expanduser().absolute())
+            variables = Path(work) / 'recovery.json'
+            variables.write_text(json.dumps(recovery))
+            variables.chmod(0o600)
+            command = ['ansible-playbook', 'playbooks/fresh.yml', '--limit', 'araveia', '--connection', 'local',
+                       '--vault-password-file', str(key_path), '--extra-vars', '@' + str(variables)]
+            if args.ask_become_pass or (not args.no_become_prompt and not args.check):
+                command.append('--ask-become-pass')
+            if args.check:
+                command.append('--check')
+            result = subprocess.run(command)
+            if result.returncode:
+                return result.returncode
+            if args.check:
+                print('Fresh recovery preflight checked only; installers, restored secrets and live services were not simulated.')
+                return 0
         plans = []
         # Complete every host's secret authentication before invoking ANY host.
         for host, components in selections:
-            secret_files = prepare_secrets(host, components, vault_root, key, Path.home() if host == local else None, args.check)
+            secret_files = prepare_secrets(host, components, vault_root, key, Path.home() if host == local or args.fresh else None, args.check)
             plans.append((host, components, secret_files))
         for host, components, secret_files in plans:
             extra = {'dots_requested_components': components, 'dots_secret_files': secret_files,
                      'dots_vault_root': str(vault_root), 'dots_controller_root': str(ROOT),
                      'dots_manage_packages': not args.config_only, 'dots_manage_services': not args.config_only,
-                     'dots_install_agent_tools': not args.config_only, 'dots_manage_externals': not args.config_only}
+                     'dots_install_agent_tools': not args.config_only, 'dots_manage_externals': not args.config_only,
+                     'dots_fresh_install': args.fresh}
             variables = Path(work) / f'{host}.json'
             variables.write_text(json.dumps(extra))
             variables.chmod(0o600)
             command = ['ansible-playbook', 'playbooks/site.yml', '--limit', host,
                        '--vault-password-file', str(key_path), '--extra-vars', '@' + str(variables)]
-            if host == local:
+            if host == local or args.fresh:
                 command += ['--connection', 'local']
                 # Use the interpreter in which this wrapper imports ansible.
                 command += ['--extra-vars', json.dumps({'ansible_python_interpreter': sys.executable})]

@@ -1,8 +1,13 @@
 [
   {"dest":"/etc/keyd/default.conf","owner":"user","component":"system","source":"roles/system/files/keyd-default.conf","mode":"0644"},
   {"dest":"/etc/hosts","owner":"os-with-scoped-override","component":"system","source":"roles/system/tasks/main.yml","mode":"0644"},
-  {"dest":"/etc/systemd/system/cloudflared.service","owner":"cloudflared-enrollment","component":"system","source":null,"policy":"Preserve enrolled unit and credentials; enable existing unit only. Never adopt token-bearing service text into public source."},
-  {"dest":"/etc/fstab","owner":"os-installer","component":"system","source":null,"policy":"Preserve machine-specific disks, UUIDs and mounts. No partitioning, formatting, disk restore or fstab rewriting."},
-  {"dest":"/etc/firewalld","owner":"firewalld","component":"system","source":null,"policy":"Preserve working network and zones; do not replay a historical firewall dump or interrupt remote access."},
+  {"dest":"/etc/hostname","owner":"systemd-hostnamectl","component":"system","source":"playbooks/fresh.yml","policy":"Explicit fresh araveia recovery only; use hostname module, preserve encrypted preimage."},
+  {"dest":"/etc/systemd/system/cloudflared.service","owner":"systemd-with-scoped-override","component":"system","source":"playbooks/fresh.yml","mode":"0644","policy":"Fresh only: supported token-file unit; token restored privately, never embedded in unit or Git."},
+  {"dest":"/etc/cloudflared/token","owner":"private-recovery","component":"system","source":"policy/recovery.yml","mode":"0600"},
+  {"dest":"/etc/fstab","owner":"os-installer-with-scoped-override","component":"system","source":"playbooks/fresh.yml","policy":"Fresh only: add exactly the approved existing docs UUID after mount and identity validation; preserve encrypted preimage. No formatting, partitioning or broad replacement."},
+  {"dest":"/etc/NetworkManager/conf.d/90-dns-systemd-resolved.conf","owner":"NetworkManager-with-scoped-override","component":"system","source":"playbooks/fresh.yml","mode":"0644"},
+  {"dest":"/etc/resolv.conf","owner":"systemd-resolved","component":"system","source":"playbooks/fresh.yml","policy":"Fresh only: supported stub link; no NetworkManager restart; encrypted preimage first."},
+  {"dest":"/etc/firewalld","owner":"firewalld","component":"system","source":"roles/system/tasks/firewall.yml","policy":"Use manager CLI for exact additive public SSH and tailnet SSH/mosh/proxy/interface rules; preserve unrelated zones, reject unexpected custom interface owner, no dump replay. A new zone requires one validated reload only under explicit fresh-install authority; existing-node missing zones fail for inspection."},
+  {"dest":"/etc/systemd/system/docker.service.d/20-dots-storage.conf","owner":"systemd-with-scoped-override","component":"forgejo","source":"roles/forgejo/tasks/server.yml","mode":"0644"},
   {"dest":"/etc/pacman.conf","owner":"pacman-local-repositories","component":"system","source":null,"policy":"Preserve configured repositories and mirrors; package role does not replace OS package configuration."}
 ]

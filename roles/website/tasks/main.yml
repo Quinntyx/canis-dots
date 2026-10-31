@@ -7,6 +7,7 @@
     dest: "{{ dots_home }}/docs/host/quinntyx-dev"
     version: "{{ dots_website_revision }}"
     force: false
+  environment: "{{ dots_git_environment }}"
   when: not dots_sandbox and dots_manage_externals
 - name: Check for the existing private Actions runner enrollment
   ansible.builtin.stat:

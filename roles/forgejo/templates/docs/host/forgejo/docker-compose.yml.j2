@@ -18,7 +18,6 @@ services:
       - FORGEJO__ui__DEFAULT_THEME=auto   # follows system: lugit light/dark via theme-auto.css
     volumes:
       - ./forgejo:/data
-      - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "127.0.0.1:3000:3000"       # web — loopback only, cloudflared is on the host

@@ -1,0 +1,12 @@
+---
+- name: Require anonymous access to the declared bootstrap sources before dependent roles
+  ansible.builtin.command:
+    argv: ["{{ dots_git_binary | default('/usr/bin/git') }}", ls-remote, --exit-code, "{{ item }}", HEAD]
+  environment: "{{ dots_git_environment | combine({'GIT_TERMINAL_PROMPT': '0'}) }}"
+  loop:
+    - https://git.quinntyx.dev/quinntyx/quinntyx-dev.git
+    - https://git.quinntyx.dev/quinntyx/CLIProxyAPI.git
+    - https://git.quinntyx.dev/quinntyx/omn.git
+    - https://git.quinntyx.dev/quinntyx/t3code.git
+  changed_when: false
+  when: dots_manage_externals and not ansible_check_mode

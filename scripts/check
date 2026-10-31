@@ -13,13 +13,18 @@ commands = {
     'static': [
         ['ansible-playbook', 'playbooks/site.yml', '--syntax-check'],
         ['ansible-playbook', 'playbooks/rollback.yml', '--syntax-check'],
+        ['ansible-playbook', 'playbooks/fresh.yml', '--syntax-check'],
         [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_migration.py', '-v'],
         ['node', '--test', 'tests/agent-guidance.test.cjs'],
         ['git', 'diff', '--check'],
     ],
     'deployment': [[sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_deployment.py', '-v'],
-                   [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_security.py', '-v']],
-    'software': [[sys.executable, 'roles/software/tests/test_software.py']],
+                   [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_security.py', '-v'],
+                   [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_fresh_install.py', '-v'],
+                   [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_fresh_runtime.py', '-v'],
+                   [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_recovery.py', '-v']],
+    'software': [[sys.executable, 'roles/software/tests/test_software.py'],
+                 [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_fresh_software.py', '-v']],
     'tmux': [[sys.executable, '-m', 'unittest', 'discover', '-s', 'docs/host/tests', '-v']],
 }
 if surface in ['static', 'all']:

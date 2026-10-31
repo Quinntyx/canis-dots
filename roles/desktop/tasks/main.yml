@@ -8,6 +8,46 @@
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/dots/tasks/user-service.yml"
   vars:
     dots_units: "{{ dots_service_units.desktop }}"
+- name: Bring the fresh lingering user manager's session services up without restarts
+  when: dots_manage_services and not dots_sandbox and not ansible_check_mode
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ dots_uid }}"
+  block:
+    # The manifest's wants link only takes effect at the next manager start.
+    - name: Start Syncthing now; never restart an already running instance
+      ansible.builtin.systemd_service:
+        name: syncthing.service
+        scope: user
+        state: started
+    # Packages enable these globally. A user who disabled or masked them (for
+    # example to keep another sound server) keeps that choice.
+    - name: Read PipeWire socket enablement
+      ansible.builtin.command:
+        argv: [systemctl, --user, is-enabled, "{{ item }}"]
+      loop: [pipewire.socket, pipewire-pulse.socket]
+      register: desktop_audio_sockets
+      changed_when: false
+      failed_when: false
+    - name: Start enabled PipeWire sockets; WirePlumber follows on activation
+      ansible.builtin.systemd_service:
+        name: "{{ item.item }}"
+        scope: user
+        state: started
+      loop: "{{ desktop_audio_sockets.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.stdout | trim == 'enabled'
+- name: Read the installed display manager selection without changing it
+  ansible.builtin.stat:
+    path: /etc/systemd/system/display-manager.service
+  register: desktop_display_manager
+  when: not dots_sandbox
+# Portals are D-Bus activated by niri's session; there is no input-method
+# configuration in this baseline, so none is installed or enabled.
 - name: Load user desktop overrides only in a future login/session
   ansible.builtin.debug:
-    msg: Desktop configuration installed; the current compositor and audio session are not forcibly restarted.
+    msg: >-
+      Desktop configuration installed; the current compositor and audio session are not forcibly restarted.
+      {{ ('Display manager ' ~ (desktop_display_manager.stat.lnk_target | default('') | basename) ~ ' is preserved; choose the niri session there.')
+         if (desktop_display_manager.stat.exists | default(false))
+         else 'No display manager is enabled; start niri from a TTY with niri-session.' }}

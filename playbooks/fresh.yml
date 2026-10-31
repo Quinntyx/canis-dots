@@ -1,0 +1,252 @@
+---
+# Deliberate recovery phase, invoked only by scripts/deploy --fresh.
+- name: Recover araveia from its approved preserved data disk
+  hosts: araveia
+  gather_facts: true
+  vars:
+    dots_fresh_authorized: false
+  pre_tasks:
+    - name: Require explicit local existing-account recovery authority
+      ansible.builtin.assert:
+        that:
+          - dots_fresh_authorized | bool
+          - inventory_hostname == 'araveia'
+          - inventory_hostname in groups['main_server']
+          - ansible_connection == 'local'
+          - ansible_facts.os_family == 'Archlinux'
+          - dots_user != 'root'
+          - not dots_sandbox
+          - dots_docs_uuid is defined
+          - dots_docs is match('^/[^\\s]+$')
+        fail_msg: Use scripts/deploy --fresh as the normal araveia account; this is not a remote or blank-disk installer.
+    - name: Mount only the explicitly approved preserved disk and reject blank Forgejo data
+      dots_storage:
+        path: "{{ dots_docs }}"
+        uuid: "{{ dots_docs_uuid }}"
+        uid: "{{ dots_uid }}"
+        operation: mount
+        require_forge: true
+      become: true
+      register: dots_fresh_storage
+    - name: End a mount-only check before trying to read an unmounted recovery snapshot
+      ansible.builtin.meta: end_play
+      when: ansible_check_mode and dots_fresh_storage.pending_mount
+    - name: Read exact private recovery destinations
+      ansible.builtin.set_fact:
+        dots_recovery_policy: "{{ (lookup('ansible.builtin.file', dots_controller_root ~ '/policy/recovery.yml') | from_yaml)[inventory_hostname] }}"
+    - name: Define the bounded public recovery receipt
+      ansible.builtin.set_fact:
+        dots_recovery_receipt_path: "{{ dots_home }}/.local/state/dots/fresh-recovery.json"
+        dots_recovery_receipt: "{{ {'version': 1, 'uuid': dots_docs_uuid, 'uid': dots_uid | int, 'policy_sha256': dots_recovery_policy | to_json | hash('sha256')} }}"
+    - name: Inspect prior recovery receipt without following a link
+      ansible.builtin.stat:
+        path: "{{ dots_recovery_receipt_path }}"
+        follow: false
+      register: dots_prior_recovery
+    - name: Reject unsafe or unrelated recovery receipts
+      ansible.builtin.assert:
+        that:
+          - dots_prior_recovery.stat.isreg | default(false)
+          - dots_prior_recovery.stat.uid == dots_uid | int
+          - dots_prior_recovery.stat.mode == '0600'
+          - dots_prior_recovery.stat.size < 4096
+        fail_msg: Refusing an unsafe fresh-recovery receipt; existing private state will not be overwritten.
+      when: dots_prior_recovery.stat.exists
+    - name: Read only the public bounded recovery receipt
+      ansible.builtin.slurp:
+        src: "{{ dots_recovery_receipt_path }}"
+      register: dots_prior_receipt
+      when: dots_prior_recovery.stat.exists
+    - name: Require the receipt to match this account disk and recovery policy
+      ansible.builtin.assert:
+        that: (dots_prior_receipt.content | b64decode | from_json) == dots_recovery_receipt
+        fail_msg: Recovery policy or identity changed; do not replay stale credentials. Resume with normal scripts/deploy or inspect docs/RECOVERY.md.
+      when: dots_prior_recovery.stat.exists
+    - name: Resume the already-restored identity if interrupted after writing its receipt
+      ansible.builtin.systemd_service:
+        name: tailscaled.service
+        enabled: true
+        state: started
+      become: true
+      when: dots_prior_recovery.stat.exists
+    - name: Do not replay rotating private state on a completed recovery
+      ansible.builtin.meta: end_play
+      when: dots_prior_recovery.stat.exists
+    - name: Validate the entire home recovery input before installing packages or copying credentials
+      dots_recover:
+        snapshot: "{{ dots_recovery_snapshot }}"
+        home: "{{ dots_home }}"
+        scope: home
+        entries: "{{ dots_recovery_policy.home }}"
+        operation: validate
+      become: true
+      no_log: true
+      diff: false
+    - name: Validate the entire root recovery input before installing packages or copying credentials
+      dots_recover:
+        snapshot: "{{ dots_recovery_snapshot }}"
+        home: /
+        scope: system
+        snapshot_owner: "{{ dots_uid }}"
+        entries: "{{ dots_recovery_policy.system }}"
+        operation: validate
+      become: true
+      no_log: true
+      diff: false
+    - name: Encrypt existing scoped system preimages before fresh recovery integration
+      dots_backup:
+        home: /
+        host: "{{ inventory_hostname }}-system"
+        vault_root: "{{ dots_vault_root }}"
+        entries:
+          - {dest: etc/fstab}
+          - {dest: etc/hostname}
+          - {dest: etc/resolv.conf}
+          - {dest: etc/NetworkManager/conf.d/90-dns-systemd-resolved.conf}
+          - {dest: etc/systemd/system/cloudflared.service}
+      become: true
+      no_log: true
+      diff: false
+  tasks:
+    - name: Refresh and fully upgrade the fresh Arch install with its native recovery prerequisites
+      ansible.builtin.command:
+        # Explicit --fresh authority only. Arch does not support -Sy + selective
+        # installs against the old offline install; keep the entire OS consistent.
+        argv: [/usr/bin/pacman, -Syu, --needed, --noconfirm, --, acl, git, tailscale, cloudflared, openssh, networkmanager]
+      when: not ansible_check_mode
+      become: true
+      changed_when: true
+    - name: Stop Tailscale before restoring its existing node identity
+      ansible.builtin.systemd_service:
+        name: tailscaled.service
+        state: stopped
+      when: not ansible_check_mode
+      become: true
+    - name: Restore only approved absent private account state without adopting repositories or caches
+      dots_recover:
+        snapshot: "{{ dots_recovery_snapshot }}"
+        home: "{{ dots_home }}"
+        scope: home
+        entries: "{{ dots_recovery_policy.home }}"
+        operation: restore
+      become: true
+      no_log: true
+      diff: false
+    - name: Restore only approved absent machine identities with the daemon stopped
+      dots_recover:
+        snapshot: "{{ dots_recovery_snapshot }}"
+        home: /
+        scope: system
+        snapshot_owner: "{{ dots_uid }}"
+        entries: "{{ dots_recovery_policy.system }}"
+        operation: restore
+      become: true
+      no_log: true
+      diff: false
+    - name: Restore the explicitly enrolled local hostname through the OS manager
+      ansible.builtin.hostname:
+        name: araveia
+        use: systemd
+      become: true
+    - name: Preserve the approved existing disk mount across subsequent boots
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^UUID={{ dots_docs_uuid | regex_escape }}\s+'
+        line: "UUID={{ dots_docs_uuid }} {{ dots_docs }} ext4 defaults 0 2"
+        validate: '/usr/bin/findmnt --verify --tab-file %s'
+        backup: false
+      become: true
+    - name: Create only the supported DNS and tunnel configuration parents
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop: [/etc/NetworkManager/conf.d, /etc/systemd/system]
+      become: true
+    - name: Declare the fresh NetworkManager DNS integration without restarting the connection
+      ansible.builtin.copy:
+        content: "[main]\ndns=systemd-resolved\n"
+        dest: /etc/NetworkManager/conf.d/90-dns-systemd-resolved.conf
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+    - name: Enable the supported DNS resolver
+      ansible.builtin.systemd_service:
+        name: systemd-resolved.service
+        enabled: true
+        state: started
+      become: true
+    - name: Reload only NetworkManager global configuration without dropping connections
+      ansible.builtin.command:
+        argv: [/usr/bin/nmcli, general, reload, conf]
+      when: not ansible_check_mode
+      become: true
+      changed_when: true
+    - name: Hand current connection DNS to the resolver without restarting NetworkManager
+      ansible.builtin.command:
+        argv: [/usr/bin/nmcli, general, reload, dns-full]
+      when: not ansible_check_mode
+      become: true
+      changed_when: true
+    - name: Use the resolver stub without adopting unrelated network configuration
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        src: /run/systemd/resolve/stub-resolv.conf
+        state: link
+        force: true
+      become: true
+    - name: Declare the tunnel unit with credentials remaining in the private token file
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Cloudflare tunnel for the preserved araveia services
+          Wants=network-online.target
+          After=network-online.target
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate run --token-file /etc/cloudflared/token
+          Restart=on-failure
+          RestartSec=5s
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/cloudflared.service
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+    - name: Create only the private recovery receipt parent as the normal account
+      dots_parents:
+        home: "{{ dots_home }}"
+        directories: [.local/state/dots]
+        private: [.local/state/dots]
+    - name: Record completed file restoration before daemons rotate the restored state
+      ansible.builtin.copy:
+        content: "{{ dots_recovery_receipt | to_nice_json }}\n"
+        dest: "{{ dots_recovery_receipt_path }}"
+        mode: '0600'
+      when: not ansible_check_mode
+    - name: Start the restored tailnet identity before the normal deployment preflight
+      ansible.builtin.systemd_service:
+        name: tailscaled.service
+        enabled: true
+        state: started
+        daemon_reload: true
+      become: true
+    - name: Require the restored node's exact enrolled address before application mutation
+      ansible.builtin.command:
+        argv: [/usr/bin/tailscale, ip, -4]
+      register: dots_fresh_tailnet
+      changed_when: false
+      until: dots_fresh_tailnet.rc == 0 and dots_tailnet_ip in dots_fresh_tailnet.stdout_lines
+      retries: 20
+      delay: 2
+      when: not ansible_check_mode
+    - name: Explain the recovery boundary before converging normal configuration
+      ansible.builtin.debug:
+        msg: >-
+          Preserved disk and private runtime recovery complete. Normal deployment
+          will authenticate/enroll secrets and check storage and Tailscale again.
+          Expired external OAuth/node credentials still require account reauthentication.

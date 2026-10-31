@@ -1,0 +1,57 @@
+---
+- name: Query installed native package names
+  ansible.builtin.command:
+    argv: ["{{ software_bindir }}/pacman", -Qq]
+  register: software_installed
+  changed_when: false
+
+- name: Select missing prerequisites before account become or build tasks
+  ansible.builtin.set_fact:
+    software_prerequisites_missing: "{{ software_official_prerequisites | difference(software_installed.stdout_lines) | sort }}"
+
+# Separate transaction: an unrelated curated conflict cannot strand sudo/ACL/
+# setsid, toolchain managers or build tools needed by later account tasks.
+- name: Install missing prerequisites without upgrading the machine
+  become: true
+  become_user: root
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/pacman', '-S', '--needed', '--noconfirm', '--'] + software_prerequisites_missing }}"
+  when: software_prerequisites_missing | length > 0
+  changed_when: true
+
+- name: Initialize curated packages held by installed conflicting providers
+  ansible.builtin.set_fact:
+    software_conflicts_held: []
+
+- name: Hold curated packages whose conflicting provider is already installed
+  ansible.builtin.set_fact:
+    software_conflicts_held: "{{ software_conflicts_held + [item] }}"
+  loop: "{{ software_conflict_guards }}"
+  loop_control:
+    label: "{{ item.package }}"
+  when:
+    - item.package in software_official_packages
+    - item.package not in software_installed.stdout_lines
+    - item.installed | intersect(software_installed.stdout_lines) | length > 0
+
+- name: Select missing official packages, holding guarded conflicts without removals
+  ansible.builtin.set_fact:
+    software_official_missing: >-
+      {{ software_official_packages | difference(software_installed.stdout_lines + software_prerequisites_missing)
+         | difference(software_conflicts_held | map(attribute='package') | list) | sort }}
+    software_aur_missing: "{{ software_aur_packages | difference(software_installed.stdout_lines) | sort }}"
+
+- name: Report curated packages held back by an installed conflicting provider
+  ansible.builtin.debug:
+    msg: "{{ item.package }} not installed: conflicts with installed {{ item.installed | join(', ') }}. {{ item.resolution }}"
+  loop: "{{ software_conflicts_held }}"
+  loop_control:
+    label: "{{ item.package }}"
+
+- name: Install missing official packages without upgrading the machine
+  become: true
+  become_user: root
+  ansible.builtin.command:
+    argv: "{{ [software_bindir + '/pacman', '-S', '--needed', '--noconfirm', '--'] + software_official_missing }}"
+  when: software_official_missing | length > 0
+  changed_when: true

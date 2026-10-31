@@ -10,6 +10,7 @@
     dest: "{{ dots_home }}/docs/src/CLIProxyAPI/main"
     version: "{{ dots_cliproxyapi_revision }}"
     force: false
+  environment: "{{ dots_git_environment }}"
   register: dots_proxy_checkout
 - name: Check the managed proxy binary
   ansible.builtin.stat:

@@ -11,16 +11,28 @@ repositories, and existing network/data/auth state are inputs, not guessed value
 Use `--user` or a personal SSH `User` declaration when target logins differ.
 
 This is a configuration/software migration, **not a bare-metal backup image**.
-It does not partition disks, restore personal data, rewrite fstab/kernel/GPU
-configuration, import an arbitrary `/etc` snapshot, enroll Tailscale using a
-fabricated token, transfer private SSH keys, or perform provider sign-ins. The
-existing docs filesystem and service data remain in place. Cloudflared's enrolled
-unit and secrets remain owned by that setup; an existing unit is enabled without
-reading its credential-bearing text. Firewall zones are preserved to avoid
-breaking the controller's remote access. `policy/system.yml` records these owners.
-A genuinely replacement machine requires those normal OS/data/auth inputs first.
+It does not partition/format disks, recover arbitrary personal data, rewrite
+kernel/GPU configuration, import a whole `/etc` snapshot, fabricate Tailscale
+keys, or perform provider sign-ins. `scripts/deploy --fresh` is the explicit
+**local araveia reinstall** route: it mounts the existing UUID, requires matching
+account/data ownership and a locked existing Forgejo install, validates the
+private legacy snapshot, restores only `policy/recovery.yml`, and adds that
+single UUID mount to fstab. It declares resolver and token-file tunnel
+integration rather than replaying system dumps. System preimages are encrypted
+before those named configuration changes. The existing data remains in place.
 
-The proxy checks the enrolled main-node Tailscale address **before any mutation**.
+The system role uses firewalld's manager CLI for additive named `tailscale` zone
+rules (SSH, mosh, proxy 8317), interface association, and public SSH; it preserves
+unrelated zones/rules and does not replay old development-server/public-port
+rules. A missing zone is activated with one validated reload only during explicit
+fresh recovery (permanent SSH access is added first); existing nodes lacking the
+zone fail for inspection instead of dropping unrelated runtime-only rules. An unexpected custom interface zone fails
+for inspection. `policy/system.yml` records the exact owners. See
+[recovery](RECOVERY.md) for data/identity inputs and retry boundaries.
+
+Normal deployment checks the enrolled main-node Tailscale address for both
+Forgejo and the proxy **before any application mutation**. Explicit fresh recovery
+installs bootstrap prerequisites and restores the existing node identity first.
 It intentionally fails early on the wrong identity instead of exposing a proxy on
 a guessed public interface. Main-only IP bindings live in inventory, not lab
 files. Package prerequisites are selected only from eligible components.
@@ -84,7 +96,11 @@ applied; no recursive ownership reset or pruning occurs.
 System integration and Forgejo start before self-hosted source acquisition.
 Forgejo's existing repositories/databases are **never copied, reinitialized, or
 pruned**. The supported user unit runs Compose. The Docker group GID is gathered,
-not hardcoded. An explicit account socket ACL allows the already-running user
+not hardcoded. The Docker daemon requires the data mount at boot, and the user
+unit requires the mount and existing `app.ini`. Per-process Git URL rewrites use
+loopback on araveia, with source reachability checked after Forgejo health; no
+persistent personal Git rewrite or public tunnel is needed to fetch its sources.
+An explicit account socket ACL allows the already-running user
 manager to use Docker without forcing logout; Docker membership is root-equivalent.
 The website remains its own repository and its own Actions deployment pipeline:
 Ansible checks out source without forcing dirty work, and starts a runner only

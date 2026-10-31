@@ -9,9 +9,12 @@ software_official_curated: >-
   {{ lookup('ansible.builtin.file', software_package_sources.official).splitlines()
      | map('regex_replace', '#.*$', '') | map('trim') | reject('equalto', '')
      | reject('equalto', 'chezmoi') | unique | list }}
+# Installed in their own transaction before the curated batch and before any
+# account become/build task, so a curated conflict cannot strand them.
 software_official_prerequisites:
   - acl
   - sudo
+  - util-linux
   - ca-certificates
   - base-devel
   - git
@@ -24,6 +27,24 @@ software_official_prerequisites:
   - gtk4
   - gtk4-layer-shell
 software_official_packages: "{{ (software_official_curated + software_official_prerequisites) | unique | list }}"
+# A curated package is skipped, never forced, while a conflicting provider the
+# owner already installed is present. Pacman's --noconfirm would refuse anyway.
+software_conflict_guards:
+  - package: pipewire-jack
+    installed: [jack2]
+    resolution: Replace jack2 with pipewire-jack interactively (sudo pacman -S pipewire-jack) if desired.
+# Executable directory; tests point it at bounded mocks, never real installers.
+software_bindir: /usr/bin
+# Untrusted package/build code runs in a new session without a controlling TTY
+# after discarding the account's cached sudo credentials, so it cannot reuse
+# Ansible's become authentication. Only the root-owned bridge grant remains.
+software_untrusted_argv:
+  - "{{ software_bindir }}/setsid"
+  - --wait
+  - /bin/sh
+  - -c
+  - '"$0" -K && exec "$@"'
+  - "{{ software_bindir }}/sudo"
 software_aur_packages: >-
   {{ lookup('ansible.builtin.file', software_package_sources.aur).splitlines()
      | map('regex_replace', '#.*$', '') | map('trim') | reject('equalto', '') | unique | list }}
@@ -40,11 +61,13 @@ software_npm_packages:
 software_cargo_packages:
   - mdbook-katex
   - flamegraph
-software_user_environment:
+software_account_environment:
   HOME: "{{ dots_home }}"
-  PATH: "{{ dots_home }}/.local/bin:{{ dots_home }}/.npm-global/bin:{{ dots_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+  PATH: "{{ dots_home }}/.local/bin:{{ dots_home }}/.npm-global/bin:{{ dots_home }}/.cargo/bin:/usr/local/bin:{{ software_bindir }}:/usr/bin:/bin"
   NPM_CONFIG_PREFIX: "{{ dots_home }}/.npm-global"
   CARGO_HOME: "{{ dots_home }}/.cargo"
   RUSTUP_HOME: "{{ dots_home }}/.rustup"
   UV_TOOL_DIR: "{{ dots_home }}/.local/share/uv/tools"
   UV_TOOL_BIN_DIR: "{{ dots_home }}/.local/bin"
+# The parent's loopback Git rewrite reaches self-hosted origins from this host.
+software_user_environment: "{{ software_account_environment | combine(dots_git_environment | default({})) }}"

@@ -70,12 +70,15 @@ class BridgeTests(unittest.TestCase):
 class RoleTests(unittest.TestCase):
     def test_task_surfaces_are_builtin_only_and_cleanup_is_unconditional(self):
         task_keywords = {"name", "become", "become_user", "environment", "when", "loop",
-                         "loop_control", "register", "changed_when", "failed_when", "block", "always", "check_mode"}
+                         "loop_control", "register", "changed_when", "failed_when", "block", "always", "check_mode",
+                         "vars"}
 
         def inspect(tasks):
             for task in tasks:
                 for key in task:
                     self.assertTrue(key in task_keywords or key.startswith("ansible.builtin."), key)
+                # Plain ansible-core resolves package to community.general.pacman.
+                self.assertNotIn("ansible.builtin.package", task)
                 for key in ("block", "always"):
                     if key in task:
                         inspect(task[key])
@@ -94,7 +97,8 @@ class RoleTests(unittest.TestCase):
             self.skipTest("visudo unavailable; deployment still uses copy.validate")
         with tempfile.TemporaryDirectory(prefix="dots-policy-test-") as temporary:
             policy = Path(temporary) / "sudoers"
-            policy.write_text("fixture ALL=(root) NOPASSWD: /run/dots-software-policy-fixture/pacman *\n")
+            policy.write_text("Defaults:fixture timestamp_timeout=0\n"
+                              "fixture ALL=(root) NOPASSWD: /run/dots-software-policy-fixture/pacman *\n")
             result = subprocess.run([validator, "-cf", str(policy)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wrapper = Path(temporary) / "sudo"
@@ -139,7 +143,7 @@ class RoleTests(unittest.TestCase):
                 # Static imports make --syntax-check inspect the real task surfaces,
                 # even though production deliberately includes them dynamically.
                 "tasks": [{"ansible.builtin.import_role": {"name": str(ROLE), "tasks_from": name}}
-                          for name in ("install", "builds", "tools")] if syntax else [],
+                          for name in ("install", "packages", "builds", "tools", "aur")] if syntax else [],
             }]))
             command = [shutil.which("ansible-playbook"), "-i", "localhost,", str(playbook)]
             if syntax:

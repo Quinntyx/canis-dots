@@ -55,6 +55,20 @@ class MigrationContract(unittest.TestCase):
                     self.assertTrue((path.parent / 'files' / entry['source']).is_file())
         self.assertGreater(len(destinations), 1300)
 
+    def test_every_declared_source_is_in_the_publishable_git_index(self):
+        tracked = set(subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0'))
+        missing = []
+        for manifest in (ROOT / 'roles').glob('*/manifest.yml'):
+            for entry in json.loads(manifest.read_text()):
+                folder = 'templates' if entry['kind'] == 'template' else 'files'
+                source = manifest.parent / folder / entry['source']
+                if str(source.relative_to(ROOT)) not in tracked:
+                    missing.append(str(source.relative_to(ROOT)))
+                if entry['kind'] == 'link':
+                    # These are literal link-target source text, never credential JSON.
+                    self.assertFalse(source.read_text().lstrip().startswith(('{"', '{\n', '[')), source)
+        self.assertEqual(missing, [], 'A source existing locally is not proof it ships in a fresh clone')
+
     def test_no_active_legacy_manager(self):
         self.assertFalse((ROOT / '.chezmoiignore').exists())
         self.assertFalse((ROOT / '.chezmoiexternal.toml').exists())

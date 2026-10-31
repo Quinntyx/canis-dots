@@ -1,16 +1,19 @@
 ---
 # Official Arch repositories. No full-system upgrade, removal, or global pip mutation.
-# Opinionated application extras are separately selectable, not fleet membership.
+# Each group is what its component's configuration and lifecycle actually use;
+# curated applications belong to the software role's lists, not extras here.
+# pipewire-jack is deliberately left to the software role, which holds it
+# rather than force-replacing an installed jack2.
 shell: [fish, starship, btop, jq, curl, wget, ripgrep, fd, bat, eza, fzf, zoxide, broot, trash-cli, unzip, openssh, python]
 git: [git]
 ssh: [openssh]
 tmux: [tmux, python]
 editor: [helix, neovim]
-agents: [nodejs, npm, uv, task, timew, tmux, python, python-pydantic, python-dateutil]
+agents: [nodejs, npm, uv, task, timew, tmux, python, python-pydantic, python-dateutil, git, sudo, util-linux]
 mail: [aerc, isync, notmuch, goimapnotify, w3m, msmtp, gnupg, libsecret, keyutils, python-requests]
 cliproxyapi: [go, git, jq, tailscale]
-forgejo: [docker, docker-compose, acl]
+forgejo: [docker, docker-compose, acl, git, tailscale]
 website: [nodejs, npm, git]
-system: [keyd, realtime-privileges, tailscale, openssh]
-desktop: [hyprland, hyprpaper, hypridle, hyprlock, waybar, wofi, mako, kitty, alacritty, yazi, mpv, imv, zathura, zathura-pdf-mupdf, evince, chromium, wl-clipboard, xdg-desktop-portal-hyprland, pipewire, pipewire-pulse, wireplumber, fcitx5, fcitx5-chinese-addons, fcitx5-configtool, polkit-kde-agent, syncthing]
-software: [firefox, thunderbird, libreoffice-fresh, gimp, inkscape, blender, krita, ardour, qpwgraph, wine-staging, winetricks, keepassxc, obs-studio, qbittorrent, yt-dlp, ffmpeg, rustup, base-devel, cmake, ninja]
+system: [keyd, realtime-privileges, tailscale, openssh, cloudflared, firewalld, mosh, avahi, cups, bluez, power-profiles-daemon, acl, util-linux]
+desktop: [niri, xwayland-satellite, waybar, fuzzel, mako, swaylock, awww, kitty, nautilus, xdg-desktop-portal-gnome, xdg-desktop-portal-gtk, xdg-desktop-portal-wlr, wl-clipboard, brightnessctl, playerctl, libnotify, pipewire, pipewire-alsa, pipewire-pulse, wireplumber, syncthing, python, sudo, util-linux]
+software: [acl, sudo, util-linux, base-devel, git, rustup, cargo-binstall, uv, nodejs, npm]

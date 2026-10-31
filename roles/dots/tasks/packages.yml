@@ -6,8 +6,22 @@
 - name: Read reviewed official package ownership
   ansible.builtin.set_fact:
     dots_package_groups: "{{ lookup('ansible.builtin.file', dots_controller_root ~ '/policy/packages.yml') | from_yaml }}"
-- name: Install prerequisites for the selected components
-  ansible.builtin.package:
-    name: "{{ dots_selected | map('extract', dots_package_groups) | flatten | unique | list }}"
-    state: present
+- name: Query installed native packages without requiring an extra Ansible collection
+  ansible.builtin.command:
+    argv: ["{{ dots_pacman_binary | default('/usr/bin/pacman') }}", -Qq]
+  register: dots_installed_packages
+  changed_when: false
+  check_mode: false
+- name: Resolve missing prerequisites for the selected components
+  ansible.builtin.set_fact:
+    dots_missing_packages: "{{ dots_selected | map('extract', dots_package_groups) | flatten | unique | difference(dots_installed_packages.stdout_lines) | sort }}"
+- name: Install only missing reviewed official prerequisites through native pacman
+  ansible.builtin.command:
+    argv: "{{ [dots_pacman_binary | default('/usr/bin/pacman'), '-S', '--needed', '--noconfirm', '--'] + dots_missing_packages }}"
   become: true
+  when: not ansible_check_mode and dots_missing_packages | length > 0
+  changed_when: true
+- name: Report missing prerequisites in check mode without running an installer
+  ansible.builtin.debug:
+    msg: "Missing official prerequisites: {{ dots_missing_packages | join(', ') }}"
+  when: ansible_check_mode and dots_missing_packages | length > 0

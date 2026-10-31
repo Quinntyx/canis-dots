@@ -10,6 +10,7 @@
     mode: '0755'
   when: not software_local_recipe.stat.exists
 - name: Acquire a missing recipe from its declared owning repository and exact ref
+  environment: "{{ dots_git_environment | default({}) }}"
   ansible.builtin.git:
     repo: "{{ software_local_spec.repo }}"
     dest: "{{ dots_home }}/.cache/ansible-dots/package-sources/{{ software_local_spec.packages[0] }}"

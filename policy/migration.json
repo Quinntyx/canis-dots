@@ -5077,10 +5077,10 @@
     "legacy_source": "dot_config/pi/profiles/daily_assistant/npm/dot_gitignore",
     "sha256": "240a3e0d37d2e86b614063f5347eb02d4f99ca6c254de6b82871ff8d95532a7d",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/daily_assistant/npm/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/daily_assistant/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/daily_assistant/npm/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
@@ -5197,10 +5197,10 @@
     "legacy_source": "dot_config/pi/profiles/design-subagents/npm/dot_gitignore",
     "sha256": "240a3e0d37d2e86b614063f5347eb02d4f99ca6c254de6b82871ff8d95532a7d",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/design-subagents/npm/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/design-subagents/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/design-subagents/npm/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
@@ -5357,10 +5357,10 @@
     "legacy_source": "dot_config/pi/profiles/main/dot_gitignore",
     "sha256": "1ce206ea1b0e0f11fefb2227ecd9e27cf450e2dcfc564be8669eba5a6c6d4951",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/main/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/main/.gitignore.j2",
     "dest": ".config/pi/profiles/main/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
@@ -5407,10 +5407,10 @@
     "legacy_source": "dot_config/pi/profiles/main/npm/dot_gitignore",
     "sha256": "240a3e0d37d2e86b614063f5347eb02d4f99ca6c254de6b82871ff8d95532a7d",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/main/npm/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/main/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/main/npm/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
@@ -9467,20 +9467,20 @@
     "legacy_source": "dot_config/pi/profiles/omn-assistant/dot_gitignore",
     "sha256": "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/omn-assistant/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/omn-assistant/.gitignore.j2",
     "dest": ".config/pi/profiles/omn-assistant/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
     "legacy_source": "dot_config/pi/profiles/omn-assistant/npm/dot_gitignore",
     "sha256": "240a3e0d37d2e86b614063f5347eb02d4f99ca6c254de6b82871ff8d95532a7d",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/omn-assistant/npm/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/omn-assistant/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/omn-assistant/npm/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
@@ -9707,10 +9707,10 @@
     "legacy_source": "dot_config/pi/profiles/subagents/npm/dot_gitignore",
     "sha256": "240a3e0d37d2e86b614063f5347eb02d4f99ca6c254de6b82871ff8d95532a7d",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/subagents/npm/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/subagents/npm/.gitignore.j2",
     "dest": ".config/pi/profiles/subagents/npm/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {
@@ -9987,10 +9987,10 @@
     "legacy_source": "dot_config/pi/profiles/t3main/dot_gitignore",
     "sha256": "1ce206ea1b0e0f11fefb2227ecd9e27cf450e2dcfc564be8669eba5a6c6d4951",
     "disposition": "managed",
-    "source": "roles/agents/files/.config/pi/profiles/t3main/.gitignore",
+    "source": "roles/agents/templates/.config/pi/profiles/t3main/.gitignore.j2",
     "dest": ".config/pi/profiles/t3main/.gitignore",
     "component": "agents",
-    "kind": "file",
+    "kind": "template",
     "mode": "0644"
   },
   {

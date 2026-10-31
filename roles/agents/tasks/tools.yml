@@ -9,12 +9,19 @@
     path: "{{ dots_home }}/.npm-global/lib/node_modules/{{ item.name }}/package.json"
   loop: "{{ dots_npm_tools }}"
   register: dots_agent_tools
+# A fresh account has no ~/.npm-global/bin on PATH or npm prefix configuration;
+# both are explicit here rather than inherited from the controller.
 - name: Install missing agent CLIs through npm, not generated-cache edits
   ansible.builtin.command:
-    argv: [npm, install, --global, --prefix, "{{ dots_home }}/.npm-global", --no-audit, --no-fund, "{{ item.item.name }}@{{ item.item.version }}"]
+    argv: >-
+      {{ dots_agent_untrusted_argv + [dots_agent_bindir + '/npm', 'install', '--global', '--prefix',
+         dots_home + '/.npm-global', '--no-audit', '--no-fund', item.item.name + '@' + item.item.version] }}
   loop: "{{ dots_agent_tools.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   when: not item.stat.exists and not ansible_check_mode
   changed_when: true
   environment:
     HOME: "{{ dots_home }}"
+    PATH: "{{ dots_home }}/.npm-global/bin:/usr/local/bin:{{ dots_agent_bindir }}:/usr/bin:/bin"
     NPM_CONFIG_PREFIX: "{{ dots_home }}/.npm-global"

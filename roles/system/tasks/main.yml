@@ -35,12 +35,14 @@
         name: "{{ item }}"
         enabled: true
         state: started
-      loop: [tailscaled.service, sshd.service, keyd.service, fstrim.timer]
+      loop: [tailscaled.service, sshd.service, keyd.service, avahi-daemon.service, cups.service, bluetooth.service, power-profiles-daemon.service, fstrim.timer]
     - name: Reload changed keyd configuration through its service
       ansible.builtin.systemd_service:
         name: keyd.service
         state: restarted
       when: dots_keyd.changed
+    - name: Converge only the declared tailnet firewall zone
+      ansible.builtin.include_tasks: firewall.yml
     - name: Detect an existing tunnel unit without reading its credentials
       ansible.builtin.stat:
         path: /etc/systemd/system/cloudflared.service

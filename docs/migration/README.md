@@ -34,9 +34,14 @@ allowlists, not a recursive traversal of a live home, define deployment.
 - Personal docs/media, mail and notmuch databases, Forgejo repositories/database,
   runner state, browser/provider/SSH/OAuth identities, package caches, sessions,
   task/application databases, virtual environments, and generated downloads.
-- Machine-specific disks/UUIDs, installer boot/GPU configuration, root network
-  enrollment and working firewall state. The system role owns only named
-  supported overrides/integration; it does not replay the backup's whole `/etc`.
+- Installer boot/GPU configuration and unrelated disks/zones remain outside
+  desired state. Explicit `--fresh` now mounts only araveia's declared existing
+  docs UUID, validates data ownership/Forgejo lock, and recovers enumerated
+  identities from the existing private snapshot. That is a separate create-only
+  input, not public desired file state or adoption of repositories/sessions.
+  Named fstab/DNS/tunnel/hostname overrides and manager-owned additive tailnet
+  firewall rules are declared in `policy/system.yml`; no whole `/etc` replay.
+  See [recovery](../RECOVERY.md).
 - Retired Sunshine, Navidrome, OpenClaw, Nix/Incus and abandoned service stacks.
   The migration does not enable or reinstall them. Existing unowned leftovers
   are not silently deleted; removal needs separate ownership and deletion scope.

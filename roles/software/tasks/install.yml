@@ -20,24 +20,8 @@
       - ansible_facts.getent_passwd[dots_user][4] == dots_home
     fail_msg: dots_home must be the target account home resolved from passwd.
 
-- name: Query installed native package names
-  ansible.builtin.command:
-    argv: [/usr/bin/pacman, -Qq]
-  register: software_installed
-  changed_when: false
-
-- name: Select missing official packages
-  ansible.builtin.set_fact:
-    software_official_missing: "{{ software_official_packages | difference(software_installed.stdout_lines) | sort }}"
-    software_aur_missing: "{{ software_aur_packages | difference(software_installed.stdout_lines) | sort }}"
-
-- name: Install missing official packages without upgrading the machine
-  become: true
-  become_user: root
-  ansible.builtin.command:
-    argv: "{{ ['/usr/bin/pacman', '-S', '--needed', '--noconfirm', '--'] + software_official_missing }}"
-  when: software_official_missing | length > 0
-  changed_when: true
+- name: Install official prerequisites, then the curated batch
+  ansible.builtin.include_tasks: packages.yml
 
 # Local PKGBUILDs need an initialized Rust toolchain, not merely rustup's package.
 - name: Install account-owned toolchains and CLIs

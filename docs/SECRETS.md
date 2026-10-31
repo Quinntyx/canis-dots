@@ -68,8 +68,9 @@ The job cleans up temporary files and its container is disposable. Secrets are
 only attached to the main-branch deployment step, not normal PR checks.
 
 The owner explicitly accepts that workflow authors in this repository are trusted
-with repository secrets. Protected main plus the owner's merge access is the
-operational deploy approval, not an additional secret-isolation guarantee.
+with repository secrets. Updates to the owner-controlled main branch are the
+operational deploy trigger, not an additional secret-isolation guarantee. This
+source does not configure or assert that branch protection is already enabled.
 
 **Keep an offline copy of the Vault password.** Forgejo lives on araveia; its
 recovery cannot depend on retrieving the only password from that same Forgejo.

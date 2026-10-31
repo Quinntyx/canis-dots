@@ -1,15 +1,15 @@
 {
   "agents": {
-    "count": 1254,
-    "sha256": "dad9d085646a9013ffe61954b7b12169fbb89f4d780c5b2f7d13bf2c712b8e7e"
+    "count": 1277,
+    "sha256": "0ae8401cc28a0ad601f032e8e3d821c5656bed2371cff87d4deaea9d7276a9d4"
   },
   "cliproxyapi": {
     "count": 9,
     "sha256": "676d9ebb91c27ea22caaab04a39071db878c3808e8cc9980ad4f7300ad6ebb27"
   },
   "desktop": {
-    "count": 25,
-    "sha256": "462d6f022cb0848e99ee3bae829d32a1bd3944dc682acec3768503a3908da855"
+    "count": 29,
+    "sha256": "1594aefdc666eafed0363656e46b78891d33accce24df1c340eabf7f7967c91e"
   },
   "editor": {
     "count": 25,

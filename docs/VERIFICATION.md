@@ -1,6 +1,7 @@
 # Native Ansible rebuild verification
 
-Checkpoint **f81385a** preserves the implementation before simplification. The
+Checkpoint **f81385a**, tagged `checkpoint/ansible-before-native`, preserves the
+implementation before simplification. The
 current source replaces the custom plugins, manifests, recovery/enrollment and
 rollback framework with built-in Ansible roles, files, templates, handlers and
 optional Vault data. `.forgejo/workflows/ansible.yml` supplies the ordinary
@@ -9,8 +10,10 @@ same-repository check-then-main-deploy workflow.
 ## Observed proof
 
 `PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
-the final implementation fixes. It includes syntax/ownership checks, agent tool
-checks, real Ansible fixtures, software decision fixtures and tmux protocol tests.
+the final implementation and rebase fixes: **88 tests passed** (51 Python and
+37 Node), plus playbook syntax checking. They include syntax/ownership checks,
+agent tool checks, real Ansible fixtures, software decision fixtures and tmux
+protocol tests.
 `git diff --check` is also required before publication.
 
 - Real Ansible in disposable homes proves shell deployment, idempotence, host
@@ -28,6 +31,12 @@ checks, real Ansible fixtures, software decision fixtures and tmux protocol test
   not installed yet without allowing an existing ordinary file to be replaced.
 - The full render fixture caught a stale template source path that syntax-only
   checking had missed; the repaired template renders on both hosts.
+- Rebase preservation covers the concurrently merged coursework profile: 23
+  static files were copied byte-for-byte, two home-path templates translated and
+  four service/timer definitions retained on the main node. A focused real
+  Ansible fixture proves its public defaults, mode-0600 target-local private
+  override, no secret logs, repeat convergence and destination-link refusal.
+  The two-host flow confirms main-only MCP/application config and unit scoping.
 - An isolated chezmoi `managed`/`apply` check observed zero managed files with the
   deny-all `.chezmoiignore`. This protects against the archived restore procedure
   accidentally applying this Ansible source as dotfiles. It does not validate or

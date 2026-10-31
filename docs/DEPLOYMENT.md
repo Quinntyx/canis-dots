@@ -62,6 +62,15 @@ its personal SSH config is preserved and receives an isolated config.d include.
 Main role data checks refuse an unmounted/wrong docs filesystem, empty Forgejo
 installation, or a different Tailscale address before application writes.
 
+The concurrently added coursework profile is preserved: shared agent settings
+remain available on enrolled hosts, but its application config, MCP connection,
+mail skill link and service/timer definitions stay on araveia. Its explicit
+restored `.local/state/t3assistant/config.private.json` overrides the public
+config defaults on that target, with private output/log suppression. This does
+not import private data into Git, register a provider, start the coordinator or
+enable new coursework timers; those existing application operations retain their
+separate authority.
+
 ## Forgejo Actions: one-time setup
 
 The workflow in `.forgejo/workflows/ansible.yml` uses the existing runner with an

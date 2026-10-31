@@ -1,9 +1,5 @@
-{{- $private := joinPath .chezmoi.homeDir ".local/state/t3assistant/config.private.json" -}}
-{{- if stat $private -}}
-{{ include $private }}
-{{- else -}}
-{
-  "store": "{{ .chezmoi.homeDir }}/.local/state/t3assistant/state.sqlite3",
+{% if coursework_private_config.content is defined %}{{ coursework_private_config.content | b64decode }}{% else %}{
+  "store": "{{ dots_home }}/.local/state/t3assistant/state.sqlite3",
   "timezone": "America/Chicago",
   "lookahead_days": 7,
   "daily_cap": 1,
@@ -12,7 +8,7 @@
   "project_id": "",
   "courses": {},
   "mcp_url": "http://127.0.0.1:3773/mcp",
-  "token_file": "{{ .chezmoi.homeDir }}/.local/state/t3assistant/oauth-token.json",
+  "token_file": "{{ dots_home }}/.local/state/t3assistant/oauth-token.json",
   "feed_env": "CANVAS_ICAL_URL",
   "model_selection": {
     "instanceId": "pi_pi_t3assistant",
@@ -20,4 +16,4 @@
     "options": [{"id":"thinking", "value":"xhigh"}]
   }
 }
-{{- end -}}
+{% endif %}

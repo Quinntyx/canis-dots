@@ -10,12 +10,12 @@
       "environment": [
         {
           "name": "PI_CODING_AGENT_DIR",
-          "value": "{{ .chezmoi.homeDir }}/.config/pi/profiles/t3assistant",
+          "value": "{{ dots_home }}/.config/pi/profiles/t3assistant",
           "sensitive": false
         }
       ],
       "config": {
-        "binaryPath": "{{ .chezmoi.homeDir }}/.npm-global/bin/pi",
+        "binaryPath": "{{ dots_home }}/.npm-global/bin/pi",
         "launchArgs": ""
       }
     }

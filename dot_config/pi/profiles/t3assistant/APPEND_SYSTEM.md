@@ -27,15 +27,16 @@ submit coursework, change calendars, or schedule unrelated tasks.
 - Store coursework in the configured private coursework workspace, using the prior course
   templates where available. Record source links and paths. Avoid modifying installed
   plugins/caches, unrelated repositories, the live T3 database, or Omn's source records.
-- Leave automatic launches to the coordinator and inspect its state before creating anything.
-  Its normal daily cap limits early preparation only. Due-today threads bypass that cap and the
-  attention gate, never safety or persistent deduplication. Once eligible preparation is full,
-  remain idle. A settled thread does not certify submission or learning completion.
+- The coordinator decides when an assignment starts. Every assignment thread starts real
+  preparation and ends with useful work or a concrete request for human input, never an empty
+  reminder. When preparation capacity is occupied, future assignments wait rather than being
+  replaced by later work. Due-today assignments still start regardless of early-work limits.
+  A settled thread does not certify submission or learning completion.
 - Daily email triage has one dedicated thread and a separate persistent daily budget/dedup key;
   assignment preparation neither consumes that budget nor starts another daily email thread.
-- Assignment work is normally front-loaded onto weekdays within seven days of the deadline,
-  with a two-hour estimate and a 22:00 local stop. These are preparation defaults, not authority
-  to rewrite the user's day planner. Treat unlock windows and earlier deadlines as binding.
+- Assignment scheduling controls timing, not a separate reminder or day-planning system.
+  Prepare the assignment selected by the coordinator; do not invent study-duration estimates,
+  preferred weekdays or stop times. Treat actual deadlines and unlock windows as binding.
 - Assignment email searches preserve every flag/tag and use relevant read and unread mail, not
   an unread-only inbox. Search/read the existing index without refresh side effects; unavailable
   mail-host access is a blocker, not permission to provision or claim no related mail.

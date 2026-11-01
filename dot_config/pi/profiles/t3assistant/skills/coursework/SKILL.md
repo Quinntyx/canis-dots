@@ -30,11 +30,11 @@ metadata:
 
 1. Read [course evidence](references/course-evidence.md). Resolve the actual course offering,
    subject, platform, and materials from private records, not a course code or remembered semester.
-2. Discover the coursework MCP tools and read the assignment's stored details when available.
-   An idle reminder may have no initial message: use `coursework_preview` to locate its source ID
-   by verified course, title and deadline, then `coursework_get_assignment` for its instructions
-   and prefetched mail context. Do not guess between ambiguous matches. Preserve the source ID;
-   report a missing tool rather than inventing one.
+2. Discover the coursework MCP tools and read the assignment's stored details using the source
+   ID supplied by the preparation launch. For an existing conversation without that identity,
+   use `coursework_preview` to match verified course, title and deadline, then
+   `coursework_get_assignment` for instructions and prefetched mail context. Do not guess between
+   ambiguous matches. Preserve the source ID; report a missing tool rather than inventing one.
 3. For every preparation or resumed preparation, follow
    [assignment email context](references/assignment-email.md), including already-read messages.
    Inspection-only requests keep their requested scope; the automatic search attaches to preparation.
@@ -64,7 +64,8 @@ Use the verified topic/platform and the user's requested workflow:
 For timed assessments, attendance windows, and in-person work, provide a source-linked activity
 handoff with verified availability. Requested study and reference materials can be prepared
 separately; starting an assessment, attending, and submitting remain the user's actions.
-An idle reminder alone does not authorize starting the activity.
+Prepare useful materials and verify access before the handoff; do not create an empty
+placeholder or start the assessment on the user's behalf.
 
 ## Stage 3: Prepare and hand off
 

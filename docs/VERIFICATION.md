@@ -40,6 +40,12 @@ protocol tests.
   Ansible fixture proves its public defaults, mode-0600 target-local private
   override, no secret logs, repeat convergence and destination-link refusal.
   The two-host flow confirms main-only MCP/application config and unit scoping.
+- The CI run after the account-fixture correction passed through the source,
+  deployment and software tests, then exposed missing `trash` during all tmux
+  fixture cleanups. The same failure was reproduced with PATH restricted to the
+  project virtualenv. Declaring the already-used `trash-cli` version as a pinned
+  verification dependency made that identical restricted-PATH test pass, without
+  weakening cleanup or installing host software.
 - An isolated chezmoi `managed`/`apply` check observed zero managed files with the
   deny-all `.chezmoiignore`. This protects against the archived restore procedure
   accidentally applying this Ansible source as dotfiles. It does not validate or

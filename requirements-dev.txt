@@ -1,2 +1,4 @@
 # Verification only; deployment uses the machine's installed ansible-core.
 ansible-core==2.19.14
+# Recoverable fixture cleanup must also work in the isolated CI container.
+trash-cli==0.24.5.26

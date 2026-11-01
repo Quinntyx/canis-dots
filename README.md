@@ -64,6 +64,11 @@ identity and personal-data recovery remain separate backup/restore work.
 
 ## Verification
 
+Development checks also require Node.js and tmux. The virtualenv installs
+`trash-cli` for recoverable test-fixture cleanup, including inside CI; it does
+not require a host-level trash utility. These are verification dependencies,
+not extra prerequisites for `./scripts/deploy`.
+
 ```sh
 uv venv .venv
 uv pip install --python .venv/bin/python -r requirements-dev.txt

@@ -18,7 +18,9 @@ applies it to the untouched historical references with `git apply --unidiff-zero
 This is an exact-baseline, zero-context change record, not a general updater. Do not execute the archived
 reference as a deployment tool. The real restore now runs native Ansible after
 restoring data/identities/tools and starting Forgejo, before legacy helper/service
-steps. Its old chezmoi apply was removed. An existing checkout must have the
+steps. Its old chezmoi apply was removed. It checks for your manually installed
+Ansible Core before beginning, and supplies the user-owned npm prefix explicitly
+so pre-Ansible tool restoration does not depend on an absent `.npmrc`. An existing checkout must have the
 expected origin, a clean main branch and a fast-forward update; no reset occurs.
 Merge the native migration before using that restore; it explicitly refuses a
 checkout without `scripts/deploy`.

@@ -287,6 +287,7 @@ class FreshHostDecisions(unittest.TestCase):
         reconciled = {c['env']['PI_CODING_AGENT_DIR'] for c in calls if c['cmd'] == 'pi'}
         self.assertEqual(reconciled, self.expected_dirs('syssec-canis'))
         self.assertNotIn(str(self.home / '.config/pi/profiles/omn-assistant'), reconciled)
+        self.assertNotIn(str(self.home / '.config/pi/profiles/t3assistant'), reconciled)
 
     def test_failed_reconciliation_writes_no_receipt_and_legacy_receipts_do_not_count(self):
         state = self.home / '.local/state/ansible-dots'
@@ -311,6 +312,47 @@ class FreshHostDecisions(unittest.TestCase):
         retried = [c['env']['PI_CODING_AGENT_DIR'] for c in calls if c['cmd'] == 'pi']
         self.assertIn(str(self.home / '.config/pi/profiles/subagents'), retried)
         self.assertNotIn(str(self.home / '.config/pi/profiles/main'), retried)
+
+
+    def test_coursework_schedule_requires_restored_state_and_never_runs_on_lab(self):
+        # Only systemctl is substituted. Ansible stat/assert and host selection
+        # execute normally against disposable files; no user manager is reached.
+        control = self.bindir / 'systemctl'
+        control.write_text('''#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ['DOTS_MOCK_LOG'], 'a') as f:
+    f.write(json.dumps({'cmd': 'systemctl', 'args': sys.argv[1:]}) + '\\n')
+if 'show' in sys.argv:
+    print('LoadState=loaded\\nActiveState=inactive\\nUnitFileState=disabled')
+elif 'is-enabled' in sys.argv:
+    print('disabled')
+    sys.exit(1)
+''')
+        control.chmod(0o755)
+        def run(host):
+            variables = {'inventory_hostname': host,
+                         'dots_manage_services': True, 'dots_uid': os.getuid(),
+                         'dots_service_units': {'coursework': ['t3assistant-coursework.timer']}}
+            tasks = [{'ansible.builtin.include_tasks': {'file': str(ROOT / 'roles/desktop/tasks/coursework.yml'),
+                     'apply': {'environment': {'PATH': str(self.bindir) + ':' + os.environ['PATH']}}}}]
+            return self.play(tasks, variables)
+        missing, calls = run('araveia')
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertFalse([call for call in calls if call['cmd'] == 'systemctl'])
+        for rel in ('docs/src/universal-data-management/main/adapters/t3assistant/__main__.py',
+                    '.config/t3assistant/config.json', '.local/state/t3assistant/oauth-token.json'):
+            file = self.home / rel
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text('fixture')
+        main, calls = run('araveia')
+        self.assertEqual(main.returncode, 0, main.stdout[-6000:])
+        controls = [call['args'] for call in calls if call['cmd'] == 'systemctl']
+        self.assertTrue(any('enable' in args and 't3assistant-coursework.timer' in args for args in controls), controls)
+        self.assertTrue(any('start' in args and 't3assistant-coursework.timer' in args for args in controls), controls)
+        self.assertFalse(any('restart' in args or 't3assistant-email.timer' in args for args in controls), controls)
+        lab, calls = run('syssec-canis')
+        self.assertEqual(lab.returncode, 0, lab.stdout[-6000:])
+        self.assertFalse([call for call in calls if call['cmd'] == 'systemctl'])
 
 
 class FreshSourcePolicy(unittest.TestCase):

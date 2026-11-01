@@ -355,11 +355,13 @@
     config_dest: .config/pi/profiles/t3assistant/auth.json
     config_target: ../../agent/auth.json
     config_preserve_existing: true
+  when: inventory_hostname == 'araveia'
 - name: Link the coursework profile's shared model configuration
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
   vars:
     config_dest: .config/pi/profiles/t3assistant/models.json
     config_target: ../../agent/models.json
+  when: inventory_hostname == 'araveia'
 - name: Link the coursework mail skill only on the mail-capable node
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
   vars:

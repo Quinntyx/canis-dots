@@ -1,6 +1,10 @@
 """Bounded source checks; no active files, installs, services or network."""
 import hashlib
 import json
+import re
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -50,6 +54,60 @@ class SourceTests(unittest.TestCase):
             self.assertIn('Ansible Vault', text)
             for stale in ('scripts/dots-source', 'dots-source.json', 'policy/secrets.yml', 'encrypted_files/<host>'):
                 self.assertNotIn(stale, text, relative)
+
+    def test_coursework_profile_and_units_are_strictly_araveia_only(self):
+        profile = Path('.config/pi/profiles/t3assistant')
+        self.assertFalse((ROOT / 'roles/agents/files/common/0644' / profile).exists())
+        self.assertTrue((ROOT / 'roles/agents/files/araveia/0644' / profile / 'settings.json').is_file())
+        values = yaml.safe_load((ROOT / 'roles/agents/vars/main.yml').read_text())
+        self.assertNotIn(str(profile), values['dots_pi_shared_dirs'])
+        self.assertIn(str(profile), values['dots_pi_main_dirs'])
+        for unit in (ROOT / 'roles/desktop/files/araveia/0644/.config/systemd/user').glob('t3assistant-*'):
+            self.assertIn('ConditionHost=araveia', unit.read_text(), str(unit))
+        services = yaml.safe_load((ROOT / 'inventory/group_vars/all.yml').read_text())['dots_service_units']
+        self.assertEqual(services['coursework'], ['t3assistant-coursework.timer'])
+
+    def test_existing_restore_patch_preserves_coursework_private_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            for name in ('backup.sh', 'restore.sh'):
+                shutil.copy2(ROOT / 'docs/backups/private_araveia' / (name + '.legacy.txt'), base / name)
+            result = subprocess.run(['git', 'apply', '--unidiff-zero', str(ROOT / 'docs/backups/araveia-t3assistant.patch')],
+                                    cwd=base, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            subprocess.run(['bash', '-n', str(base / 'backup.sh'), str(base / 'restore.sh')], check=True)
+            backup = (base / 'backup.sh').read_text()
+            paths = re.search(r'home_paths=\((.*?)\n\)', backup, re.S).group(1)
+            self.assertIn('.config/t3assistant', paths)
+            self.assertIn('.local/state/t3assistant', paths)
+            databases = re.search(r'live_dbs=\((.*?)\)', backup, re.S).group(1)
+            self.assertIn('.local/state/t3assistant/state.sqlite3', databases)
+            restore = (base / 'restore.sh').read_text()
+            self.assertIn('this restore procedure is only for araveia', restore)
+            self.assertNotIn('as_user chezmoi', restore)
+            self.assertIn('as_user "$source/scripts/deploy"', restore)
+            self.assertLess(restore.index('step "Forgejo" forgejo'),
+                            restore.index('step "Ansible configuration'))
+            if shutil.which('rsync'):
+                # Execute only the existing home-data function on artificial
+                # files. Never source/run the privileged restore entrypoint.
+                snapshot = base / 'snapshot'
+                home = base / 'restored'
+                home.mkdir()
+                for rel in ('.config/t3assistant/config.json',
+                            '.local/state/t3assistant/config.private.json',
+                            '.local/state/t3assistant/oauth-token.json'):
+                    file = snapshot / 'home' / rel
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    file.write_text('{"fixture":true}\n')
+                    file.chmod(0o600)
+                function = re.search(r'home_data\(\) \{.*?\n\}', restore, re.S).group(0)
+                command = 'set -e; user=$(id -un); home=$1; here=$2;\n' + function + '\nhome_data\n'
+                subprocess.run(['bash', '-c', command, 'fixture', str(home), str(snapshot)], check=True)
+                for original in (snapshot / 'home').rglob('*.json'):
+                    restored = home / original.relative_to(snapshot / 'home')
+                    self.assertEqual(restored.read_bytes(), original.read_bytes())
+                    self.assertEqual(restored.stat().st_mode & 0o777, 0o600)
 
     def test_workflow_keeps_privilege_in_main_deployment_and_is_serial(self):
         workflow = yaml.safe_load((ROOT / '.forgejo/workflows/ansible.yml').read_text())

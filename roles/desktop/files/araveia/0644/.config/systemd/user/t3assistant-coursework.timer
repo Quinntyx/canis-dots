@@ -1,4 +1,5 @@
 [Unit]
+ConditionHost=araveia
 Description=Check coursework releases frequently during waking hours
 
 [Timer]

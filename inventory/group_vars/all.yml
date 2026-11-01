@@ -19,6 +19,8 @@ dots_service_units:
   cliproxyapi: [cliproxyapi.service]
   forgejo: [forgejo.service]
   desktop: [sunsetr-resume.timer, meal-water-sync.service]
+  # Preserve araveia's enabled coursework schedule; email remains opt-in.
+  coursework: [t3assistant-coursework.timer]
 vault_files: []
 dots_changed_secret_roles: []
 dots_aur_revisions:

@@ -10,18 +10,23 @@
 
 The historical restore/backup references under `docs/backups/private_araveia/`
 are preserved documentation, not a newly executable Ansible recovery subsystem.
-The archived restore script already points its chezmoi step at the GitHub mirror
-of this repository. **Before using that restore after the migration, remove that
-legacy chezmoi step from your separate restore procedure**, then run Ansible as
-step 3 above. Do not edit or execute the archived reference as a deployment tool.
-This source includes a defensive `.chezmoiignore` containing `*`: even if the old
-step still reaches this repository, chezmoi manages/applies no files, rather than
-copying the Ansible source tree into your home. That guard is not configuration
-deployment, and does not repair the rest of an outdated restore procedure.
+At the owner's request, the separate scripts at
+`/home/zlare/docs/backups/araveia/{backup,restore}.sh` were updated for the
+integration below. The applied source patch is tracked as
+[`araveia-t3assistant.patch`](backups/araveia-t3assistant.patch); a regression
+applies it to the untouched historical references with `git apply --unidiff-zero`.
+This is an exact-baseline, zero-context change record, not a general updater. Do not execute the archived
+reference as a deployment tool. The real restore now runs native Ansible after
+restoring data/identities/tools and starting Forgejo, before legacy helper/service
+steps. Its old chezmoi apply was removed. An existing checkout must have the
+expected origin, a clean main branch and a fast-forward update; no reset occurs.
+Merge the native migration before using that restore; it explicitly refuses a
+checkout without `scripts/deploy`.
 
-Retain a verified copy of your existing restore scripts/source for the reinstall.
-This repository does not rewrite or run that separate procedure, nor claim its
-backups are complete or current. No active restore script was changed here.
+The defensive `.chezmoiignore` containing `*` still makes an accidentally invoked
+legacy chezmoi apply manage no files. That is not configuration deployment or
+proof of whole-machine recovery. Retain verified restore scripts and backups.
+No backup or full restore was run as part of this source change.
 
 Normal deployment checks araveia's declared docs filesystem UUID, installed
 Forgejo data/configuration and enrolled Tailscale address. It fails instead of
@@ -29,6 +34,35 @@ initializing a blank forge or guessing a new identity. The existing firewall
 zone, tunnel enrollment, provider tokens, user data and runner registration must
 already be restored. Missing or expired credentials still require their owner's
 normal recovery/sign-in procedure; Ansible cannot invent them.
+
+## t3assistant on araveia
+
+- Ansible tracks the public app/MCP configuration templates and the complete
+  araveia-only Pi profile, including the latest coursework references. The
+  coordinator source remains the existing checkout on the preserved docs disk:
+  `~/docs/src/universal-data-management/main`. It is not adopted into this repo.
+- `backup.sh` now includes `.config/t3assistant` and
+  `.local/state/t3assistant`: private overrides, OAuth token, baseline/evidence
+  and scheduler state. The new `state.sqlite3` entry uses the script's existing
+  SQLite online-backup loop rather than relying on a raw live-database copy.
+  Existing Pi authentication and private Fish configuration were already covered.
+- `restore.sh`'s existing home-data step restores these owner-private files and
+  modes. Its native Ansible handoff installs the profile/config and restores the
+  existing coursework timer on araveia only; the email timer remains disabled
+  unless separately opted in. Ansible never commits or invents OAuth credentials.
+
+**Refresh the private snapshot before wiping the OS:** adding paths to a script
+never retroactively adds files to an old backup. Run the existing backup as its
+owner procedure specifies, and inspect its result:
+
+```sh
+sudo /home/zlare/docs/backups/araveia/backup.sh
+```
+
+Private snapshot contents are not Git source. Expired tokens still require normal
+provider renewal. Only the isolated home-data fixture was exercised here, not a
+full restore, live backup, OAuth sign-in or service activation. The archived
+procedure's other disk/system operations have not been re-audited by this update.
 
 Removed by the simplification: `--fresh`, the recovery module/policy, root disk
 bootstrap, secret enrollment, automatic preimage archives and custom rollback.

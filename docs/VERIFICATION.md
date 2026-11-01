@@ -65,8 +65,13 @@ restored-file prerequisites and timer selection using recording systemctl,
 plus application of the tracked patch to the existing backup/restore references.
 The existing home-data function restored artificial private JSON with mode 0600
 using real rsync in a disposable directory. The separate on-disk scripts were
-edited and syntax-checked, not executed. No live snapshot, SQLite backup, OAuth
-renewal or systemd activation was performed.
+edited and syntax-checked, not executed. The focused Opus 5.5 review found no
+host/timer blockers and identified a fresh-restore npm-prefix ordering gap;
+that gap was fixed with an explicit user-owned prefix. The follow-up regression
+also proves early detection of the owner-installed Ansible prerequisite and
+exercises npm-prefix propagation without invoking sudo or npm. The dead hostname
+repair branch was removed and dirty/non-main checkout refusals now explain why.
+No live snapshot, SQLite backup, OAuth renewal or systemd activation was performed.
 
 The final independent Opus 5.5 source review found no blockers on `79e1f8f`.
 Its two minor findings were addressed afterwards: coursework unit definitions

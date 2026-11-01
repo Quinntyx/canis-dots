@@ -14,7 +14,7 @@ index 8dad043..2ae0f25
 diff --git a/restore.sh b/restore.sh
 old mode 100644
 new mode 100755
-index 21804dd..dec3451
+index 21804dd..1269324
 --- a/restore.sh
 +++ b/restore.sh
 @@ -4,2 +4,2 @@
@@ -22,9 +22,14 @@ index 21804dd..dec3451
 -#      driver. The docs disk (sdb1) must not be formatted.
 +#   1. Install EndeavourOS and ansible-core on the NVMe: hostname araveia,
 +#      user zlare, NVIDIA driver. The docs disk (sdb1) must not be formatted.
-@@ -23,0 +24 @@ user=${SUDO_USER:-}
+@@ -23,0 +24,2 @@ user=${SUDO_USER:-}
 +[[ "$(hostnamectl hostname)" == araveia ]] || die "this restore procedure is only for araveia"
-@@ -221,3 +222,16 @@ home_data() {
++command -v ansible-playbook >/dev/null || die "install ansible-core yourself before running this restore"
+@@ -43,0 +46 @@ as_user() {
++		NPM_CONFIG_PREFIX="$home/.npm-global" \
+@@ -53 +55,0 @@ hostname_and_mount() {
+-	[[ "$(hostnamectl hostname)" == araveia ]] || hostnamectl set-hostname araveia
+@@ -221,3 +223,20 @@ home_data() {
 -dotfiles() {
 -	if [[ ! -d "$home/.local/share/chezmoi/.git" ]]; then
 -		as_user chezmoi init "$dotfiles" || return 1
@@ -41,10 +46,14 @@ index 21804dd..dec3451
 +			https://github.com/Quinntyx/canis-dots.git|https://git.quinntyx.dev/quinntyx/dots.git) ;;
 +			*) echo "unexpected Ansible checkout origin; inspect $source" >&2; return 1 ;;
 +		esac
-+		[[ "$(as_user git -C "$source" branch --show-current)" == main ]] || return 1
-+		[[ -z "$(as_user git -C "$source" status --porcelain)" ]] || return 1
++		[[ "$(as_user git -C "$source" branch --show-current)" == main ]] || {
++			echo "refusing non-main checkout; inspect $source" >&2; return 1
++		}
++		[[ -z "$(as_user git -C "$source" status --porcelain)" ]] || {
++			echo "refusing dirty checkout; preserve changes in $source" >&2; return 1
++		}
 +		as_user git -C "$source" pull --ff-only || return 1
-@@ -225 +239,6 @@ dotfiles() {
+@@ -225 +244,6 @@ dotfiles() {
 -	as_user chezmoi apply --force
 +	[[ -x "$source/scripts/deploy" ]] || {
 +		echo "merge the native Ansible migration before using this restore" >&2
@@ -52,9 +61,9 @@ index 21804dd..dec3451
 +	}
 +	# Prompts normally for sudo/Vault; never manufactures credentials.
 +	as_user "$source/scripts/deploy"
-@@ -310 +328,0 @@ step "home: secrets, app data, downloads, ~/src, game saves" home_data
+@@ -310 +333,0 @@ step "home: secrets, app data, downloads, ~/src, game saves" home_data
 -step "chezmoi dotfiles" dotfiles
-@@ -314,0 +333,4 @@ step "Pi packages" pi_packages
+@@ -314,0 +338,4 @@ step "Pi packages" pi_packages
 +# Includes the araveia-only t3assistant config/profile and existing coursework
 +# timer. Private overrides/OAuth/SQLite state came back through home_data.
 +# Install managed helpers/units before the remaining legacy service steps.

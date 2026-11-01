@@ -84,6 +84,16 @@ class SourceTests(unittest.TestCase):
             self.assertIn('.local/state/t3assistant/state.sqlite3', databases)
             restore = (base / 'restore.sh').read_text()
             self.assertIn('this restore procedure is only for araveia', restore)
+            self.assertLess(restore.index('command -v ansible-playbook'), restore.index('step "hostname'))
+            self.assertNotIn('hostnamectl set-hostname', restore)
+            as_user = re.search(r'as_user\(\) \{.*?\n\}', restore, re.S).group(0)
+            self.assertIn('NPM_CONFIG_PREFIX="$home/.npm-global"', as_user)
+            environment_test = ('user=fixture; uid=1000; home=$1; '
+                                'sudo() { shift 3; "$@"; };\n' + as_user +
+                                '\nas_user bash -c \'printf "%s" "$NPM_CONFIG_PREFIX"\'\n')
+            environment = subprocess.run(['bash', '-c', environment_test, 'fixture', str(base / 'npm-home')],
+                                         capture_output=True, text=True, check=True)
+            self.assertEqual(environment.stdout, str(base / 'npm-home/.npm-global'))
             self.assertNotIn('as_user chezmoi', restore)
             self.assertIn('as_user "$source/scripts/deploy"', restore)
             self.assertLess(restore.index('step "Forgejo" forgejo'),

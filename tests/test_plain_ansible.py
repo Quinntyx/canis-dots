@@ -40,6 +40,26 @@ class PlainAnsibleTests(unittest.TestCase):
             self.assertNotEqual(self.run_role(home, role=role).returncode, 0)
             self.assertEqual(outside.read_text(), 'unmanaged')
 
+    def test_coursework_unit_changes_do_not_mark_desktop_restart_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / 'home'
+            home.mkdir()
+            role = {'role': 'desktop', 'tasks_from': 'config'}
+            first = self.run_role(home, role=role)
+            self.assertEqual(first.returncode, 0, first.stdout)
+            coursework = home / '.config/systemd/user/t3assistant-coursework.timer'
+            coursework.write_text('stale coursework unit\n')
+            result = self.run_role(home, role=role,
+                                   assertions=['not dots_configuration_changed'])
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertNotEqual(coursework.read_text(), 'stale coursework unit\n')
+            desktop = home / '.config/systemd/user/meal-water-sync.service'
+            desktop.write_text('stale desktop unit\n')
+            result = self.run_role(home, role=role,
+                                   assertions=['dots_configuration_changed'])
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertNotEqual(desktop.read_text(), 'stale desktop unit\n')
+
     def test_no_custom_runtime_framework(self):
         self.assertFalse((ROOT / 'plugins').exists())
         for name in ['fresh.yml', 'rollback.yml']:

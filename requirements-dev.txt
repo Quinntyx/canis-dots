@@ -1,4 +1,5 @@
-# Verification only; deployment uses the machine's installed ansible-core.
+# Isolated verification and CI controller environment.
+# Local deployment can use the machine's installed ansible-core instead.
 ansible-core==2.19.14
 # Recoverable fixture cleanup must also work in the isolated CI container.
 trash-cli==0.24.5.26

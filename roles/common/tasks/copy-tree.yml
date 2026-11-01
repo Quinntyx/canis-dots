@@ -71,3 +71,4 @@
     - name: Remember this role's configuration changes for its lifecycle
       ansible.builtin.set_fact:
         dots_configuration_changed: "{{ dots_configuration_changed | default(false) or config_copied.changed }}"
+      when: config_track_restart_inputs | default(true)

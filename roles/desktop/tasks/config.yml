@@ -9,6 +9,15 @@
   vars:
     config_source: "{{ role_path }}/files/common/0755"
     config_mode: '0755'
+# These definitions are not inputs to sunsetr/meal-water. The normal user-service
+# step still daemon-reloads systemd, but never enables the coursework timers.
+- name: Install main-only coursework units without restarting unrelated services
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/araveia/0644"
+    config_mode: '0644'
+    config_track_restart_inputs: false
+  when: inventory_hostname == 'araveia'
 - name: Render .local/share/applications/decentsampler.desktop
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
   vars:

@@ -10,7 +10,7 @@ same-repository check-then-main-deploy workflow.
 ## Observed proof
 
 `PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
-the final implementation and rebase fixes: **88 tests passed** (51 Python and
+the final implementation and review fixes: **89 tests passed** (52 Python and
 37 Node), plus playbook syntax checking. They include syntax/ownership checks,
 agent tool checks, real Ansible fixtures, software decision fixtures and tmux
 protocol tests.
@@ -51,9 +51,14 @@ protocol tests.
   accidentally applying this Ansible source as dotfiles. It does not validate or
   update that separate restore procedure.
 
-The independent Opus review identified concrete issues that were fixed with
-focused proof. Its final follow-up was interrupted by Claude quota; there is no
-claim of independent approval of the finished revision.
+The final independent Opus 5.5 source review found no blockers on `79e1f8f`.
+Its two minor findings were addressed afterwards: coursework unit definitions
+are installed separately without marking unrelated desktop-service restart
+inputs, and the dependency comment correctly includes the CI controller. A
+focused real-Ansible regression failed before the service-input fix and passed
+afterwards; changing a real desktop unit still marks its restart inputs. No
+live service restart was exercised. Earlier quota interruptions did not provide
+review approval; this completed review is the source-review evidence.
 
 ## Deliberately unexercised boundaries
 

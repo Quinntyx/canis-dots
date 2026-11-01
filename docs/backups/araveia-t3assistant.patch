@@ -1,0 +1,61 @@
+diff --git a/backup.sh b/backup.sh
+old mode 100644
+new mode 100755
+index 8dad043..2ae0f25
+--- a/backup.sh
++++ b/backup.sh
+@@ -46,0 +47,2 @@ home_paths=(
++	.config/t3assistant              # private course/coordinator configuration
++	.local/state/t3assistant         # OAuth token, baseline, evidence and scheduler state
+@@ -121 +123,2 @@ done
+-live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db)
++live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db
++	.local/state/t3assistant/state.sqlite3)
+diff --git a/restore.sh b/restore.sh
+old mode 100644
+new mode 100755
+index 21804dd..dec3451
+--- a/restore.sh
++++ b/restore.sh
+@@ -4,2 +4,2 @@
+-#   1. Install EndeavourOS on the NVMe: hostname araveia, user zlare, NVIDIA
+-#      driver. The docs disk (sdb1) must not be formatted.
++#   1. Install EndeavourOS and ansible-core on the NVMe: hostname araveia,
++#      user zlare, NVIDIA driver. The docs disk (sdb1) must not be formatted.
+@@ -23,0 +24 @@ user=${SUDO_USER:-}
++[[ "$(hostnamectl hostname)" == araveia ]] || die "this restore procedure is only for araveia"
+@@ -221,3 +222,16 @@ home_data() {
+-dotfiles() {
+-	if [[ ! -d "$home/.local/share/chezmoi/.git" ]]; then
+-		as_user chezmoi init "$dotfiles" || return 1
++ansible_configuration() {
++	# Run after data, identities, tools and Forgejo are restored. This source
++	# now uses native Ansible; a legacy chezmoi apply intentionally does nothing.
++	local source="$home/docs/src/dots/main" origin
++	if [[ ! -e "$source" ]]; then
++		as_user mkdir -p "$(dirname "$source")" || return 1
++		as_user git clone --branch main "$dotfiles" "$source" || return 1
++	else
++		origin=$(as_user git -C "$source" remote get-url origin) || return 1
++		case "$origin" in
++			https://github.com/Quinntyx/canis-dots.git|https://git.quinntyx.dev/quinntyx/dots.git) ;;
++			*) echo "unexpected Ansible checkout origin; inspect $source" >&2; return 1 ;;
++		esac
++		[[ "$(as_user git -C "$source" branch --show-current)" == main ]] || return 1
++		[[ -z "$(as_user git -C "$source" status --porcelain)" ]] || return 1
++		as_user git -C "$source" pull --ff-only || return 1
+@@ -225 +239,6 @@ dotfiles() {
+-	as_user chezmoi apply --force
++	[[ -x "$source/scripts/deploy" ]] || {
++		echo "merge the native Ansible migration before using this restore" >&2
++		return 1
++	}
++	# Prompts normally for sudo/Vault; never manufactures credentials.
++	as_user "$source/scripts/deploy"
+@@ -310 +328,0 @@ step "home: secrets, app data, downloads, ~/src, game saves" home_data
+-step "chezmoi dotfiles" dotfiles
+@@ -314,0 +333,4 @@ step "Pi packages" pi_packages
++# Includes the araveia-only t3assistant config/profile and existing coursework
++# timer. Private overrides/OAuth/SQLite state came back through home_data.
++# Install managed helpers/units before the remaining legacy service steps.
++step "Ansible configuration and araveia coursework schedule" ansible_configuration

@@ -7,8 +7,8 @@ dots_pi_shared_dirs:
   - .config/pi/profiles/mail
   - .config/pi/profiles/main
   - .config/pi/profiles/subagents
-  - .config/pi/profiles/t3assistant
   - .config/pi/profiles/t3main
   - .pi/agent
 dots_pi_main_dirs:
   - .config/pi/profiles/omn-assistant
+  - .config/pi/profiles/t3assistant

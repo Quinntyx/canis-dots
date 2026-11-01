@@ -49,7 +49,24 @@ protocol tests.
 - An isolated chezmoi `managed`/`apply` check observed zero managed files with the
   deny-all `.chezmoiignore`. This protects against the archived restore procedure
   accidentally applying this Ansible source as dotfiles. It does not validate or
-  update that separate restore procedure.
+  update that separate restore procedure. Its later t3assistant integration is
+  covered separately below.
+
+### t3assistant follow-up
+
+`PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check static` and
+`PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
+this follow-up: **92 tests passed** (55 Python and 37 Node), plus syntax checks.
+The owner's new configuration is restricted completely to araveia, including
+profile acquisition and auth/model links. Its public coursework references were
+synchronized from the verified owned source; private values remain target-local.
+New regression coverage proves the main/lab boundary, the preserved timer's
+restored-file prerequisites and timer selection using recording systemctl,
+plus application of the tracked patch to the existing backup/restore references.
+The existing home-data function restored artificial private JSON with mode 0600
+using real rsync in a disposable directory. The separate on-disk scripts were
+edited and syntax-checked, not executed. No live snapshot, SQLite backup, OAuth
+renewal or systemd activation was performed.
 
 The final independent Opus 5.5 source review found no blockers on `79e1f8f`.
 Its two minor findings were addressed afterwards: coursework unit definitions

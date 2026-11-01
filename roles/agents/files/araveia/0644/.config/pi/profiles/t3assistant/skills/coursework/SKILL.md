@@ -1,6 +1,6 @@
 ---
 name: coursework
-description: "Use when preparing or resuming Canvas coursework: mathematical and quantitative guides, requested reference answers, programming assistance, Codio browser handoff, communication assignments, and physics homework/labs. Routes by verified course identity, subject, platform, and requested workflow. Includes automatic read-only assignment email context (read and unread), materials, authentication handoff, and separate submission/learning progress. Not a day planner or daily email triage."
+description: "Use when preparing or resuming Canvas coursework: mathematical and quantitative guides, reference answers, CS3345 worked answer keys by default, programming assistance, Codio browser handoff, communication assignments, and physics homework/labs. Routes by verified course identity, subject, platform, and requested workflow. Includes course writing/name preferences, read-only assignment email context (read and unread), materials, authentication handoff, and separate submission/learning progress. Not a day planner or daily email triage."
 metadata:
   type: procedure
 ---
@@ -47,7 +47,14 @@ metadata:
 
 ## Stage 2: Choose the subject and workflow route
 
-Use the verified topic/platform and the user's requested workflow:
+For a verified **CS3345 data-structures course**, first read
+[CS3345 answer-key defaults](references/cs3345-answer-keys.md), including for theory assignments.
+Read the private course's `COURSE_PREFERENCES.md` for the student's name, writing preferences,
+and established output location. These standing defaults require a worked answer key on every
+preparation/resumption and a separate writing-decisions log; they do not apply to other courses
+merely because those courses use the generic programming reference below.
+
+Then use the verified topic/platform and the user's requested workflow:
 
 - Mathematics: [mathematical preparation](references/math-3351.md).
 - Multivariable/vector-calculus subject details: [topic supplement](references/math-2415.md).

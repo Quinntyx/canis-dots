@@ -62,14 +62,23 @@ its personal SSH config is preserved and receives an isolated config.d include.
 Main role data checks refuse an unmounted/wrong docs filesystem, empty Forgejo
 installation, or a different Tailscale address before application writes.
 
-The concurrently added coursework profile is preserved: shared agent settings
-remain available on enrolled hosts, but its application config, MCP connection,
-mail skill link and service/timer definitions stay on araveia. Its explicit
-restored `.local/state/t3assistant/config.private.json` overrides the public
-config defaults on that target, with private output/log suppression. This does
-not import private data into Git, register a provider, start the coordinator or
-enable new coursework timers; those existing application operations retain their
-separate authority.
+The entire t3assistant/coursework profile is **araveia-only**, including its
+settings, skills, shared auth/model links, application config, MCP connection
+and service/timer definitions. Normal lab deployment never acquires its profile
+packages or creates its profile directory. Existing unknown lab files are not
+pruned. Unit files also carry `ConditionHost=araveia` as a runtime guard.
+
+Its restored `.local/state/t3assistant/config.private.json` overrides the public
+config defaults with private output/log suppression. Ansible preserves araveia's
+existing enabled `t3assistant-coursework.timer`: after checking the coordinator
+checkout, rendered config and restored OAuth file, it enables/starts that timer
+without restarting an active job. The email timer remains opt-in and no provider
+registration or coordinator checkout is manufactured. Source development does
+not run these tasks against the active machine.
+
+The private config and runtime state belong in the existing backup, not Git.
+The exact backup/restore integration, refresh command and limits are documented
+in [Recovery](RECOVERY.md#t3assistant-on-araveia).
 
 ## Forgejo Actions: one-time setup
 

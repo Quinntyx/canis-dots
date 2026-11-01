@@ -42,6 +42,9 @@
       loop_control:
         label: "{{ item.item }}"
       when: item.stdout | trim == 'enabled'
+- name: Preserve the main node's restored coursework schedule
+  ansible.builtin.include_tasks: coursework.yml
+  when: inventory_hostname == 'araveia'
 - name: Read the installed display manager selection without changing it
   ansible.builtin.stat:
     path: /etc/systemd/system/display-manager.service

@@ -1,4 +1,5 @@
 [Unit]
+ConditionHost=araveia
 Description=Prepare bounded Canvas coursework threads in T3 Code
 After=network-online.target
 Wants=network-online.target

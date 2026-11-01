@@ -67,7 +67,11 @@ class FullConfiguration(unittest.TestCase):
                 self.assertTrue((home / '.config/fish/functions/hx-copilot.fish').is_file())
                 self.assertTrue((home / '.npmrc').is_file())
                 self.assertTrue((home / '.claude-ambassator/settings.json').is_file())
-                self.assertTrue((home / '.config/pi/profiles/t3assistant/settings.json').is_file())
+                if host == 'araveia':
+                    self.assertTrue((home / '.config/pi/profiles/t3assistant/settings.json').is_file())
+                    self.assertTrue((home / '.config/pi/profiles/t3assistant/auth.json').is_symlink())
+                else:
+                    self.assertFalse((home / '.config/pi/profiles/t3assistant').exists())
             self.assertTrue((base / 'araveia/docs/host/forgejo/docker-compose.yml').is_file())
             self.assertFalse((base / 'syssec-canis/docs/host/forgejo/docker-compose.yml').exists())
             self.assertTrue((base / 'araveia/.config/pi/profiles/t3assistant/mcp.json').is_file())

@@ -1,0 +1,31 @@
+---
+- name: Preserve araveia's existing coursework schedule only
+  when: inventory_hostname == 'araveia' and dots_manage_services and not dots_sandbox
+  block:
+    - name: Inspect the restored coordinator and runtime prerequisites
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/{{ item }}"
+        follow: false
+        get_checksum: false
+      loop:
+        - docs/src/universal-data-management/main/adapters/t3assistant/__main__.py
+        - .config/t3assistant/config.json
+        - .local/state/t3assistant/oauth-token.json
+      register: coursework_prerequisites
+      no_log: true
+    - name: Require the existing private coordinator state before scheduling it
+      ansible.builtin.assert:
+        that: item.stat.isreg | default(false) and not item.stat.islnk | default(false)
+        fail_msg: Restore the t3assistant coordinator, configuration and OAuth state before enabling its schedule.
+      loop: "{{ coursework_prerequisites.results }}"
+      no_log: true
+    - name: Enable the declared coursework timer without restarting an active job
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        scope: user
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop: "{{ dots_service_units.coursework }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ dots_uid }}"

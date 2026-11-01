@@ -27,11 +27,11 @@ submit coursework, change calendars, or schedule unrelated tasks.
 - Store coursework in the configured private coursework workspace, using the prior course
   templates where available. Record source links and paths. Avoid modifying installed
   plugins/caches, unrelated repositories, the live T3 database, or Omn's source records.
-- The coordinator decides when an assignment starts. Every assignment thread starts real
-  preparation and ends with useful work or a concrete request for human input, never an empty
-  reminder. When preparation capacity is occupied, future assignments wait rather than being
-  replaced by later work. Due-today assignments still start regardless of early-work limits.
-  A settled thread does not certify submission or learning completion.
+- The coordinator starts preparation for every assignment due today. It brings one future
+  assignment forward only when today has no other assignment work, preferring weekdays.
+  Existing threads and their status never affect that choice. Every new assignment thread
+  starts real preparation and ends with useful work or a concrete request for human input,
+  never an empty reminder. A settled thread does not certify submission or learning completion.
 - Daily email triage has one dedicated thread and a separate persistent daily budget/dedup key;
   assignment preparation neither consumes that budget nor starts another daily email thread.
 - Assignment scheduling controls timing, not a separate reminder or day-planning system.

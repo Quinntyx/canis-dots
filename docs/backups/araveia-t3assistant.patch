@@ -1,13 +1,15 @@
 diff --git a/backup.sh b/backup.sh
 old mode 100644
 new mode 100755
-index 8dad043..2ae0f25
+index 8dad043..33e6e1d
 --- a/backup.sh
 +++ b/backup.sh
 @@ -46,0 +47,2 @@ home_paths=(
 +	.config/t3assistant              # private course/coordinator configuration
 +	.local/state/t3assistant         # OAuth token, baseline, evidence and scheduler state
-@@ -121 +123,2 @@ done
+@@ -104,0 +107 @@ home_paths=(
++	Applications/t3code-fork        # user-owned self-updating Forgejo AppImage
+@@ -121 +124,2 @@ done
 -live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db)
 +live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db
 +	.local/state/t3assistant/state.sqlite3)

@@ -7,6 +7,5 @@
     - https://git.quinntyx.dev/quinntyx/quinntyx-dev.git
     - https://git.quinntyx.dev/quinntyx/CLIProxyAPI.git
     - https://git.quinntyx.dev/quinntyx/omn.git
-    - https://git.quinntyx.dev/quinntyx/t3code.git
   changed_when: false
   when: dots_manage_externals and not ansible_check_mode

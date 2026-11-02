@@ -10,7 +10,7 @@ same-repository check-then-main-deploy workflow.
 ## Observed proof
 
 `PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
-the final implementation and review fixes: **89 tests passed** (52 Python and
+the native rebuild's implementation and review fixes: **89 tests passed** (52 Python and
 37 Node), plus playbook syntax checking. They include syntax/ownership checks,
 agent tool checks, real Ansible fixtures, software decision fixtures and tmux
 protocol tests.
@@ -81,6 +81,26 @@ focused real-Ansible regression failed before the service-input fix and passed
 afterwards; changing a real desktop unit still marks its restart inputs. No
 live service restart was exercised. Earlier quota interruptions did not provide
 review approval; this completed review is the source-review evidence.
+
+### Self-updating T3 Code AppImage follow-up
+
+The complete `scripts/check all` set passed: **98 tests** (61 Python and 37
+Node), plus playbook syntax checks. The six AppImage regressions first failed
+before implementation. Real Ansible against a loopback-only fake feed proves
+missing-file bootstrap, checksum rejection with no partial install, retry,
+executable mode, preserving newer updater bytes during an offline repeat,
+refusing destination/ancestor links, and no acquisition on the lab host, in
+check mode or through the normal sandbox entrypoint. Desktop tests cover quoted
+homes, idempotence, lab exclusion and unsafe launcher destinations. A final
+red-to-green quoting case covers desktop string-unescaping before Exec parsing;
+the entire six-test AppImage set was rerun successfully afterwards.
+
+The actual backup script's AppImage path is represented in the tracked patch.
+Real rsync restored an artificial AppImage with its bytes and executable mode
+intact; the full backup/restore scripts were not run. The production asset pin
+and SHA-512 come from the fork's published stable metadata, not the fake feed.
+No real AppImage download, FUSE mount, desktop launch, in-app update, release-feed
+service change or pacman fallback removal was performed in this task.
 
 ## Deliberately unexercised boundaries
 

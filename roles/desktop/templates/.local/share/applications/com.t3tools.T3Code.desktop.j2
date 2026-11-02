@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=T3 Code (Fork)
+Comment=Forgejo fork with built-in AppImage updates
+Exec="{{ (dots_home + '/Applications/t3code-fork/T3-Code.AppImage') | replace('\\', '\\\\') | replace('"', '\\"') | replace('`', '\\`') | replace('$', '\\$') | replace('%', '%%') | replace('\\', '\\\\') }}" %U
+Icon={{ dots_home }}/.local/share/icons/hicolor/scalable/apps/t3code-fork.svg
+Terminal=false
+StartupNotify=true
+Categories=Development;
+MimeType=x-scheme-handler/t3code;

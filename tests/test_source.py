@@ -80,6 +80,7 @@ class SourceTests(unittest.TestCase):
             paths = re.search(r'home_paths=\((.*?)\n\)', backup, re.S).group(1)
             self.assertIn('.config/t3assistant', paths)
             self.assertIn('.local/state/t3assistant', paths)
+            self.assertIn('Applications/t3code-fork', paths)
             databases = re.search(r'live_dbs=\((.*?)\)', backup, re.S).group(1)
             self.assertIn('.local/state/t3assistant/state.sqlite3', databases)
             restore = (base / 'restore.sh').read_text()
@@ -106,18 +107,20 @@ class SourceTests(unittest.TestCase):
                 home.mkdir()
                 for rel in ('.config/t3assistant/config.json',
                             '.local/state/t3assistant/config.private.json',
-                            '.local/state/t3assistant/oauth-token.json'):
+                            '.local/state/t3assistant/oauth-token.json',
+                            'Applications/t3code-fork/T3-Code.AppImage'):
                     file = snapshot / 'home' / rel
                     file.parent.mkdir(parents=True, exist_ok=True)
                     file.write_text('{"fixture":true}\n')
-                    file.chmod(0o600)
+                    file.chmod(0o755 if file.suffix == '.AppImage' else 0o600)
                 function = re.search(r'home_data\(\) \{.*?\n\}', restore, re.S).group(0)
                 command = 'set -e; user=$(id -un); home=$1; here=$2;\n' + function + '\nhome_data\n'
                 subprocess.run(['bash', '-c', command, 'fixture', str(home), str(snapshot)], check=True)
-                for original in (snapshot / 'home').rglob('*.json'):
-                    restored = home / original.relative_to(snapshot / 'home')
-                    self.assertEqual(restored.read_bytes(), original.read_bytes())
-                    self.assertEqual(restored.stat().st_mode & 0o777, 0o600)
+                for original in (snapshot / 'home').rglob('*'):
+                    if original.is_file():
+                        restored = home / original.relative_to(snapshot / 'home')
+                        self.assertEqual(restored.read_bytes(), original.read_bytes())
+                        self.assertEqual(restored.stat().st_mode & 0o777, original.stat().st_mode & 0o777)
 
     def test_workflow_keeps_privilege_in_main_deployment_and_is_serial(self):
         workflow = yaml.safe_load((ROOT / '.forgejo/workflows/ansible.yml').read_text())

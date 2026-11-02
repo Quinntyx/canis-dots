@@ -22,7 +22,10 @@ commands = {
         [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_review_regressions.py', '-v'],
         [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_full_configuration.py', '-v'],
     ],
-    'software': [[sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_fresh_software.py', '-v']],
+    'software': [
+        [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_fresh_software.py', '-v'],
+        [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_appimage.py', '-v'],
+    ],
     'tmux': [[sys.executable, '-m', 'unittest', 'discover', '-s', 'docs/host/tests', '-v']],
 }
 if surface in ['static', 'all']:

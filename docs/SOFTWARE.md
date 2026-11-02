@@ -44,8 +44,9 @@ unknown dependencies fail rather than adding a recursive acquisition engine.
 Debug split artifacts and old package versions left in a build cache are not
 installed. The next run retries any package whose build/install did not finish.
 
-`roles/software/vars/local-sources.yml` names the owning repositories and exact
-refs for omn-git and t3code-fork-bin. They are acquired into the build account's
+`roles/software/vars/local-sources.yml` names the owning repository and exact
+ref for omn-git. T3 Code now uses the AppImage bootstrap described below, not a
+local PKGBUILD. They are acquired into the build account's
 managed cache, never by resetting an existing personal development checkout.
 The restored Forgejo must be healthy first; private source access must be
 explicitly supplied through its normal owner rather than copied from user auth
@@ -56,6 +57,39 @@ araveia-local Forgejo URL rewrite, including Git invoked from inside makepkg.
 The declared bootstrap repositories must allow anonymous read access on that
 restored forge; unavailable/private sources fail the preflight rather than
 borrowing personal credentials.
+
+## T3 Code fork: bootstrap once, update in-app
+
+On araveia only, native `get_url` installs the immutable Forgejo build
+`2026.11.69` into `~/Applications/t3code-fork/T3-Code.AppImage` **only when
+missing**, with the SHA-512 from its published stable manifest. The pin and
+checksum live in `roles/software/vars/main.yml`. The publisher preserves these
+versioned assets; if the owner retires one, review a new bootstrap pin rather
+than disabling verification. TLS certificate validation remains enabled.
+
+Existing regular files belong to the built-in updater: deployment never hashes
+them against the bootstrap checksum, downloads a replacement or downgrades them.
+An offline repeat works without contacting the feed. Missing copies require the
+existing Tailscale-accessible Forgejo package endpoint; Ansible does not start or
+repair that separately owned release-feed service. Bad checksums leave no
+installed AppImage and the next run retries. Symlinked ancestors/destinations,
+wrong account ownership and non-regular destinations fail instead of being
+adopted. The directory stays user-writable and the file executable. Check mode
+and normal sandbox deployment do not download anything.
+
+Official runtime dependencies include `fuse2` and the former package's Electron
+host libraries. The araveia desktop entry/URL handler points to the AppImage,
+using the actual target home, and a byte-preserved upstream SVG icon. Icon source:
+`t3code/assets/prod/logo.svg` at `5204280e87481c8cb8506c46cb739fc8f05dc13f`.
+No AppImage is executed, extracted, launched or restarted by these tasks.
+
+`t3code-fork-bin` is no longer installed/built or required by source preflight.
+An existing pacman copy is left untouched as a manual fallback; removing it is
+not part of deployment. Historical package lists remain provenance, not a new
+instruction to install that package. AppImage updates use the **Stable** channel
+and normal in-app controls; the fork embeds the Forgejo feed. Tailscale and the
+existing feed must be available for update checks/downloads. The backup includes
+the AppImage directory; see [Recovery](RECOVERY.md#t3-code-appimage).
 
 ## Account-local tools
 

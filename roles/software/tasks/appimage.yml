@@ -1,0 +1,69 @@
+---
+# The built-in updater owns existing bytes. Never checksum/re-download an
+# installed AppImage against the bootstrap pin, even when it is newer or offline.
+- name: Bootstrap the araveia-owned self-updating T3 Code AppImage
+  when:
+    - inventory_hostname == 'araveia'
+    - not ansible_check_mode
+  block:
+    - name: Require the supported published AppImage architecture
+      ansible.builtin.assert:
+        that: ansible_facts.architecture == 'x86_64'
+        fail_msg: The fork currently publishes only a Linux x86_64 AppImage.
+    - name: Inspect the actual account home without following links
+      ansible.builtin.stat:
+        path: "{{ dots_home }}"
+        follow: false
+        get_checksum: false
+      register: software_t3code_home
+    - name: Require an ordinary account home before creating application paths
+      ansible.builtin.assert:
+        that:
+          - software_t3code_home.stat.isdir | default(false)
+          - not (software_t3code_home.stat.islnk | default(false))
+    - name: Check and create only the AppImage's missing parent directories
+      ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/parents.yml"
+      vars:
+        config_dest: Applications/t3code-fork/T3-Code.AppImage
+    - name: Inspect the AppImage directory's account ownership and writability
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/Applications/t3code-fork"
+        follow: false
+        get_checksum: false
+      register: software_t3code_directory
+    - name: Require a user-owned writable directory for the built-in updater
+      ansible.builtin.assert:
+        that:
+          - software_t3code_directory.stat.uid == dots_uid | int
+          - software_t3code_directory.stat.writeable
+        fail_msg: Inspect the AppImage directory ownership; Ansible will not adopt or chown it.
+    - name: Inspect existing AppImage metadata without hashing or following links
+      ansible.builtin.stat:
+        path: "{{ dots_home }}/Applications/t3code-fork/T3-Code.AppImage"
+        follow: false
+        get_checksum: false
+      register: software_t3code_current
+    - name: Refuse AppImage links, special files or another account's installation
+      ansible.builtin.assert:
+        that:
+          - not (software_t3code_current.stat.islnk | default(false))
+          - >-
+            not software_t3code_current.stat.exists or
+            ((software_t3code_current.stat.isreg | default(false)) and
+             software_t3code_current.stat.uid == dots_uid | int and
+             software_t3code_current.stat.size > 0)
+        fail_msg: Inspect the existing AppImage; Ansible preserves updater-owned regular files and refuses unexpected destinations.
+    - name: Download and verify the pinned Forgejo release only if missing
+      ansible.builtin.get_url:
+        url: "{{ software_t3code_bootstrap.url }}"
+        checksum: "{{ software_t3code_bootstrap.checksum }}"
+        dest: "{{ dots_home }}/Applications/t3code-fork/T3-Code.AppImage"
+        mode: '0755'
+        timeout: 120
+      when: not software_t3code_current.stat.exists
+    - name: Keep an existing updater-owned AppImage executable without changing its bytes
+      ansible.builtin.file:
+        path: "{{ dots_home }}/Applications/t3code-fork/T3-Code.AppImage"
+        state: file
+        mode: '0755'
+      when: software_t3code_current.stat.exists

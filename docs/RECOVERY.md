@@ -66,6 +66,22 @@ provider renewal. Only the isolated home-data fixture was exercised here, not a
 full restore, live backup, OAuth sign-in or service activation. The archived
 procedure's other disk/system operations have not been re-audited by this update.
 
+## T3 Code AppImage
+
+The real `backup.sh` also preserves `Applications/t3code-fork`, alongside the
+already-covered desktop entries, `.t3/userdata` and `.config/t3code-v2`. Its
+existing home-data restore puts the AppImage back with executable permissions;
+Ansible preserves those restored bytes, including a newer self-updated version.
+If no copy was backed up, normal software deployment downloads the verified
+bootstrap from Forgejo. It needs the existing tailnet package endpoint then,
+but never downloads over an already installed copy. The separate release-feed
+service is not installed or reconfigured by this desktop change.
+
+The tracked exact-baseline patch above now records both the t3assistant and
+AppImage backup changes. Refreshing the backup before reinstall is still
+required. The isolated restore regression covers AppImage bytes/mode as well as
+private configuration; no live AppImage, backup or whole-machine restore was run.
+
 Removed by the simplification: `--fresh`, the recovery module/policy, root disk
 bootstrap, secret enrollment, automatic preimage archives and custom rollback.
 Their last complete state is available at checkpoint commit **f81385a**, not

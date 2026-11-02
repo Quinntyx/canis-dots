@@ -7,8 +7,3 @@ software_local_sources:
     version: 7edc20b64b445a9851a16002d916e9c366e5ce57
     subdir: .
     packages: [omn-git]
-  - path: src/t3code/main/packaging/arch/t3code-fork-bin
-    repo: https://git.quinntyx.dev/quinntyx/t3code.git
-    version: 0b08b6704ac17de08e17fc219c41f8db0443739d
-    subdir: packaging/arch/t3code-fork-bin
-    packages: [t3code-fork-bin]

@@ -1,6 +1,6 @@
 ---
 name: coursework-mail
-description: "Use automatically for every assignment preparation or resumed preparation to search relevant configured email, including already-read mail, without changing flags/tags. Also use in the one dedicated daily email thread to summarize important information and urgent actions, then mark only actually reviewed messages read under standing authority. Not for sending, replying, calendar planning or creating task threads."
+description: "Use for explicitly requested assignment-related email context without changing flags/tags, or in the dedicated daily email thread to summarize important information and urgent actions and mark actually reviewed messages read. Not for sending, replying, calendar planning or creating task threads."
 metadata:
   type: procedure
 compatibility: "Requires access to the user's existing configured mail host and notmuch index; daily triage also needs private report storage and verified read-flag synchronization."
@@ -28,7 +28,7 @@ compatibility: "Requires access to the user's existing configured mail host and 
 
 # Entrypoint
 
-1. Classify the invocation. Every assignment preparation/resumption selects
+1. Classify the invocation. An explicit request for assignment-related email context selects
    [assignment context](references/assignment-context.md). A daily email run selects
    [daily triage](references/daily-triage.md) only in the configured dedicated email thread.
    Other requests return to the ordinary assistant or explicitly requested `aerc-email` route.

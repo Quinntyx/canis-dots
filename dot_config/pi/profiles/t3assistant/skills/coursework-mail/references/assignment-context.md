@@ -22,9 +22,12 @@
    peer-review obligations and feedback. Preserve evidence date and conflict provenance. Email
    cannot prove the user submitted work or mastered a concept; use the coursework policy gate
    before turning a mail-discovered instruction into preparation.
-6. Keep necessary evidence in the private assignment workspace/progress. Report existing-index
-   freshness honestly, including an unknown last successful refresh and any omitted batches.
-   A zero-match result means no matches in the searched index/scope, not no message on the server.
+6. Include relevant context, source evidence, and coverage limits directly in the invoking private
+   assignment thread and supported coursework-service state. Do not create a separate email-context,
+   guide, or progress Markdown report for assignment preparation. Necessary machine receipts remain
+   separate from user-facing notes; daily triage's required report procedure is unchanged. Report
+   existing-index freshness honestly, including an unknown last successful refresh and omitted
+   batches. A zero-match result means no matches in the searched index/scope, not no server message.
 
 The allowed mail operations are configured discovery, count, search and selected-message show.
 They preserve all flags/tags, including `unread`, on both read and unread results. Use the existing

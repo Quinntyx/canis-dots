@@ -16,4 +16,7 @@ forgejo: [docker, docker-compose, acl, git, tailscale]
 website: [nodejs, npm, git]
 system: [keyd, realtime-privileges, tailscale, openssh, cloudflared, firewalld, mosh, avahi, cups, bluez, power-profiles-daemon, acl, util-linux]
 desktop: [niri, xwayland-satellite, waybar, fuzzel, mako, swaylock, awww, kitty, nautilus, xdg-desktop-portal-gnome, xdg-desktop-portal-gtk, xdg-desktop-portal-wlr, wl-clipboard, brightnessctl, playerctl, libnotify, pipewire, pipewire-alsa, pipewire-pulse, wireplumber, syncthing, python, sudo, util-linux]
-software: [acl, sudo, util-linux, base-devel, git, rustup, cargo-binstall, uv, nodejs, npm, fuse2]
+software: [acl, sudo, util-linux, base-devel, git, rustup, cargo-binstall, uv, nodejs, npm]
+# AppImage/FUSE and Electron host libraries on both workstations. The former
+# t3code-fork-bin PKGBUILD supplied these dependencies; no desktop stack implied.
+t3code: [fuse2, alsa-lib, at-spi2-core, cairo, dbus, expat, gdk-pixbuf2, glib2, glibc, gtk3, hicolor-icon-theme, libcups, libdrm, libgcc, libstdc++, libx11, libxcb, libxcomposite, libxdamage, libxext, libxfixes, libxkbcommon, libxrandr, mesa, nspr, nss, pango, systemd-libs, xdg-utils, zlib]

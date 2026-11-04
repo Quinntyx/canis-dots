@@ -1,0 +1,14 @@
+---
+- name: Install the shared T3 Code desktop icon without marking service inputs
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/common/0644"
+    config_mode: '0644'
+    config_track_restart_inputs: false
+- name: Point the workstation desktop and URL handler at its user-owned T3 Code fork
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
+  vars:
+    config_template: .local/share/applications/com.t3tools.T3Code.desktop.j2
+    config_dest: .local/share/applications/com.t3tools.T3Code.desktop
+    config_mode: '0644'
+    config_track_restart_inputs: false

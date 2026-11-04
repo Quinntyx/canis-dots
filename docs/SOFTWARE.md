@@ -60,10 +60,11 @@ borrowing personal credentials.
 
 ## T3 Code fork: bootstrap once, update in-app
 
-On araveia only, native `get_url` installs the immutable Forgejo build
+On **both enrolled workstations** (araveia and syssec-canis), the shared
+`t3code` role uses native `get_url` to install the immutable Forgejo build
 `2026.11.69` into `~/Applications/t3code-fork/T3-Code.AppImage` **only when
 missing**, with the SHA-512 from its published stable manifest. The pin and
-checksum live in `roles/software/vars/main.yml`. The publisher preserves these
+checksum live in `roles/t3code/vars/main.yml`. The publisher preserves these
 versioned assets; if the owner retires one, review a new bootstrap pin rather
 than disabling verification. TLS certificate validation remains enabled.
 
@@ -77,9 +78,11 @@ wrong account ownership and non-regular destinations fail instead of being
 adopted. The directory stays user-writable and the file executable. Check mode
 and normal sandbox deployment do not download anything.
 
-Official runtime dependencies include `fuse2` and the former package's Electron
-host libraries. The araveia desktop entry/URL handler points to the AppImage,
-using the actual target home, and a byte-preserved upstream SVG icon. Icon source:
+Official runtime dependencies in the `t3code` package group include `fuse2` and
+the former package's Electron host libraries on both workstations. Each desktop
+entry/URL handler points to its account-owned AppImage, using the actual target
+home, and a byte-preserved upstream SVG icon. The shared role does not install
+araveia's compositor, services or curated software on the lab. Icon source:
 `t3code/assets/prod/logo.svg` at `5204280e87481c8cb8506c46cb739fc8f05dc13f`.
 No AppImage is executed, extracted, launched or restarted by these tasks.
 
@@ -90,6 +93,10 @@ instruction to install that package. AppImage updates use the **Stable** channel
 and normal in-app controls; the fork embeds the Forgejo feed. Tailscale and the
 existing feed must be available for update checks/downloads. The backup includes
 the AppImage directory; see [Recovery](RECOVERY.md#t3-code-appimage).
+
+T3 Code's shared desktop-client role is separate from the **araveia-only**
+Pi Coursework (`t3assistant`) profile, application configuration, MCP connection
+and timers. Those integrations remain excluded from the lab.
 
 ## Account-local tools
 

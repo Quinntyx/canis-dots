@@ -18,8 +18,6 @@
     config_mode: '0644'
     config_track_restart_inputs: false
   when: inventory_hostname == 'araveia'
-- name: Configure the main node's self-updating T3 Code desktop entry
-  ansible.builtin.include_tasks: t3code.yml
 - name: Render .local/share/applications/decentsampler.desktop
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
   vars:

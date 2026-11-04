@@ -24,7 +24,7 @@ class FullConfiguration(unittest.TestCase):
                 # Preseed public static bytes with a local filesystem copy. The
                 # production static-copy task is independently exercised by the
                 # shell/symlink tests, avoiding thousands of module startups here.
-                roles = ['shell', 'git', 'ssh', 'tmux', 'editor', 'agents']
+                roles = ['shell', 'git', 'ssh', 'tmux', 'editor', 'agents', 't3code']
                 if host == 'araveia':
                     roles += ['forgejo', 'desktop', 'mail', 'cliproxyapi']
                 for role in roles:
@@ -67,6 +67,10 @@ class FullConfiguration(unittest.TestCase):
                 self.assertTrue((home / '.config/fish/functions/hx-copilot.fish').is_file())
                 self.assertTrue((home / '.npmrc').is_file())
                 self.assertTrue((home / '.claude-ambassator/settings.json').is_file())
+                launcher = home / '.local/share/applications/com.t3tools.T3Code.desktop'
+                self.assertIn(str(home / 'Applications/t3code-fork/T3-Code.AppImage'), launcher.read_text())
+                self.assertTrue((home / '.local/share/icons/hicolor/scalable/apps/t3code-fork.svg').is_file())
+                self.assertFalse((home / 'Applications').exists(), 'Sandbox must not acquire an AppImage')
                 if host == 'araveia':
                     self.assertTrue((home / '.config/pi/profiles/t3assistant/settings.json').is_file())
                     self.assertTrue((home / '.config/pi/profiles/t3assistant/auth.json').is_symlink())

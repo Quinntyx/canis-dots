@@ -1,5 +1,5 @@
 ---
-dots_components: [shell, git, ssh, tmux, editor, agents]
+dots_components: [shell, git, ssh, tmux, editor, agents, t3code]
 dots_sandbox: false
 dots_manage_packages: true
 dots_manage_services: true

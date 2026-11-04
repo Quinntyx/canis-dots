@@ -26,40 +26,7 @@ software_official_prerequisites:
   - uv
   - gtk4
   - gtk4-layer-shell
-  - fuse2
-# Electron's host libraries from the fork's former PKGBUILD. The AppImage
-# replaces that package, so its dependency installation must not disappear.
-software_t3code_runtime_packages:
-  - alsa-lib
-  - at-spi2-core
-  - cairo
-  - dbus
-  - expat
-  - gdk-pixbuf2
-  - glib2
-  - glibc
-  - gtk3
-  - hicolor-icon-theme
-  - libcups
-  - libdrm
-  - libgcc
-  - libstdc++
-  - libx11
-  - libxcb
-  - libxcomposite
-  - libxdamage
-  - libxext
-  - libxfixes
-  - libxkbcommon
-  - libxrandr
-  - mesa
-  - nspr
-  - nss
-  - pango
-  - systemd-libs
-  - xdg-utils
-  - zlib
-software_official_packages: "{{ (software_official_curated + software_official_prerequisites + software_t3code_runtime_packages) | unique | list }}"
+software_official_packages: "{{ (software_official_curated + software_official_prerequisites) | unique | list }}"
 # A curated package is skipped, never forced, while a conflicting provider the
 # owner already installed is present. Pacman's --noconfirm would refuse anyway.
 software_conflict_guards:
@@ -101,10 +68,5 @@ software_account_environment:
   RUSTUP_HOME: "{{ dots_home }}/.rustup"
   UV_TOOL_DIR: "{{ dots_home }}/.local/share/uv/tools"
   UV_TOOL_BIN_DIR: "{{ dots_home }}/.local/bin"
-# Immutable published bootstrap asset verified against the fork's stable feed.
-# Revisit the pin if this asset is retired; never overwrite an existing AppImage.
-software_t3code_bootstrap:
-  url: https://araveia.tail985727.ts.net:8443/api/packages/quinntyx/generic/t3code-desktop/stable/T3-Code-2026.11.69-x86_64.AppImage
-  checksum: sha512:6e09f2824b17f22c69340423bd5b699c052c2e428b4cbd79ffa94b4926874e6de1a945a06fdaa4cff5f4efd3faee98dd2e7c64e8bbb471c9a17eac6a57af5264
 # Optional explicit Git transport overrides, never a rewritten personal checkout.
 software_user_environment: "{{ software_account_environment | combine(dots_git_environment | default({})) }}"

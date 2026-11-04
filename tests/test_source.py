@@ -62,6 +62,10 @@ class SourceTests(unittest.TestCase):
         values = yaml.safe_load((ROOT / 'roles/agents/vars/main.yml').read_text())
         self.assertNotIn(str(profile), values['dots_pi_shared_dirs'])
         self.assertIn(str(profile), values['dots_pi_main_dirs'])
+        proposal = json.loads((ROOT / 'roles/agents/templates/.config/t3assistant/provider-instance.json.j2').read_text())
+        instance = proposal['providerInstanceMutation']['instance']
+        self.assertEqual(instance['displayName'], 'Pi Coursework')
+        self.assertIn(str(profile), instance['environment'][0]['value'])
         for unit in (ROOT / 'roles/desktop/files/araveia/0644/.config/systemd/user').glob('t3assistant-*'):
             self.assertIn('ConditionHost=araveia', unit.read_text(), str(unit))
         services = yaml.safe_load((ROOT / 'inventory/group_vars/all.yml').read_text())['dots_service_units']

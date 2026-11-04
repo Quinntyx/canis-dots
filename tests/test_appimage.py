@@ -55,10 +55,10 @@ class AppImageTests(unittest.TestCase):
             self.worker.join(timeout=5)
 
     def play(self, host='araveia', check=False, launcher=False, entrypoint=False, **variables):
-        tasks_from = 'main' if entrypoint else 'appimage'
-        role = ROOT / 'roles/software'
+        tasks_from = 'main' if entrypoint else 'install'
+        role = ROOT / 'roles/t3code'
         if launcher:
-            role, tasks_from = ROOT / 'roles/desktop', 't3code'
+            tasks_from = 'config'
         play = [{'hosts': 'localhost', 'connection': 'local', 'gather_facts': False,
                  'tasks': [{'ansible.builtin.include_role': {'name': str(role), 'tasks_from': tasks_from}}]}]
         playbook = self.base / 'play.yml'
@@ -77,18 +77,25 @@ class AppImageTests(unittest.TestCase):
                               text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=90)
 
     def test_missing_bootstrap_then_offline_repeat_preserves_self_updated_bytes(self):
-        first = self.play()
-        self.assertEqual(first.returncode, 0, first.stdout[-5000:])
-        self.assertEqual(self.destination.read_bytes(), self.payload)
-        self.assertEqual(self.destination.stat().st_mode & 0o777, 0o755)
-        self.assertEqual(len(self.requests), 1)
-        updated = b'a newer version installed by the built-in updater\n'
-        self.destination.write_bytes(updated)
+        installed = {}
+        for host in ('araveia', 'syssec-canis'):
+            home = self.base / host
+            home.mkdir()
+            first = self.play(host=host, dots_home=str(home))
+            self.assertEqual(first.returncode, 0, first.stdout[-5000:])
+            destination = home / self.destination.relative_to(self.home)
+            self.assertEqual(destination.read_bytes(), self.payload)
+            self.assertEqual(destination.stat().st_mode & 0o777, 0o755)
+            updated = ('newer updater-owned bytes on ' + host).encode()
+            destination.write_bytes(updated)
+            installed[host] = (home, destination, updated)
+        self.assertEqual(len(self.requests), 2)
         self.stop_server()
-        repeat = self.play()
-        self.assertEqual(repeat.returncode, 0, repeat.stdout[-5000:])
-        self.assertEqual(self.destination.read_bytes(), updated)
-        self.assertIn('changed=0', repeat.stdout)
+        for host, (home, destination, updated) in installed.items():
+            repeat = self.play(host=host, dots_home=str(home))
+            self.assertEqual(repeat.returncode, 0, repeat.stdout[-5000:])
+            self.assertEqual(destination.read_bytes(), updated)
+            self.assertIn('changed=0', repeat.stdout)
 
     def test_bad_checksum_leaves_no_partial_install_and_retry_succeeds(self):
         bad = dict(self.bootstrap, checksum='sha512:' + '0' * 128)
@@ -117,8 +124,9 @@ class AppImageTests(unittest.TestCase):
         self.assertFalse(self.requests)
         self.assertEqual(victim.read_bytes(), b'preserve me')
 
-    def test_lab_check_mode_and_normal_sandbox_entrypoint_do_not_acquire(self):
-        for variables in ({'host': 'syssec-canis'}, {'check': True}, {'entrypoint': True}):
+    def test_check_mode_and_normal_sandbox_entrypoint_do_not_acquire_on_either_host(self):
+        for variables in ({'check': True}, {'host': 'syssec-canis', 'check': True},
+                          {'entrypoint': True}, {'host': 'syssec-canis', 'entrypoint': True}):
             with self.subTest(variables=variables):
                 result = self.play(**variables)
                 self.assertEqual(result.returncode, 0, result.stdout[-5000:])
@@ -141,7 +149,11 @@ class AppImageTests(unittest.TestCase):
         other_home.mkdir()
         lab = self.play(host='syssec-canis', launcher=True, dots_home=str(other_home))
         self.assertEqual(lab.returncode, 0, lab.stdout[-5000:])
-        self.assertFalse((other_home / '.local').exists())
+        lab_launcher = other_home / launcher.relative_to(self.home)
+        self.assertTrue(lab_launcher.is_file())
+        self.assertIn(str(other_home / self.destination.relative_to(self.home)), lab_launcher.read_text())
+        for home in (self.home, other_home):
+            self.assertTrue((home / '.local/share/icons/hicolor/scalable/apps/t3code-fork.svg').is_file())
         special_home = self.base / 'home $cash'
         special_home.mkdir()
         escaped = self.play(launcher=True, dots_home=str(special_home))
@@ -163,14 +175,18 @@ class AppImageTests(unittest.TestCase):
         local = yaml.safe_load((ROOT / 'roles/software/vars/local-sources.yml').read_text())
         self.assertNotIn('t3code-fork-bin', [p for spec in local['software_local_sources'] for p in spec['packages']])
         policy = yaml.safe_load((ROOT / 'policy/packages.yml').read_text())
-        self.assertIn('fuse2', policy['software'])
-        values = yaml.safe_load((ROOT / 'roles/software/vars/main.yml').read_text())
-        self.assertTrue({'gtk3', 'nss', 'alsa-lib', 'libxkbcommon'} <= set(values['software_t3code_runtime_packages']))
+        self.assertTrue({'fuse2', 'gtk3', 'nss', 'alsa-lib', 'libxkbcommon'} <= set(policy['t3code']))
         preflight = (ROOT / 'roles/forgejo/tasks/source-preflight.yml').read_text()
         self.assertNotIn('quinntyx/t3code.git', preflight)
-        task = (ROOT / 'roles/software/tasks/install.yml').read_text()
-        self.assertIn('appimage.yml', task)
-        self.assertTrue((ROOT / 'roles/desktop/files/araveia/0644/.local/share/icons/hicolor/scalable/apps/t3code-fork.svg').is_file())
+        site = yaml.safe_load((ROOT / 'playbooks/site.yml').read_text())[0]
+        role = next(role for role in site['roles'] if role['role'] == 't3code')
+        self.assertNotIn('when', role, 'A parent host gate must not hide the lab installation')
+        for host in ('araveia', 'syssec-canis'):
+            values = yaml.safe_load((ROOT / f'inventory/host_vars/{host}.yml').read_text())
+            self.assertIn('t3code', values['dots_components'], host)
+        task = (ROOT / 'roles/t3code/tasks/main.yml').read_text()
+        self.assertIn('install.yml', task)
+        self.assertTrue((ROOT / 'roles/t3code/files/common/0644/.local/share/icons/hicolor/scalable/apps/t3code-fork.svg').is_file())
 
 
 if __name__ == '__main__':

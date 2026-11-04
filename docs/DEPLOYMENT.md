@@ -57,8 +57,13 @@ to contain local policy. Native handlers restart only declared affected services
 name affected roles with `services`, rather than restarting every service.
 
 Araveia-only roles are system, desktop, mail, CLIProxyAPI, Forgejo, website source
-and curated software. The lab receives shell/Git/SSH/tmux/editor/agent setup only;
-its personal SSH config is preserved and receives an isolated config.d include.
+and curated software. The lab receives shell/Git/SSH/tmux/editor/agent setup plus
+the shared `t3code` desktop-client role, not the main node's full desktop stack.
+Both enrolled hosts declare the client's FUSE/Electron prerequisites and receive
+its AppImage, launcher and icon. `--tags t3code` selects this shared client with
+ordinary common prerequisites. Its bootstrap is disabled in check mode, sandbox,
+and when packages or external acquisition are disabled. The lab's personal SSH
+config is preserved and receives an isolated config.d include.
 Main role data checks refuse an unmounted/wrong docs filesystem, empty Forgejo
 installation, or a different Tailscale address before application writes.
 

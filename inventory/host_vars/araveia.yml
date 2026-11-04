@@ -1,6 +1,6 @@
 ---
 # Fixed membership, not inferred from T3 connections or requested tags.
-dots_components: [shell, git, ssh, tmux, editor, agents, desktop, mail, cliproxyapi, forgejo, website, system, software]
+dots_components: [shell, git, ssh, tmux, editor, agents, t3code, desktop, mail, cliproxyapi, forgejo, website, system, software]
 dots_docs: "{{ dots_home }}/docs"
 # Existing separate data volume: mount and validate it, NEVER create/format it.
 dots_docs_uuid: 40eda021-8152-4dab-8be2-f19307298da2

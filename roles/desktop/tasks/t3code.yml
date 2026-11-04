@@ -1,8 +1,0 @@
----
-- name: Point araveia's desktop and URL handler at its user-owned T3 Code fork
-  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/template.yml"
-  vars:
-    config_template: .local/share/applications/com.t3tools.T3Code.desktop.j2
-    config_dest: .local/share/applications/com.t3tools.T3Code.desktop
-    config_mode: '0644'
-  when: inventory_hostname == 'araveia'

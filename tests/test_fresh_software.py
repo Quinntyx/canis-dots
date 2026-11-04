@@ -202,8 +202,7 @@ class FreshHostDecisions(unittest.TestCase):
         curated = [line.split('#', 1)[0].strip() for line in lists.read_text().splitlines()]
         (self.state / 'rust-active').write_text('stable-x86_64-unknown-linux-gnu (default)\n')
         (self.state / 'rust-installed').write_text('')
-        result, calls = self.software([p for p in curated if p] + variables['software_official_prerequisites'] +
-                                      variables['software_t3code_runtime_packages'])
+        result, calls = self.software([p for p in curated if p] + variables['software_official_prerequisites'])
         self.assertEqual(result.returncode, 0, result.stdout[-8000:])
         self.assertFalse([c for c in calls if c['cmd'] == 'pacman' and c['args'][:1] == ['-S']])
         self.assertFalse([c for c in calls if c['cmd'] == 'rustup' and c['args'][:1] in (['default'], ['toolchain'])])

@@ -51,6 +51,8 @@
       tags: [editor]
     - role: agents
       tags: [agents]
+    - role: t3code
+      tags: [t3code]
     - role: desktop
       when: inventory_hostname == 'araveia'
       tags: [desktop]

@@ -23,9 +23,6 @@
 - name: Install official prerequisites, then the curated batch
   ansible.builtin.include_tasks: packages.yml
 
-- name: Bootstrap the account-owned T3 Code AppImage without taking over updates
-  ansible.builtin.include_tasks: appimage.yml
-
 # Local PKGBUILDs need an initialized Rust toolchain, not merely rustup's package.
 - name: Install account-owned toolchains and CLIs
   ansible.builtin.include_tasks: tools.yml

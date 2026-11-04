@@ -1,0 +1,6 @@
+---
+# Immutable published bootstrap asset verified against the fork's stable feed.
+# Revisit the pin if this asset is retired; never overwrite an existing AppImage.
+software_t3code_bootstrap:
+  url: https://araveia.tail985727.ts.net:8443/api/packages/quinntyx/generic/t3code-desktop/stable/T3-Code-2026.11.69-x86_64.AppImage
+  checksum: sha512:6e09f2824b17f22c69340423bd5b699c052c2e428b4cbd79ffa94b4926874e6de1a945a06fdaa4cff5f4efd3faee98dd2e7c64e8bbb471c9a17eac6a57af5264

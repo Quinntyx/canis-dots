@@ -8,8 +8,8 @@
     "sha256": "676d9ebb91c27ea22caaab04a39071db878c3808e8cc9980ad4f7300ad6ebb27"
   },
   "desktop": {
-    "count": 30,
-    "sha256": "0f31f33313e4012cf5108e81e37a13c1a5bd1ff86468c1c305640a81c3c36fcc"
+    "count": 29,
+    "sha256": "c49895e8b78bc3f450cbbb01979bb494c6850f20dbb3f9240ea977119727af4c"
   },
   "editor": {
     "count": 25,
@@ -34,6 +34,10 @@
   "ssh": {
     "count": 1,
     "sha256": "75f83df68d89917e9fa263bf891fbf99c073e61b4300b6014b1b0a32fa459cc9"
+  },
+  "t3code": {
+    "count": 1,
+    "sha256": "916adce3c261d21427daaa187c1491d731507ead63921a209b3f0af3870497a2"
   },
   "tmux": {
     "count": 5,

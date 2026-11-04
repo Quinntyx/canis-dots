@@ -1,10 +1,8 @@
 ---
 # The built-in updater owns existing bytes. Never checksum/re-download an
 # installed AppImage against the bootstrap pin, even when it is newer or offline.
-- name: Bootstrap the araveia-owned self-updating T3 Code AppImage
-  when:
-    - inventory_hostname == 'araveia'
-    - not ansible_check_mode
+- name: Bootstrap the account-owned self-updating T3 Code AppImage
+  when: not ansible_check_mode
   block:
     - name: Require the supported published AppImage architecture
       ansible.builtin.assert:

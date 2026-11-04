@@ -1,0 +1,12 @@
+---
+# Desktop client shared by the explicit workstation inventory. This role never
+# includes araveia's compositor, curated software or coursework integrations.
+- name: Configure the self-updating T3 Code desktop client
+  ansible.builtin.include_tasks: config.yml
+- name: Bootstrap missing T3 Code only when real acquisition is authorized
+  ansible.builtin.include_tasks: install.yml
+  when:
+    - not (dots_sandbox | default(false) | bool)
+    - not ansible_check_mode
+    - dots_manage_packages
+    - dots_manage_externals

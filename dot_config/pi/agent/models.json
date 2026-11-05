@@ -1,5 +1,15 @@
 {
   "providers": {
+    "mistral": {
+      "modelOverrides": {
+        "deepseek-v4-1-flash-1017": {
+          "input": [
+            "text",
+            "image"
+          ]
+        }
+      }
+    },
     "inco": {
       "baseUrl": "https://api.inco.ai/v1",
       "api": "openai-completions",

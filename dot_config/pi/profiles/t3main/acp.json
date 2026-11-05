@@ -36,6 +36,7 @@
         }
       },
       "openrouter": {
+        "enabled": false,
         "models": {
           "deepseek/deepseek-v4.1-flash-1017": {
             "enabled": false

@@ -3,6 +3,9 @@
   "compress": {
     "nudgeGrowthTokens": 50000,
     "providers": {
+      "mistral": {
+        "enabled": false
+      },
       "bitdeer": {
         "models": {
           "zai-org/GLM-5.3-Flash": {

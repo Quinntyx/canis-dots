@@ -3,6 +3,9 @@
   "compress": {
     "nudgeGrowthTokens": 50000,
     "providers": {
+      "mistral": {
+        "enabled": false
+      },
       "inco": {
         "models": {
           "glm-5.3-flash:fast": {

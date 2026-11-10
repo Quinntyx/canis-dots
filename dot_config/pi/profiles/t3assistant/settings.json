@@ -4,14 +4,15 @@
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "xhigh",
   "enabledModels": ["cliproxyapi/gpt-6.1-sol"],
-  "defaultTools": ["read", "bash", "edit", "write", "tool_search"],
+  "defaultTools": ["read", "bash", "edit", "write", "tool_search", "questionnaire"],
   "packages": [
     {
       "source": "git:git.quinntyx.dev/quinntyx/pi-web-access",
       "skills": []
     },
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
-    "git:git.quinntyx.dev/quinntyx/pi-block-rm"
+    "git:git.quinntyx.dev/quinntyx/pi-block-rm",
+    "git:git.quinntyx.dev/quinntyx/pi-questionnaire@feat/rpc-dialogs"
   ],
   "enableSkillCommands": true,
   "hideThinkingBlock": true,

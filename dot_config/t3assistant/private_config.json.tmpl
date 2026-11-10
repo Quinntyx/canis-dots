@@ -1,11 +1,18 @@
-{{- $private := joinPath .chezmoi.homeDir ".local/state/t3assistant/config.private.json" -}}
-{{- if stat $private -}}
+{{- /* The real private configuration lives on the docs disk, which survives a
+       reinstall; the state path is only a symlink kept for the documented
+       location. Fall back to the placeholder when neither exists. */ -}}
+{{- $archive := joinPath .chezmoi.homeDir "docs/omn/artifacts/t3assistant-config.private.json" -}}
+{{- $legacy := joinPath .chezmoi.homeDir ".local/state/t3assistant/config.private.json" -}}
+{{- $private := "" -}}
+{{- if stat $archive -}}{{- $private = $archive -}}{{- else if stat $legacy -}}{{- $private = $legacy -}}{{- end -}}
+{{- if $private -}}
 {{ include $private }}
 {{- else -}}
 {
   "store": "{{ .chezmoi.homeDir }}/.local/state/t3assistant/state.sqlite3",
   "timezone": "America/Chicago",
   "lookahead_days": 7,
+  "personal_lane": {"enabled": true, "daily_cap": 1},
   "daily_cap": 1,
   "attention_cap": 3,
   "running_cap": 1,

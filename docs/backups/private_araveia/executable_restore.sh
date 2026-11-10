@@ -93,7 +93,7 @@ chatgpt() {
 		https://persistent.oaistatic.com/codex-app-prod/linux/install-arch.sh &&
 		bash "$tmp/install-arch.sh"
 	local rc=$?
-	rm -rf "$tmp"
+	trash -- "$tmp"
 	return $rc
 }
 
@@ -103,9 +103,9 @@ sudoers_tmp=/etc/sudoers.d/90-araveia-restore
 allow_pacman() {
 	printf '%s ALL=(root) NOPASSWD: /usr/bin/pacman\n' "$user" >"$sudoers_tmp"
 	chmod 440 "$sudoers_tmp"
-	visudo -cf "$sudoers_tmp" >/dev/null || { rm -f "$sudoers_tmp"; return 1; }
+	visudo -cf "$sudoers_tmp" >/dev/null || { trash -- "$sudoers_tmp"; return 1; }
 }
-trap 'rm -f "$sudoers_tmp"' EXIT
+trap '[[ ! -e "$sudoers_tmp" ]] || trash -- "$sudoers_tmp"' EXIT
 
 aur_packages() {
 	local -a bad=()
@@ -260,6 +260,12 @@ forgejo() {
 		{ echo "git.quinntyx.dev is unreachable; check the cloudflared tunnel" >&2; return 1; }
 }
 
+t3code_update_proxy() {
+	# home_data restored the hosting compose file and nginx.conf. Start this
+	# only after Docker, the restored tailnet identity and Forgejo are healthy.
+	(cd "$home/.local/share/t3code-fork/hosting" && docker compose up -d)
+}
+
 local_packages() {
 	local d rc=0
 	for d in $(pkglist "$here/packages/local.txt"); do
@@ -310,6 +316,7 @@ step "home: secrets, app data, downloads, ~/src, game saves" home_data
 step "chezmoi dotfiles" dotfiles
 step "toolchains: rust, npm, cargo, uv, Claude Code, Pi PTC" toolchains
 step "Forgejo" forgejo
+step "T3 Code update proxy" t3code_update_proxy
 step "local PKGBUILDs (omn)" local_packages
 step "Pi packages" pi_packages
 step "CLIProxyAPI build" cliproxyapi
@@ -324,6 +331,12 @@ cat <<EOF
   - Sign in again: Discord, Slack, Steam, ChatGPT, Antigravity.
   - Gantry is restored to ~/Applications/gantry; re-run its install.sh if its launcher or deps are missing.
   - T3 Code settings and thread history are back in ~/.t3/userdata; worktrees are not.
+  - T3 Code APK signing key/metadata and update-proxy hosting/ are restored from ~/.local/share/t3code-fork.
+  - The AppImage is restored to ~/Applications/t3code-fork; use its launcher after configuration deployment.
+  - t3assistant's private-config symlink points into ~/docs/omn; check that its target and OAuth token are present.
+  - Steam: re-check the second library at ~/docs/SteamLibrary (libraryfolders.vdf is restored).
+  - Deliberately excluded: Schooner (test deployment), ~/.local/state/argo-server and ~/.t3/scratch.
+    Redeploy Schooner through T3 Code later; those caches/scratch are not recovered by this snapshot.
   - Check: tailscale status; curl http://$tailnet_ip:8317/v1/models
 EOF
 

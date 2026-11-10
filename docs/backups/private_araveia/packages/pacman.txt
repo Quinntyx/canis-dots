@@ -28,6 +28,7 @@ playerctl
 libnotify
 pavucontrol
 seahorse
+gnome-keyring
 qalculate-gtk
 gnome-clocks
 feh
@@ -85,6 +86,7 @@ tldr
 tokei
 w3m
 strace
+perf
 tcpdump
 bind
 openbsd-netcat
@@ -102,6 +104,7 @@ alsa-plugins
 alsa-firmware
 sof-firmware
 reaper
+audacity
 cava
 
 # --- mail, tasks, documents pipeline ---

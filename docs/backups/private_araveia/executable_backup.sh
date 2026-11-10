@@ -41,16 +41,23 @@ home_paths=(
 	.config/.wrangler
 	.local/state/oama
 	.local/share/cliproxyapi         # pooled subscription OAuth logins
+	.local/share/t3code-fork         # irreplaceable APK signing key + hosting/ proxy definition
+	.local/share/keyrings            # gnome-keyring secrets; preserve the login keyring
 	# service state
 	.local/state/syncthing           # device ID; peers stay paired
 	.local/state/mail-router         # gmail backlog flag, reconcile stamp
+	.config/t3assistant
+	.local/state/t3assistant          # config.private.json is a symlink onto the preserved docs disk
 	# Pi and Claude Code, including sessions, auth and package checkouts
 	.config/pi
 	.pi
 	.local/share/pi-buddy
 	.claude
 	.claude.json
+	.config/claude-ambassator
+	.claude-ambassator
 	# apps
+	.config/scrabblebot
 	.config/zen
 	.config/Element                  # Matrix encryption keys
 	.local/share/PrismLauncher/instances
@@ -101,11 +108,13 @@ home_paths=(
 	.local/share/lutris
 	Games/battlenet
 	# apps installed outside pacman, and browser profiles
+	Applications/t3code-fork          # self-updating AppImage; keep executable permissions
 	Applications/gantry
 	.local/share/gantry
 	Videos
 	.config/chromium
 	.local/share/Steam/userdata
+	.local/share/Steam/config/libraryfolders.vdf  # second library: ~/docs/SteamLibrary
 )
 
 # Saves inside Proton prefixes and game install directories. restore.sh puts
@@ -118,7 +127,7 @@ done
 # Databases apps keep open (T3 Code is likely running during the backup).
 # rsync could catch them mid-write, so they are re-copied with sqlite's
 # online backup after the mirror.
-live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db)
+live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db .local/state/t3assistant/state.sqlite3)
 for f in "$home"/.codex/*_[0-9].sqlite; do
 	[[ "$f" == */logs_* ]] || live_dbs+=("${f#"$home/"}")
 done
@@ -133,6 +142,14 @@ home_excludes=(
 	--exclude='.claude/shell-snapshots/'
 	--exclude='.claude/session-env/'
 	--exclude='.claude/downloads/'
+	--exclude='.claude-ambassator/cache/'
+	--exclude='.claude-ambassator/shell-snapshots/'
+	--exclude='.claude-ambassator/session-env/'
+	--exclude='.claude-ambassator/downloads/'
+	--exclude='.config/claude-ambassator/cache/'
+	--exclude='.config/t3assistant/cache/'
+	--exclude='.local/state/t3assistant/cache/'
+	--exclude='.local/share/t3code-fork/cache/'
 	--exclude='.local/share/applications/mimeinfo.cache'
 	--exclude='.local/share/applications/wine/'
 	--exclude='.config/zen/**/cache2/'
@@ -178,9 +195,11 @@ for rel in "${live_dbs[@]}"; do
 	# the live database.
 	if as_owner sqlite3 "$home/$rel" ".backup '$here/home/$rel.tmp'"; then
 		mv "$here/home/$rel.tmp" "$here/home/$rel"
-		rm -f "$here/home/$rel-wal" "$here/home/$rel-shm"
+		for suffix in -wal -shm; do
+			[[ ! -e "$here/home/$rel$suffix" ]] || trash -- "$here/home/$rel$suffix"
+		done
 	else
-		rm -f "$here/home/$rel.tmp"
+		[[ ! -e "$here/home/$rel.tmp" ]] || trash -- "$here/home/$rel.tmp"
 		echo "warning: sqlite backup of ~/$rel failed; the rsync copy may be inconsistent" >&2
 	fi
 done

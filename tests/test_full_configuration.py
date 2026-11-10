@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -76,7 +78,13 @@ class FullConfiguration(unittest.TestCase):
                     self.assertTrue((home / '.config/pi/profiles/t3assistant/auth.json').is_symlink())
                 else:
                     self.assertFalse((home / '.config/pi/profiles/t3assistant').exists())
-            self.assertTrue((base / 'araveia/docs/host/forgejo/docker-compose.yml').is_file())
+            forgejo = base / 'araveia/docs/host/forgejo/docker-compose.yml'
+            self.assertTrue(forgejo.is_file())
+            services = yaml.safe_load(forgejo.read_text())['services']
+            for runner in ('runner', 'runner-2', 'runner-3'):
+                self.assertEqual(services[runner]['user'], '12345:0')
+                self.assertEqual(services[runner]['group_add'], ['12345'])
+                self.assertEqual(services[runner]['profiles'], ['runner'])
             self.assertFalse((base / 'syssec-canis/docs/host/forgejo/docker-compose.yml').exists())
             self.assertTrue((base / 'araveia/.config/pi/profiles/t3assistant/mcp.json').is_file())
             self.assertFalse((base / 'syssec-canis/.config/pi/profiles/t3assistant/mcp.json').exists())

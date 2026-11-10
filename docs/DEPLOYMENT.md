@@ -83,7 +83,7 @@ not run these tasks against the active machine.
 
 The private config and runtime state belong in the existing backup, not Git.
 The exact backup/restore integration, refresh command and limits are documented
-in [Recovery](RECOVERY.md#t3assistant-on-araveia).
+in [Recovery](RECOVERY.md#compatibility-with-freshly-applied-chezmoi-main).
 
 ## Forgejo Actions: one-time setup
 
@@ -147,9 +147,11 @@ image/definition changes therefore require a separately scheduled, explicit
 runner recreation when no job is running; merging this repository does not
 silently replace its own running executor.
 
-Before the reinstall, update the separate restore procedure's old chezmoi step;
-see [Recovery](RECOVERY.md). This source's deny-all `.chezmoiignore` also prevents
-a forgotten legacy apply from putting the Ansible tree into your home.
+For this reinstall, keep the separate restore procedure's chezmoi step: run the
+repaired live restore against **pre-merge main**, then deploy the current PR #3
+checkout, and merge only after verification; see [Recovery](RECOVERY.md). Do not
+point chezmoi at the PR first. This source's deny-all `.chezmoiignore` prevents a
+later legacy apply from putting the Ansible tree into your home.
 
 ## Rollback and verification
 

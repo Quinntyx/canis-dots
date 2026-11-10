@@ -49,9 +49,9 @@ services:
     container_name: forgejo-runner-2
     restart: always
     profiles: ["runner"]
-    user: "1000:1000"
+    user: "[[[ dots_uid ]]]:[[[ ansible_facts.user_gid ]]]"
     group_add:
-      - "963"         # host docker group — socket access to spawn job containers
+      - "[[[ dots_docker_group_gid ]]]"
     volumes:
       - ./runner-data-2:/data
       - /var/run/docker.sock:/var/run/docker.sock
@@ -62,9 +62,9 @@ services:
     container_name: forgejo-runner-3
     restart: always
     profiles: ["runner"]
-    user: "1000:1000"
+    user: "[[[ dots_uid ]]]:[[[ ansible_facts.user_gid ]]]"
     group_add:
-      - "963"         # host docker group — socket access to spawn job containers
+      - "[[[ dots_docker_group_gid ]]]"
     volumes:
       - ./runner-data-3:/data
       - /var/run/docker.sock:/var/run/docker.sock

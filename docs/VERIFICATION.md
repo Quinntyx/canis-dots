@@ -7,7 +7,37 @@ rollback framework with built-in Ansible roles, files, templates, handlers and
 optional Vault data. `.forgejo/workflows/ansible.yml` supplies the ordinary
 same-repository check-then-main-deploy workflow.
 
-## Observed proof
+## Reinstall audit repair (current)
+
+The PR was rebased through chezmoi main `1eb2734`. The full
+`PATH="$PWD/.venv/bin:$PATH" ./scripts/check all` passed: **108 tests**
+(71 Python + 37 Node), plus playbook syntax and `git diff --check`.
+
+- New real-Ansible regressions first reproduced refusal of the private symlink
+  created by main and the missing `henry` SSH override. They now prove the exact
+  archive link, archive-first/regular-file fallback, missing-link recreation,
+  check-mode safety, refusal of unexpected links/source ancestors, no secret
+  output, idempotence and preserved personal SSH entries.
+- Seven changed Pi source files byte-match current main. Both-host rendering
+  retains the main-only coursework boundary and all three Forgejo runner
+  definitions, using target UID/GID/Docker group rather than host-specific IDs.
+- Recovery tests reverse/reapply the full main repair patch and verify baseline
+  hashes and current archived references. They check new package/backup paths,
+  deliberate exclusions, SQLite declaration and a recording Docker function.
+  The existing home-data function alone restores artificial signing/proxy files,
+  executable AppImage, private link, keyring, Steam config and SQLite contents
+  using rsync. No privileged restore or backup entrypoint was executed.
+- Main source `1eb2734` was committed/pushed to both remotes and the explicitly
+  authorized `chezmoi apply --force ~/docs/backups` updated only backup targets.
+  Both live scripts and the PR references were verified byte-identical to that
+  owning main source. No deploy, backup, or running service was touched.
+
+The reinstall sequence is **live restore (data + chezmoi pre-merge main), PR
+checkout `./scripts/deploy`, owner merge last**. The prior handoff/ansible-core
+preflight claims below describe superseded work, not current live behavior.
+[Recovery](RECOVERY.md) describes the actual scripts and sequence.
+
+## Historical observed proof
 
 `PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
 the native rebuild's implementation and review fixes: **89 tests passed** (52 Python and
@@ -52,7 +82,7 @@ protocol tests.
   update that separate restore procedure. Its later t3assistant integration is
   covered separately below.
 
-### t3assistant follow-up
+### Historical t3assistant follow-up (restore integration superseded)
 
 `PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check static` and
 `PATH="$PWD/.venv/bin:$PATH" ANSIBLE_NOCOWS=1 ./scripts/check all` passed after
@@ -122,7 +152,8 @@ remain unexercised.
 
 ## Deliberately unexercised boundaries
 
-No active configuration, real host packages, sudo/SSH deployment, preserved disk,
+Other than the explicitly authorized backup-only chezmoi apply above, no active
+configuration, real host packages, sudo/SSH deployment, preserved disk,
 network identity, live service/container activation, provider sign-in, runner
 registration, website publication or visual behavior was changed or tested.
 Software substitutes prove decisions, not successful real installations.

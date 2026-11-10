@@ -1,7 +1,7 @@
 {
   "agents": {
     "count": 1278,
-    "sha256": "1309f63c906a825259628b276887bcf8da09f8c0ec58c3e0567932264ebe4d4b"
+    "sha256": "76db945ca1060570fc72411cb19497e91327895b0fd7935ba53a10e7f585cfdf"
   },
   "cliproxyapi": {
     "count": 9,
@@ -32,8 +32,8 @@
     "sha256": "8dbddaf2121d81dcb139463a3804111f4656e9a6690077c2f5a7f47fb071dcb9"
   },
   "ssh": {
-    "count": 1,
-    "sha256": "75f83df68d89917e9fa263bf891fbf99c073e61b4300b6014b1b0a32fa459cc9"
+    "count": 2,
+    "sha256": "d7fcf107c675fab336865dc38bd051391abcd9a1e78cd1e3adb160b0a1014fbf"
   },
   "t3code": {
     "count": 1,

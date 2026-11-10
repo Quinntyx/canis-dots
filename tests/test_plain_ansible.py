@@ -40,6 +40,87 @@ class PlainAnsibleTests(unittest.TestCase):
             self.assertNotEqual(self.run_role(home, role=role).returncode, 0)
             self.assertEqual(outside.read_text(), 'unmanaged')
 
+    def test_coursework_accepts_the_declared_chezmoi_private_link_and_prefers_docs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            home = base / 'home'
+            archive = home / 'docs/omn/artifacts/t3assistant-config.private.json'
+            archive.parent.mkdir(parents=True)
+            payload = '{"fixture_secret":"restored-docs-private-config"}\n'
+            archive.write_text(payload)
+            archive.chmod(0o600)
+            legacy = home / '.local/state/t3assistant/config.private.json'
+            legacy.parent.mkdir(parents=True)
+            legacy.symlink_to(archive)
+            role = {'role': 'agents', 'tasks_from': 'coursework'}
+            result = self.run_role(home, role=role)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertEqual((home / '.config/t3assistant/config.json').read_text(), payload)
+            self.assertTrue(legacy.is_symlink())
+            self.assertEqual(archive.stat().st_mode & 0o777, 0o600)
+            self.assertNotIn('restored-docs-private-config', result.stdout)
+            self.assertIn('changed=0', self.run_role(home, role=role).stdout)
+            legacy.unlink()
+            legacy.write_text('{"fixture":"preserve-legacy-but-prefer-docs"}')
+            result = self.run_role(home, role=role)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(legacy.read_text(), '{"fixture":"preserve-legacy-but-prefer-docs"}')
+            self.assertEqual((home / '.config/t3assistant/config.json').read_text(), payload)
+
+    def test_coursework_recreates_only_the_declared_link_and_refuses_unexpected_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            home = base / 'home'
+            archive = home / 'docs/omn/artifacts/t3assistant-config.private.json'
+            archive.parent.mkdir(parents=True)
+            archive.write_text('{"fixture":"archive-only"}')
+            archive.chmod(0o600)
+            legacy = home / '.local/state/t3assistant/config.private.json'
+            role = {'role': 'agents', 'tasks_from': 'coursework'}
+            dry_run = self.run_role(home, role=role, check=True)
+            self.assertEqual(dry_run.returncode, 0, dry_run.stdout)
+            self.assertFalse(legacy.is_symlink())
+            result = self.run_role(home, role=role)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertTrue(legacy.is_symlink())
+            self.assertEqual(legacy.readlink(), archive)
+            legacy.unlink()
+            outside = base / 'outside'
+            outside.write_text('never-read-this-unexpected-target')
+            legacy.symlink_to(outside)
+            rejected = self.run_role(home, role=role)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertNotIn('never-read-this-unexpected-target', rejected.stdout)
+            self.assertEqual(outside.read_text(), 'never-read-this-unexpected-target')
+
+    def test_coursework_refuses_a_symlinked_archive_ancestor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            home = base / 'home'
+            home.mkdir()
+            outside = base / 'outside'
+            outside.mkdir()
+            (home / 'docs').symlink_to(outside, target_is_directory=True)
+            result = self.run_role(home, role={'role': 'agents', 'tasks_from': 'coursework'})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(list(outside.iterdir()), [])
+
+    def test_main_ssh_keeps_restored_config_and_uses_henry_for_the_lab(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / 'home'
+            (home / '.ssh').mkdir(parents=True)
+            config = home / '.ssh/config'
+            original = 'Host personal\n  HostName example.invalid\nHost syssec-canis\n  User old-user\n'
+            config.write_text(original)
+            result = self.run_role(home, role='ssh')
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn(original, config.read_text())
+            query = subprocess.run(['ssh', '-G', '-F', str(config), 'syssec-canis'],
+                                   capture_output=True, text=True, check=True)
+            self.assertIn('user henry\n', query.stdout)
+            self.assertEqual((home / '.ssh/config.d/50-main.conf').stat().st_mode & 0o777, 0o600)
+            self.assertIn('changed=0', self.run_role(home, role='ssh').stdout)
+
     def test_coursework_unit_changes_do_not_mark_desktop_restart_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp) / 'home'

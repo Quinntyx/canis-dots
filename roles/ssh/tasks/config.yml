@@ -1,4 +1,10 @@
 ---
+- name: Install the main node's SSH override without replacing restored host entries
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
+  vars:
+    config_source: "{{ role_path }}/files/araveia/0600"
+    config_mode: '0600'
+  when: inventory_hostname == 'araveia'
 - name: Install ssh lab files with mode 0600
   ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/copy-tree.yml"
   vars:

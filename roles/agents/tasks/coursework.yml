@@ -1,23 +1,67 @@
 ---
 # Carry forward the concurrently merged profile without activating automation or
 # importing its target-local private configuration into the controller or Git.
-- name: Inspect the restored coursework private configuration on this target
+- name: Inspect restored coursework source ancestors without traversing links
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/{{ item }}"
+    follow: false
+    get_checksum: false
+  loop:
+    - docs
+    - docs/omn
+    - docs/omn/artifacts
+    - .local
+    - .local/state
+    - .local/state/t3assistant
+  register: coursework_private_parents
+  no_log: true
+- name: Require ordinary coursework source directories when present
+  ansible.builtin.assert:
+    that: not item.stat.exists or (item.stat.isdir | default(false) and not item.stat.islnk | default(false))
+    fail_msg: Inspect the restored coursework source ancestry before deploying.
+    quiet: true
+  loop: "{{ coursework_private_parents.results }}"
+  no_log: true
+- name: Inspect the private configuration preserved on the docs disk
+  ansible.builtin.stat:
+    path: "{{ dots_home }}/docs/omn/artifacts/t3assistant-config.private.json"
+    follow: false
+    get_checksum: false
+  register: coursework_archive_source
+  no_log: true
+- name: Inspect the restored legacy file or declared archive link
   ansible.builtin.stat:
     path: "{{ dots_home }}/.local/state/t3assistant/config.private.json"
     follow: false
     get_checksum: false
   register: coursework_private_source
   no_log: true
-- name: Require an ordinary private coursework configuration if present
+- name: Permit only an ordinary archive and the explicitly declared legacy link
   ansible.builtin.assert:
-    that: not coursework_private_source.stat.exists or (coursework_private_source.stat.isreg | default(false) and not coursework_private_source.stat.islnk | default(false))
-    fail_msg: Inspect the restored coursework private configuration before deploying.
+    that:
+      - not coursework_archive_source.stat.exists or (coursework_archive_source.stat.isreg | default(false) and not coursework_archive_source.stat.islnk | default(false))
+      - not coursework_archive_source.stat.islnk | default(false)
+      - not coursework_private_source.stat.exists or coursework_private_source.stat.isreg | default(false) or coursework_private_source.stat.islnk | default(false)
+      - not coursework_private_source.stat.islnk | default(false) or (coursework_private_source.stat.lnk_source == dots_home + '/docs/omn/artifacts/t3assistant-config.private.json' and coursework_archive_source.stat.exists)
+    fail_msg: Restore the private archive or inspect the unexpected coursework source/link.
+  no_log: true
+- name: Recreate the known archive link without replacing a legacy regular file
+  ansible.builtin.include_tasks: "{{ dots_controller_root }}/roles/common/tasks/link.yml"
+  vars:
+    config_dest: .local/state/t3assistant/config.private.json
+    config_target: "{{ dots_home }}/docs/omn/artifacts/t3assistant-config.private.json"
+    config_preserve_existing: true
+  when: coursework_archive_source.stat.exists
+  no_log: true
+- name: Prefer the preserved archive while retaining the regular-file fallback
+  ansible.builtin.set_fact:
+    coursework_private_path: "{{ (dots_home + '/docs/omn/artifacts/t3assistant-config.private.json') if coursework_archive_source.stat.exists else ((dots_home + '/.local/state/t3assistant/config.private.json') if coursework_private_source.stat.isreg | default(false) else '') }}"
   no_log: true
 - name: Read only the explicitly restored target-local coursework override
   ansible.builtin.slurp:
-    src: "{{ dots_home }}/.local/state/t3assistant/config.private.json"
+    src: "{{ coursework_private_path }}"
   register: coursework_private_config
-  when: coursework_private_source.stat.exists
+  when: coursework_private_path | length > 0
   no_log: true
 - name: Render private coursework configuration or its public defaults
   ansible.builtin.include_tasks:

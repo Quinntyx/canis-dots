@@ -92,7 +92,7 @@ not part of deployment. Historical package lists remain provenance, not a new
 instruction to install that package. AppImage updates use the **Stable** channel
 and normal in-app controls; the fork embeds the Forgejo feed. Tailscale and the
 existing feed must be available for update checks/downloads. The backup includes
-the AppImage directory; see [Recovery](RECOVERY.md#t3-code-appimage).
+the AppImage directory; see [Recovery](RECOVERY.md#t3-code-update-proxy-and-desktop-client).
 
 T3 Code's shared desktop-client role is separate from the **araveia-only**
 Pi Coursework (`t3assistant`) profile, application configuration, MCP connection

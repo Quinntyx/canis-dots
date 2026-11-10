@@ -37,6 +37,23 @@ class SourceTests(unittest.TestCase):
                     'sha256': hashlib.sha256('\n'.join(entries).encode()).hexdigest()}
         self.assertEqual(actual, expected)
 
+    def test_main_provider_fixes_and_coursework_defaults_survive_the_rebase(self):
+        common = ROOT / 'roles/agents/files/common/0644/.config/pi'
+        models = json.loads((common / 'agent/models.json').read_text())
+        self.assertEqual(models['providers']['mistral']['modelOverrides']['deepseek-v4-1-flash-1017']['input'],
+                         ['text', 'image'])
+        for profile in ('main', 'subagents', 't3main'):
+            acp = json.loads((common / 'profiles' / profile / 'acp.json').read_text())
+            self.assertFalse(acp['compress']['providers']['mistral']['enabled'])
+        acp = json.loads((common / 'profiles/t3main/acp.json').read_text())
+        for provider in ('opencode-go', 'openrouter'):
+            self.assertFalse(acp['compress']['providers'][provider]['enabled'])
+        main = json.loads((common / 'profiles/main/settings.json').read_text())
+        self.assertEqual(main['lastChangelogVersion'], '1.5.0')
+        self.assertIn('extensionChangelogVersions', main)
+        config = (ROOT / 'roles/agents/templates/.config/t3assistant/config.json.j2').read_text()
+        self.assertIn('"personal_lane": {"enabled": true, "daily_cap": 1}', config)
+
     def test_yaml_sources_parse_and_no_custom_plugins_remain(self):
         for folder in ('roles', 'playbooks', 'inventory', 'policy', 'secrets', '.forgejo/workflows'):
             for path in (ROOT / folder).rglob('*.yml'):
@@ -71,14 +88,23 @@ class SourceTests(unittest.TestCase):
         services = yaml.safe_load((ROOT / 'inventory/group_vars/all.yml').read_text())['dots_service_units']
         self.assertEqual(services['coursework'], ['t3assistant-coursework.timer'])
 
-    def test_existing_restore_patch_preserves_coursework_private_state(self):
+    def test_existing_restore_patch_records_the_real_main_without_ansible_handoff(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             for name in ('backup.sh', 'restore.sh'):
                 shutil.copy2(ROOT / 'docs/backups/private_araveia' / (name + '.legacy.txt'), base / name)
-            result = subprocess.run(['git', 'apply', '--unidiff-zero', str(ROOT / 'docs/backups/araveia-t3assistant.patch')],
+            patch = str(ROOT / 'docs/backups/araveia-t3assistant.patch')
+            subprocess.run(['git', 'apply', '--reverse', '--unidiff-zero', patch],
+                           cwd=base, check=True, capture_output=True)
+            receipt = json.loads((ROOT / 'tests/fixtures/reinstall-backup-baseline.json').read_text())
+            for name, digest in receipt['baseline_sha256'].items():
+                self.assertEqual(hashlib.sha256((base / name).read_bytes()).hexdigest(), digest)
+            result = subprocess.run(['git', 'apply', '--unidiff-zero', patch],
                                     cwd=base, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
+            for name in ('backup.sh', 'restore.sh'):
+                reference = ROOT / 'docs/backups/private_araveia' / (name + '.legacy.txt')
+                self.assertEqual((base / name).read_bytes(), reference.read_bytes())
             subprocess.run(['bash', '-n', str(base / 'backup.sh'), str(base / 'restore.sh')], check=True)
             backup = (base / 'backup.sh').read_text()
             paths = re.search(r'home_paths=\((.*?)\n\)', backup, re.S).group(1)
@@ -88,21 +114,11 @@ class SourceTests(unittest.TestCase):
             databases = re.search(r'live_dbs=\((.*?)\)', backup, re.S).group(1)
             self.assertIn('.local/state/t3assistant/state.sqlite3', databases)
             restore = (base / 'restore.sh').read_text()
-            self.assertIn('this restore procedure is only for araveia', restore)
-            self.assertLess(restore.index('command -v ansible-playbook'), restore.index('step "hostname'))
-            self.assertNotIn('hostnamectl set-hostname', restore)
-            as_user = re.search(r'as_user\(\) \{.*?\n\}', restore, re.S).group(0)
-            self.assertIn('NPM_CONFIG_PREFIX="$home/.npm-global"', as_user)
-            environment_test = ('user=fixture; uid=1000; home=$1; '
-                                'sudo() { shift 3; "$@"; };\n' + as_user +
-                                '\nas_user bash -c \'printf "%s" "$NPM_CONFIG_PREFIX"\'\n')
-            environment = subprocess.run(['bash', '-c', environment_test, 'fixture', str(base / 'npm-home')],
-                                         capture_output=True, text=True, check=True)
-            self.assertEqual(environment.stdout, str(base / 'npm-home/.npm-global'))
-            self.assertNotIn('as_user chezmoi', restore)
-            self.assertIn('as_user "$source/scripts/deploy"', restore)
+            self.assertIn('as_user chezmoi apply --force', restore)
+            self.assertNotIn('ansible-playbook', restore)
+            self.assertNotIn('scripts/deploy', restore)
             self.assertLess(restore.index('step "Forgejo" forgejo'),
-                            restore.index('step "Ansible configuration'))
+                            restore.index('step "T3 Code update proxy" t3code_update_proxy'))
             if shutil.which('rsync'):
                 # Execute only the existing home-data function on artificial
                 # files. Never source/run the privileged restore entrypoint.

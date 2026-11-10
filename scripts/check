@@ -13,6 +13,7 @@ commands = {
     'static': [
         ['ansible-playbook', 'playbooks/site.yml', '--syntax-check'],
         [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_source.py', '-v'],
+        [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_reinstall_audit.py', '-v'],
         ['node', '--test', 'roles/agents/files/common/0644/.claude/hooks/guard-tools.test.cjs',
          'roles/agents/files/common/0644/.claude/hooks/timing.test.cjs'],
         ['git', 'diff', '--check'],

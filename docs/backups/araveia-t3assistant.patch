@@ -1,72 +1,66 @@
 diff --git a/backup.sh b/backup.sh
-old mode 100644
-new mode 100755
-index 8dad043..33e6e1d
 --- a/backup.sh
 +++ b/backup.sh
-@@ -46,0 +47,2 @@ home_paths=(
-+	.config/t3assistant              # private course/coordinator configuration
-+	.local/state/t3assistant         # OAuth token, baseline, evidence and scheduler state
-@@ -104,0 +107 @@ home_paths=(
-+	Applications/t3code-fork        # user-owned self-updating Forgejo AppImage
-@@ -121 +124,2 @@ done
+@@ -43,0 +44,2 @@
++	.local/share/t3code-fork         # irreplaceable APK signing key + hosting/ proxy definition
++	.local/share/keyrings            # gnome-keyring secrets; preserve the login keyring
+@@ -46,0 +49,2 @@
++	.config/t3assistant
++	.local/state/t3assistant          # config.private.json is a symlink onto the preserved docs disk
+@@ -52,0 +57,2 @@
++	.config/claude-ambassator
++	.claude-ambassator
+@@ -53,0 +60 @@
++	.config/scrabblebot
+@@ -103,0 +111 @@
++	Applications/t3code-fork          # self-updating AppImage; keep executable permissions
+@@ -108,0 +117 @@
++	.local/share/Steam/config/libraryfolders.vdf  # second library: ~/docs/SteamLibrary
+@@ -121 +130 @@
 -live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db)
-+live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db
-+	.local/state/t3assistant/state.sqlite3)
++live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db .local/state/t3assistant/state.sqlite3)
+@@ -135,0 +145,8 @@
++	--exclude='.claude-ambassator/cache/'
++	--exclude='.claude-ambassator/shell-snapshots/'
++	--exclude='.claude-ambassator/session-env/'
++	--exclude='.claude-ambassator/downloads/'
++	--exclude='.config/claude-ambassator/cache/'
++	--exclude='.config/t3assistant/cache/'
++	--exclude='.local/state/t3assistant/cache/'
++	--exclude='.local/share/t3code-fork/cache/'
+@@ -181 +198,3 @@
+-		rm -f "$here/home/$rel-wal" "$here/home/$rel-shm"
++		for suffix in -wal -shm; do
++			[[ ! -e "$here/home/$rel$suffix" ]] || trash -- "$here/home/$rel$suffix"
++		done
+@@ -183 +202 @@
+-		rm -f "$here/home/$rel.tmp"
++		[[ ! -e "$here/home/$rel.tmp" ]] || trash -- "$here/home/$rel.tmp"
 diff --git a/restore.sh b/restore.sh
-old mode 100644
-new mode 100755
-index 21804dd..1269324
 --- a/restore.sh
 +++ b/restore.sh
-@@ -4,2 +4,2 @@
--#   1. Install EndeavourOS on the NVMe: hostname araveia, user zlare, NVIDIA
--#      driver. The docs disk (sdb1) must not be formatted.
-+#   1. Install EndeavourOS and ansible-core on the NVMe: hostname araveia,
-+#      user zlare, NVIDIA driver. The docs disk (sdb1) must not be formatted.
-@@ -23,0 +24,2 @@ user=${SUDO_USER:-}
-+[[ "$(hostnamectl hostname)" == araveia ]] || die "this restore procedure is only for araveia"
-+command -v ansible-playbook >/dev/null || die "install ansible-core yourself before running this restore"
-@@ -43,0 +46 @@ as_user() {
-+		NPM_CONFIG_PREFIX="$home/.npm-global" \
-@@ -53 +55,0 @@ hostname_and_mount() {
--	[[ "$(hostnamectl hostname)" == araveia ]] || hostnamectl set-hostname araveia
-@@ -221,3 +223,20 @@ home_data() {
--dotfiles() {
--	if [[ ! -d "$home/.local/share/chezmoi/.git" ]]; then
--		as_user chezmoi init "$dotfiles" || return 1
-+ansible_configuration() {
-+	# Run after data, identities, tools and Forgejo are restored. This source
-+	# now uses native Ansible; a legacy chezmoi apply intentionally does nothing.
-+	local source="$home/docs/src/dots/main" origin
-+	if [[ ! -e "$source" ]]; then
-+		as_user mkdir -p "$(dirname "$source")" || return 1
-+		as_user git clone --branch main "$dotfiles" "$source" || return 1
-+	else
-+		origin=$(as_user git -C "$source" remote get-url origin) || return 1
-+		case "$origin" in
-+			https://github.com/Quinntyx/canis-dots.git|https://git.quinntyx.dev/quinntyx/dots.git) ;;
-+			*) echo "unexpected Ansible checkout origin; inspect $source" >&2; return 1 ;;
-+		esac
-+		[[ "$(as_user git -C "$source" branch --show-current)" == main ]] || {
-+			echo "refusing non-main checkout; inspect $source" >&2; return 1
-+		}
-+		[[ -z "$(as_user git -C "$source" status --porcelain)" ]] || {
-+			echo "refusing dirty checkout; preserve changes in $source" >&2; return 1
-+		}
-+		as_user git -C "$source" pull --ff-only || return 1
-@@ -225 +244,6 @@ dotfiles() {
--	as_user chezmoi apply --force
-+	[[ -x "$source/scripts/deploy" ]] || {
-+		echo "merge the native Ansible migration before using this restore" >&2
-+		return 1
-+	}
-+	# Prompts normally for sudo/Vault; never manufactures credentials.
-+	as_user "$source/scripts/deploy"
-@@ -310 +333,0 @@ step "home: secrets, app data, downloads, ~/src, game saves" home_data
--step "chezmoi dotfiles" dotfiles
-@@ -314,0 +338,4 @@ step "Pi packages" pi_packages
-+# Includes the araveia-only t3assistant config/profile and existing coursework
-+# timer. Private overrides/OAuth/SQLite state came back through home_data.
-+# Install managed helpers/units before the remaining legacy service steps.
-+step "Ansible configuration and araveia coursework schedule" ansible_configuration
+@@ -96 +96 @@
+-	rm -rf "$tmp"
++	trash -- "$tmp"
+@@ -106 +106 @@
+-	visudo -cf "$sudoers_tmp" >/dev/null || { rm -f "$sudoers_tmp"; return 1; }
++	visudo -cf "$sudoers_tmp" >/dev/null || { trash -- "$sudoers_tmp"; return 1; }
+@@ -108 +108 @@
+-trap 'rm -f "$sudoers_tmp"' EXIT
++trap '[[ ! -e "$sudoers_tmp" ]] || trash -- "$sudoers_tmp"' EXIT
+@@ -262,0 +263,6 @@
++t3code_update_proxy() {
++	# home_data restored the hosting compose file and nginx.conf. Start this
++	# only after Docker, the restored tailnet identity and Forgejo are healthy.
++	(cd "$home/.local/share/t3code-fork/hosting" && docker compose up -d)
++}
++
+@@ -312,0 +319 @@
++step "T3 Code update proxy" t3code_update_proxy
+@@ -326,0 +334,6 @@
++  - T3 Code APK signing key/metadata and update-proxy hosting/ are restored from ~/.local/share/t3code-fork.
++  - The AppImage is restored to ~/Applications/t3code-fork; use its launcher after configuration deployment.
++  - t3assistant's private-config symlink points into ~/docs/omn; check that its target and OAuth token are present.
++  - Steam: re-check the second library at ~/docs/SteamLibrary (libraryfolders.vdf is restored).
++  - Deliberately excluded: Schooner (test deployment), ~/.local/state/argo-server and ~/.t3/scratch.
++    Redeploy Schooner through T3 Code later; those caches/scratch are not recovered by this snapshot.

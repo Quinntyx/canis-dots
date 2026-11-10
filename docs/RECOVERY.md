@@ -1,93 +1,145 @@
-# Reinstall and recovery boundary
+# araveia reinstall: restore first, deploy the PR, merge last
 
-1. Install EndeavourOS and Ansible Core yourself.
-2. Use the existing trusted backup/restore procedure to restore the preserved
-   docs disk, personal data and credentials, system/network identities and remote
-   access. Keep an offline Vault password copy. Do not format the docs disk.
-3. Obtain this checkout from Git; run `./scripts/deploy` on the restored machine.
-4. After the existing Forgejo/runner and SSH access work again, normal merged
-   configuration changes can deploy through Forgejo Actions.
+## The actual sequence
 
-The historical restore/backup references under `docs/backups/private_araveia/`
-are preserved documentation, not a newly executable Ansible recovery subsystem.
-At the owner's request, the separate scripts at
-`/home/zlare/docs/backups/araveia/{backup,restore}.sh` were updated for the
-integration below. The applied source patch is tracked as
-[`araveia-t3assistant.patch`](backups/araveia-t3assistant.patch); a regression
-applies it to the untouched historical references with `git apply --unidiff-zero`.
-This is an exact-baseline, zero-context change record, not a general updater. Do not execute the archived
-reference as a deployment tool. The real restore now runs native Ansible after
-restoring data/identities/tools and starting Forgejo, before legacy helper/service
-steps. Its old chezmoi apply was removed. It checks for your manually installed
-Ansible Core before beginning, and supplies the user-owned npm prefix explicitly
-so pre-Ansible tool restoration does not depend on an absent `.npmrc`. An existing checkout must have the
-expected origin, a clean main branch and a fast-forward update; no reset occurs.
-Merge the native migration before using that restore; it explicitly refuses a
-checkout without `scripts/deploy`.
+Keep PR #3 **unmerged** until the restored machine has successfully deployed its
+checkout. The existing restore procedure is still the chezmoi-era procedure; it
+is not an Ansible bootstrap and does not require `ansible-core`.
 
-The defensive `.chezmoiignore` containing `*` still makes an accidentally invoked
-legacy chezmoi apply manage no files. That is not configuration deployment or
-proof of whole-machine recovery. Retain verified restore scripts and backups.
-No backup or full restore was run as part of this source change.
+1. Before wiping the OS, refresh and verify the existing private snapshot using
+   its normal owner-operated backup procedure. Updated scripts do **not** add
+   missing files to an older snapshot. In particular, verify the APK signing key,
+   keyring, t3assistant database/token, private-config link and proxy hosting files.
+   No backup has been run by this change.
+2. Install EndeavourOS as required by the existing restore script: hostname
+   `araveia`, user `zlare`, NVIDIA driver. Preserve the docs disk; mount its
+   existing filesystem at `~/docs`. Do not format it.
+3. Run the existing live procedure from the preserved disk:
+   `sudo ~/docs/backups/araveia/restore.sh`. It restores system/data identities,
+   home files, tools and services and **still runs chezmoi apply from pre-merge
+   main**. Inspect its final failure summary and complete its manual follow-up.
+   Nothing in that script invokes Ansible or requires this PR to be merged.
+4. Install `ansible-core` yourself. Obtain **the current PR #3 branch**, not main,
+   in a separate checkout and run `./scripts/deploy` there as your normal user.
+   It selects the local enrolled hostname and prompts for sudo/Vault as needed.
+   Do not switch the chezmoi source checkout to the PR before step 3: the PR has
+   a deny-all `.chezmoiignore` and is deliberately not a chezmoi configuration.
+5. Verify the machine and only then merge PR #3 and retire chezmoi. Retain the
+   verified snapshot and restore scripts. Do not keep using chezmoi as the
+   configuration manager after the migration. Merged main changes may deploy
+   through Forgejo Actions once its existing runner/secrets/SSH access work.
 
-Normal deployment checks araveia's declared docs filesystem UUID, installed
-Forgejo data/configuration and enrolled Tailscale address. It fails instead of
-initializing a blank forge or guessing a new identity. The existing firewall
-zone, tunnel enrollment, provider tokens, user data and runner registration must
-already be restored. Missing or expired credentials still require their owner's
-normal recovery/sign-in procedure; Ansible cannot invent them.
+For an existing PR checkout, fetch the PR's current head first: its branch was
+rebased onto main. The exact reviewed checkout/commit is preferable to a stale
+local branch. See [Deployment](DEPLOYMENT.md) for inventory, Vault and SSH
+prerequisites; `./scripts/deploy --host syssec-canis` runs from araveia only after
+that explicitly enrolled target and its ordinary SSH/sudo access are ready.
 
-## t3assistant on araveia
+## Which scripts actually own recovery
 
-- Ansible tracks the public app/MCP configuration templates and the complete
-  araveia-only Pi profile, including the latest coursework references. The
-  coordinator source remains the existing checkout on the preserved docs disk:
-  `~/docs/src/universal-data-management/main`. It is not adopted into this repo.
-- `backup.sh` now includes `.config/t3assistant` and
-  `.local/state/t3assistant`: private overrides, OAuth token, baseline/evidence
-  and scheduler state. The new `state.sqlite3` entry uses the script's existing
-  SQLite online-backup loop rather than relying on a raw live-database copy.
-  Existing Pi authentication and private Fish configuration were already covered.
-- `restore.sh`'s existing home-data step restores these owner-private files and
-  modes. Its native Ansible handoff installs the profile/config and restores the
-  existing coursework timer on araveia only; the email timer remains disabled
-  unless separately opted in. Ansible never commits or invents OAuth credentials.
+The owning source while chezmoi main is active is
+`docs/backups/private_araveia/executable_{backup,restore}.sh` on **main**. Commit
+`1eb2734242bfe6b537169b2a115f56e15d83050c` repaired that source and was pushed to
+both Forgejo `origin` and `github`. The authorized, backup-only chezmoi apply
+updated `~/docs/backups/araveia/{backup,restore}.sh` and their package lists.
+A subsequent pre-merge chezmoi apply therefore retains these repairs.
 
-**Refresh the private snapshot before wiping the OS:** adding paths to a script
-never retroactively adds files to an old backup. Run the existing backup as its
-owner procedure specifies, and inspect its result:
+In this Ansible branch, the inert `.legacy.txt` files under
+[`backups/private_araveia/`](backups/private_araveia/) are exact snapshots of
+those repaired main scripts, **not executable Ansible roles**. The tracked
+[`araveia-t3assistant.patch`](backups/araveia-t3assistant.patch) records the full
+repair from pre-repair main `c6e9752` to `1eb2734`; despite its historical name,
+it includes all of the backup additions and update-proxy restore step. Tests
+reverse it, verify the old baseline hashes, reapply it and check the current
+references. It contains no Ansible handoff. Do not apply it again to the already
+repaired live scripts or use these reference files as a second recovery system.
 
-```sh
-sudo /home/zlare/docs/backups/araveia/backup.sh
-```
+The old claim that the live restore had removed chezmoi and invoked Ansible was
+incorrect. That integration is not the procedure used for this reinstall.
 
-Private snapshot contents are not Git source. Expired tokens still require normal
-provider renewal. Only the isolated home-data fixture was exercised here, not a
-full restore, live backup, OAuth sign-in or service activation. The archived
-procedure's other disk/system operations have not been re-audited by this update.
+## Newly protected private state
 
-## T3 Code AppImage
+The main-source backup's explicit `home_paths` now includes:
 
-The real `backup.sh` also preserves `Applications/t3code-fork`, alongside the
-already-covered desktop entries, `.t3/userdata` and `.config/t3code-v2`. Its
-existing home-data restore puts the AppImage back with executable permissions;
-Ansible preserves those restored bytes, including a newer self-updated version.
-If no copy was backed up, normal software deployment downloads the verified
-bootstrap from Forgejo. It needs the existing tailnet package endpoint then,
-but never downloads over an already installed copy. The separate release-feed
-service is not installed or reconfigured by this desktop change.
+- `~/.local/share/t3code-fork`, including the **irreplaceable**
+  `android.keystore` and `android-signing.json`, and `hosting/`'s compose file
+  and `nginx.conf`. The cache directory is excluded.
+- `~/Applications/t3code-fork`, preserving the self-updating AppImage and its
+  executable mode. No local `t3code-fork-bin` package is installed by restore.
+- `~/.config/t3assistant` and `~/.local/state/t3assistant`, excluding cache.
+  `state.sqlite3` participates in the existing SQLite online-backup loop.
+  `config.private.json` is a symlink to
+  `~/docs/omn/artifacts/t3assistant-config.private.json`; the **target remains
+  on the separately preserved docs disk**. Copying the link is not a second
+  backup of its target. Check both before wiping.
+- `~/.local/share/keyrings`, `~/.config/scrabblebot`,
+  `~/.config/claude-ambassator` and `~/.claude-ambassator`. The ambassador
+  directory excludes the same `cache`, `shell-snapshots`, `session-env` and
+  `downloads` directories as `.claude`.
+- `~/.local/share/Steam/config/libraryfolders.vdf`. Re-check Steam's second
+  library at `~/docs/SteamLibrary` after restore; the library itself stays on
+  the preserved docs disk.
 
-The tracked exact-baseline patch above now records both the t3assistant and
-AppImage backup changes. Refreshing the backup before reinstall is still
-required. The isolated restore regression covers AppImage bytes/mode as well as
-private configuration; no live AppImage, backup or whole-machine restore was run.
+**Deliberately excluded:** Schooner's test config/data/state, including
+`~/.config/schooner`, `~/.local/share/schooner`, `~/.local/state/schooner-*`;
+`~/.local/state/argo-server`; and `~/.t3/scratch`. Schooner will be redeployed
+through T3 Code later. There is no Schooner container reconstruction step and
+no `incus` addition.
 
-Removed by the simplification: `--fresh`, the recovery module/policy, root disk
-bootstrap, secret enrollment, automatic preimage archives and custom rollback.
-Their last complete state is available at checkpoint commit **f81385a**, not
-mixed into normal desired-state deployment.
+The shared package lists now include `audacity`, `gnome-keyring` and `perf`;
+both the existing restore and Ansible consume them. Snapshot data, signing keys,
+private configs, keyrings and provider tokens remain outside Git. Expired tokens
+still need normal provider renewal; Ansible never invents credentials.
 
-A configuration Git revert is not backup recovery. Packages, databases, personal
-files, network identities, root snapshots and provider accounts have independent
-recovery procedures. Never test them by applying this source to the active host
-without explicit deployment authorization.
+## T3 Code update proxy and desktop client
+
+The existing live restore now runs `docker compose up -d` in
+`~/.local/share/t3code-fork/hosting` **after its Forgejo step**. This recreates
+`t3code-update-proxy` from the backed-up definition, without adding a second
+Ansible owner for that compose stack. Inspect the restore's failure summary and
+check the proxy's normal operation; restoring definitions does not prove DNS,
+remote networking or a healthy release endpoint.
+
+The desktop AppImage is shared by **both** enrolled workstations. Ansible
+preserves an existing restored/self-updated binary, including a newer version;
+only a missing copy triggers its verified bootstrap download. The bootstrap
+needs the existing tailnet package endpoint. No pacman copy is removed
+implicitly. The araveia-only coursework/Pi integration is separate from this
+shared desktop client.
+
+## Compatibility with freshly applied chezmoi main
+
+The PR is rebased through repaired main `1eb2734`. Main's intervening Pi provider
+changes, Mistral image input, changelog bookkeeping and coursework questionnaire
+package are carried into native role sources. The main-only SSH include supplies
+`User henry` for `syssec-canis` without replacing the restored personal SSH
+config. Forgejo's additional `runner-2`/`runner-3` definitions are retained with
+actual target UID/GID and Docker group, not hard-coded host account numbers.
+Existing runner registrations/data remain runtime state; configuration changes
+do not recreate an executor underneath its running job.
+
+For coursework, Ansible prefers the regular private archive on the docs disk,
+accepts/recreates **only the declared** state-path symlink to it, and retains an
+existing legacy regular file without overwriting it. With no archive, that
+regular file remains the fallback; with neither, public defaults are rendered.
+Unexpected links or symlinked source ancestors are refused before reading
+private contents. Rendered config remains mode `0600`, and private reads/rendering
+suppress logs and diffs. The profile/config/MCP/timers remain **araveia-only**.
+
+## Scope of proof
+
+Checks exercise ordinary Ansible in disposable homes, both-host configuration,
+restored private-file/link compatibility and isolated data-copy/proxy-command
+fixtures. They do not run the backup or privileged restore entrypoint, install
+real packages, deploy over SSH, activate services, launch the AppImage, sign in
+to providers or prove a complete reinstall. This change's only active-home write
+was the explicitly authorized backup-only chezmoi apply.
+
+Ansible is desired-state configuration, not disk recovery or a personal-data
+backup. Its deployment checks require araveia's declared docs filesystem,
+restored Forgejo data/configuration and enrolled Tailscale identity. It fails
+rather than initialize a blank forge or invent identities. Preserve existing
+firewall/tunnel enrollment, provider tokens, private data and runner registration.
+A Git revert/redeploy does not roll back packages, databases or a whole machine.
+The removed custom recovery implementation remains historical at `f81385a`;
+it is not part of the current deployment path.

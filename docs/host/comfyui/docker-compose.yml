@@ -47,7 +47,11 @@ services:
       # Swarm creates model subdirectories and maintains its model catalogue.
       - ./models:/models
       - ./output:/output
-      - ./swarm/data:/SwarmUI/Data
+      - type: bind
+        source: ./swarm/data
+        target: /SwarmUI/Data
+        bind:
+          create_host_path: false
       - ./swarm/Settings.fds:/etc/swarm/Settings.fds:ro
       - ./swarm/Backends.fds:/etc/swarm/Backends.fds:ro
     ports:

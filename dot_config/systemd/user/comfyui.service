@@ -7,9 +7,11 @@ StopWhenUnneeded=yes
 Type=simple
 WorkingDirectory=%h/docs/host/comfyui
 TimeoutStartSec=300
+# Pre-create writable state as the user; Docker would otherwise make a root-owned bind mount.
+ExecStartPre=/usr/bin/install -d -m0700 %h/docs/host/comfyui/swarm/data
 ExecStartPre=/bin/sh -c 'until docker info >/dev/null 2>&1; do sleep 2; done'
 # Foreground so systemd tracks the container and its logs land in the journal.
 ExecStart=docker compose up --no-log-prefix --abort-on-container-exit comfyui swarmui
 # Hold the socket until both the GPU engine and the new frontend answer.
-ExecStartPost=/bin/sh -c 'for i in $$(seq 240); do if curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:18188/system_stats && curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:17801/; then exit 0; fi; sleep 1; done; exit 1'
+ExecStartPost=/bin/sh -c 'for i in $$(seq 240); do kill -0 "$$MAINPID" 2>/dev/null || exit 1; if curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:18188/system_stats && curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:17801/; then exit 0; fi; sleep 1; done; exit 1'
 ExecStop=docker compose stop swarmui comfyui

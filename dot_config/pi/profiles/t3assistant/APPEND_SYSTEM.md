@@ -35,8 +35,9 @@ submit coursework, change calendars, or schedule unrelated tasks.
   first in America/Chicago 24-hour time and the compact course code last. Omit Canvas
   section/cross-listing/semester suffixes and platform boilerplate; shorten the assignment
   topic (for example, `Activity 3: Trees/BST`). Keep the full source details in the thread,
-  not its title. Date-only deadlines use the coordinator's local end-of-day convention
-  (`23:59`); never substitute a snooze/review date for the assignment deadline. Use this
+  not its title. Date-only deadlines use `MM/DD Short assignment [COURSE]`, with no
+  invented time or separator. Show `HH:MM-` only when the source has an actual time;
+  never substitute a snooze/review date for the assignment deadline. Use this
   format for user-requested launches and renames too; title preferences alone do not
   authorize creating, renaming, reopening or unsnoozing threads.
 - Daily email triage has one dedicated thread and a separate persistent daily budget/dedup key;

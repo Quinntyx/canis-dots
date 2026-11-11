@@ -12,7 +12,7 @@
 
 [".claude/skills/freya/SKILL.md"]
     type = "file"
-    url = "https://raw.githubusercontent.com/marc2332/freya/main/plugins/freya/skills/freya/SKILL.md"
+    url = "https://raw.githubusercontent.com/marc2332/freya/main/skills/freya/SKILL.md"
     refreshPeriod = "168h"
 
 [".config/pi/profiles/t3main/skills/wrangler/SKILL.md"]
@@ -22,5 +22,5 @@
 
 [".config/pi/profiles/t3main/skills/freya/SKILL.md"]
     type = "file"
-    url = "https://raw.githubusercontent.com/marc2332/freya/main/plugins/freya/skills/freya/SKILL.md"
+    url = "https://raw.githubusercontent.com/marc2332/freya/main/skills/freya/SKILL.md"
     refreshPeriod = "168h"

@@ -11,6 +11,9 @@ ENV PYTHONUNBUFFERED=1 \
 # CUDA 13 wheels bundle their own CUDA runtime; the host driver comes in via nvidia-container-toolkit.
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
 
+# Triton compiles the INT8 (convrot) kernels at runtime and needs a C toolchain.
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev
+
 # Release tarball via Python: works with the legacy builder (no buildx here), needs no git/curl.
 RUN python -c "import io,sys,tarfile,urllib.request as u; tarfile.open(fileobj=io.BytesIO(u.urlopen(sys.argv[1]).read())).extractall('/opt', filter='data')" \
       "https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/${COMFYUI_REF}.tar.gz" \

@@ -120,6 +120,7 @@ pandoc-cli
 tailscale
 docker
 docker-compose
+nvidia-container-toolkit
 cloudflared
 syncthing
 openssh

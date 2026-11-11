@@ -5,6 +5,7 @@
 #      driver. The docs disk (sdb1) must not be formatted.
 #   2. Mount the docs disk:  sudo mount UUID=40eda021-8152-4dab-8be2-f19307298da2 ~/docs
 #   3. sudo ~/docs/backups/araveia/restore.sh
+#      If it stops because pacman upgraded the kernel, reboot and run it again.
 #   4. Reboot.
 #
 # Each step reports failure and the script carries on; the summary lists what
@@ -93,7 +94,7 @@ chatgpt() {
 		https://persistent.oaistatic.com/codex-app-prod/linux/install-arch.sh &&
 		bash "$tmp/install-arch.sh"
 	local rc=$?
-	trash -- "$tmp"
+	command -v trash >/dev/null && trash -- "$tmp"
 	return $rc
 }
 
@@ -103,9 +104,17 @@ sudoers_tmp=/etc/sudoers.d/90-araveia-restore
 allow_pacman() {
 	printf '%s ALL=(root) NOPASSWD: /usr/bin/pacman\n' "$user" >"$sudoers_tmp"
 	chmod 440 "$sudoers_tmp"
-	visudo -cf "$sudoers_tmp" >/dev/null || { trash -- "$sudoers_tmp"; return 1; }
+	visudo -cf "$sudoers_tmp" >/dev/null || { revoke_pacman; return 1; }
 }
-trap '[[ ! -e "$sudoers_tmp" ]] || trash -- "$sudoers_tmp"' EXIT
+# Blank the rule first: that revokes it even when trash-cli is not installed
+# yet (the package step failed), and an empty sudoers file is inert.
+revoke_pacman() {
+	[[ -e "$sudoers_tmp" ]] || return 0
+	printf '# araveia restore: expired\n' >"$sudoers_tmp"
+	command -v trash >/dev/null && trash -- "$sudoers_tmp"
+	return 0
+}
+trap revoke_pacman EXIT
 
 aur_packages() {
 	local -a bad=()
@@ -222,7 +231,12 @@ dotfiles() {
 	if [[ ! -d "$home/.local/share/chezmoi/.git" ]]; then
 		as_user chezmoi init "$dotfiles" || return 1
 	fi
-	as_user chezmoi apply --force
+	as_user chezmoi apply --force && return 0
+	# One unreachable download in .chezmoiexternal.toml aborts the whole apply.
+	# Install everything else, and leave the step marked failed.
+	echo "chezmoi apply failed; applying again without external downloads" >&2
+	as_user chezmoi apply --force --exclude=externals
+	return 1
 }
 
 toolchains() {
@@ -250,7 +264,7 @@ forgejo() {
 	# Start once as root (the user manager predates the docker group change);
 	# restart: always brings the containers back on every later boot.
 	(cd "$home/docs/host/forgejo" && docker compose up -d forgejo &&
-		docker compose --profile runner up -d runner) || return 1
+		docker compose --profile runner up -d) || return 1
 	local i
 	for i in $(seq 90); do
 		curl -fsS -o /dev/null http://127.0.0.1:3000/ && break
@@ -293,7 +307,8 @@ user_services() {
 	user_ctl daemon-reload
 	local u rc=0
 	for u in forgejo.service cliproxyapi.service syncthing.service goimapnotify.service \
-		mail-sync.timer omn-canvas-ingest.timer sunsetr-resume.timer tmux-resurrect-save.timer; do
+		mail-sync.timer omn-canvas-ingest.timer sunsetr-resume.timer tmux-resurrect-save.timer \
+		t3assistant-coursework.timer; do
 		user_ctl enable --now "$u" || { echo "could not start $u" >&2; rc=1; }
 	done
 	# Needs a Wayland session, so enable only; it starts with niri.
@@ -304,6 +319,10 @@ user_services() {
 step "hostname, /etc/hosts, docs fstab entry" hostname_and_mount
 step "Cider pacman repo" extra_repos
 step "official packages" pacman_packages
+# Docker, Tailscale and firewalld load kernel modules, and a kernel upgrade
+# removes the running kernel's. Every step is idempotent, so stop here.
+[[ -d "/usr/lib/modules/$(uname -r)" ]] ||
+	die "pacman upgraded the kernel: reboot, then run this script again (the docs disk now mounts by itself)"
 step "ChatGPT desktop" chatgpt
 step "user account: groups, fish, linger" account
 step "allow pacman for yay/makepkg" allow_pacman

@@ -14,6 +14,7 @@
 #   root/       absolute system paths (root-owned, restored as-is)
 #   reference/  copies kept for reading only; restore.sh regenerates these
 set -euo pipefail
+trap 'echo "backup FAILED near line $LINENO; the snapshot is incomplete" >&2' ERR
 
 here=$(cd "$(dirname "$0")" && pwd)
 user=${SUDO_USER:-$(id -un)}
@@ -125,15 +126,16 @@ for d in "$home/$steam"/compatdata/*/pfx/drive_c/users/steamuser "$home/$steam"/
 done
 
 # Databases apps keep open (T3 Code is likely running during the backup).
-# rsync could catch them mid-write, so they are re-copied with sqlite's
-# online backup after the mirror.
+# rsync would catch them mid-write, so the mirror skips them and sqlite takes
+# a consistent copy afterwards. The previous copy stays until the new one is
+# complete.
 live_dbs=(.t3/userdata/statev2.sqlite .local/share/opencode/opencode.db .local/state/t3assistant/state.sqlite3)
 for f in "$home"/.codex/*_[0-9].sqlite; do
 	[[ "$f" == */logs_* ]] || live_dbs+=("${f#"$home/"}")
 done
 
 home_excludes=(
-	--exclude='S.*'                  # gpg-agent sockets
+	--exclude='.gnupg/S.*'           # gpg-agent sockets
 	--exclude='__pycache__/'
 	--exclude='.local/state/syncthing/index-v2/'
 	--exclude='.local/state/syncthing/syncthing.lock'
@@ -172,6 +174,12 @@ home_excludes=(
 	--exclude='.config/chromium/Singleton*'
 	--exclude='.codex/logs_*.sqlite*'
 )
+# "P" protects the previous copy from --delete-excluded; the live file, its
+# WAL and any half-written copy from a failed run are left out of the mirror.
+for rel in "${live_dbs[@]}"; do
+	home_excludes+=(--filter="P $rel" --exclude="$rel" --exclude="$rel-wal"
+		--exclude="$rel-shm" --exclude="$rel.new")
+done
 
 for app in zen-bin element-desktop prismlauncher reaper; do
 	if pgrep -x "$app" >/dev/null; then
@@ -189,21 +197,19 @@ for rel in "${home_paths[@]}"; do
 done
 
 as_owner() { if [[ $EUID -eq 0 ]]; then sudo -u "$user" "$@"; else "$@"; fi; }
+db_failed=()
 for rel in "${live_dbs[@]}"; do
 	[[ -s "$home/$rel" ]] || continue
-	# As the owner, so sqlite never leaves root-owned -wal/-shm files beside
-	# the live database.
-	if as_owner sqlite3 "$home/$rel" ".backup '$here/home/$rel.tmp'"; then
-		mv "$here/home/$rel.tmp" "$here/home/$rel"
-		for suffix in -wal -shm; do
-			[[ ! -e "$here/home/$rel$suffix" ]] || trash -- "$here/home/$rel$suffix"
-		done
+	# VACUUM INTO reads one consistent snapshot and does not restart when the
+	# app writes mid-copy. As the owner, so sqlite never leaves root-owned
+	# -wal/-shm files beside the live database.
+	mkdir -p "$(dirname "$here/home/$rel")"
+	if as_owner sqlite3 "$home/$rel" "VACUUM INTO '$here/home/$rel.new'"; then
+		mv "$here/home/$rel.new" "$here/home/$rel"
 	else
-		[[ ! -e "$here/home/$rel.tmp" ]] || trash -- "$here/home/$rel.tmp"
-		echo "warning: sqlite backup of ~/$rel failed; the rsync copy may be inconsistent" >&2
+		db_failed+=("~/$rel")
 	fi
 done
-
 
 # The docs disk's fstab line, so restore.sh can mount it permanently.
 awk -v m="$home/docs" '$2 == m' /etc/fstab >"$here/reference/docs-fstab-line"
@@ -224,6 +230,7 @@ if [[ $EUID -eq 0 ]]; then
 		/etc/cups/printers.conf
 		/etc/cups/ppd
 		/etc/nvidia/nvidia-application-profiles-rc.d  # niri VRAM fix for the NVIDIA driver
+		/etc/docker/daemon.json              # NVIDIA container runtime, for ComfyUI
 	)
 	for p in "${root_paths[@]}"; do
 		if [[ -e "$p" ]]; then
@@ -263,4 +270,9 @@ if ((${#missing[@]})); then
 	printf 'not present (skipped): %s\n' "${missing[@]}" >&2
 fi
 du -sh "$here/home" "$here/root" "$here/reference" 2>/dev/null
+if ((${#db_failed[@]})); then
+	printf 'DATABASE NOT REFRESHED (its previous copy, if any, was kept): %s\n' "${db_failed[@]}" >&2
+	echo "snapshot INCOMPLETE: $(cat "$here/reference/snapshot-date")" >&2
+	exit 1
+fi
 echo "snapshot complete: $(cat "$here/reference/snapshot-date")"

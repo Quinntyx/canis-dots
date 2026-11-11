@@ -10,7 +10,7 @@ http://:8188 {
 
 	# Readiness probe for the loading page. Short timeouts so it never hangs while ComfyUI boots.
 	handle /__comfy_gate {
-		rewrite * /system_stats
+		rewrite * /
 		reverse_proxy 127.0.0.1:18189 {
 			transport http {
 				dial_timeout 2s
@@ -35,7 +35,7 @@ http://:8188 {
 		}
 	}
 
-	# Everything else (API, websocket, assets) waits normally. Short keepalive lets the idle timer run.
+	# Everything else (Swarm API, websocket, assets) waits normally. Short keepalive lets the idle timer run.
 	handle {
 		reverse_proxy 127.0.0.1:18189 {
 			transport http {

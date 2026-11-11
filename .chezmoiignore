@@ -50,6 +50,7 @@ docs/host/comfyui/input/
 docs/host/comfyui/output/
 docs/host/comfyui/user/
 docs/host/comfyui/custom_nodes/
+docs/host/comfyui/swarm/data/
 
 # ---- araveia reinstall backup: secrets and app data, only the scripts are managed ----
 docs/backups/araveia/home

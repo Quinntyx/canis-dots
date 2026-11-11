@@ -1,0 +1,4 @@
+# Keep baked-in Swarm nodes separate from the user-owned custom_nodes bind mount.
+swarm:
+  base_path: /opt
+  custom_nodes: swarm-nodes

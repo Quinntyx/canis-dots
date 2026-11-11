@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ComfyUI · starting</title>
+<title>SwarmUI · starting</title>
 <style>
   :root { color-scheme: light dark; --fg: #1d1d1f; --muted: #6e6e73; --bg: #f5f5f7; --accent: #4f7cff; --warn: #c27c0e; --bad: #d14343; }
   @media (prefers-color-scheme: dark) { :root { --fg: #f2f2f2; --muted: #9a9aa0; --bg: #141416; --accent: #7c9cff; --warn: #e0a23a; --bad: #ff6b6b; } }
@@ -26,17 +26,17 @@
 <body>
 <main>
   <div class="spinner" aria-hidden="true"></div>
-  <h1 id="title">Starting ComfyUI…</h1>
-  <p id="detail">araveia is reachable; the container is booting. This page reloads when it is ready.</p>
+  <h1 id="title">Starting SwarmUI…</h1>
+  <p id="detail">araveia is reachable; SwarmUI and its image engine are booting. This page reloads when they are ready.</p>
   <p class="elapsed" id="elapsed">0 s</p>
 </main>
 <script>
   const started = Date.now();
   const $ = (id) => document.getElementById(id);
   const states = {
-    starting: ["Starting ComfyUI…", "araveia is reachable; the container is booting. This page reloads when it is ready."],
+    starting: ["Starting SwarmUI…", "araveia is reachable; SwarmUI and its image engine are booting. This page reloads when they are ready."],
     warn: ["Still starting…", "This is taking longer than usual. Check <code>systemctl --user status comfyui</code> and <code>journalctl --user -u comfyui</code> on araveia."],
-    down: ["ComfyUI is not starting", "araveia answered, but the on-demand chain failed. Check <code>systemctl --user status comfyui-proxy.socket comfyui</code>. Retrying…"],
+    down: ["SwarmUI is not starting", "araveia answered, but the on-demand chain failed. Check <code>systemctl --user status comfyui-proxy.socket comfyui</code>. Retrying…"],
     offline: ["Can't reach araveia", "The gate stopped answering: Tailscale, the network, or the host is down. Retrying…"],
   };
   function show(name) {

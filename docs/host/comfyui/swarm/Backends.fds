@@ -1,0 +1,9 @@
+# First-run seed only; Swarm saves subsequent backend state under swarm/data/.
+0:
+    type: comfyui_api
+    title: Local ComfyUI GPU backend
+    enabled: true
+    settings:
+        Address: http://comfyui:8188
+        AllowIdle: true
+        OverQueue: 1

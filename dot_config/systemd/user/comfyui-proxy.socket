@@ -1,5 +1,5 @@
 [Unit]
-Description=On-demand entry point for ComfyUI (behind the comfyui-gate Caddy on :8188)
+Description=On-demand entry point for SwarmUI (behind the comfyui-gate Caddy on :8188)
 
 [Socket]
 # Loopback only; the gate container (host network) is the public face on :8188.

@@ -1,0 +1,21 @@
+# Declarative server configuration; UI preferences and sessions live in swarm/data/.
+IsInstalled: true
+InstallDate: 2026-11-11
+InstallVersion: 0.9.8.4
+LaunchMode: none
+Paths:
+    ModelRoot: /models
+    SDModelFolder: diffusion_models;checkpoints
+    SDLoraFolder: loras
+    SDVAEFolder: vae
+    SDEmbeddingFolder: embeddings
+    SDClipFolder: text_encoders;clip
+    OutputPath: /output
+    AppendUserNameToOutputPath: false
+Metadata:
+    ModelMetadataPerFolder: false
+    ImageMetadataPerFolder: false
+Maintenance:
+    # The image is pinned; updates go through the tracked Docker build instead of git.
+    CheckForUpdates: false
+    AutoPullDevUpdates: false

@@ -44,6 +44,13 @@ docs/host/forgejo/forgejo/gitea/repo-avatars/
 docs/host/forgejo/forgejo/gitea/tmp/
 docs/host/forgejo/forgejo/gitea/conf/
 
+# ---- comfyui instance: models (gated downloads) and generated/runtime state ----
+docs/host/comfyui/models/
+docs/host/comfyui/input/
+docs/host/comfyui/output/
+docs/host/comfyui/user/
+docs/host/comfyui/custom_nodes/
+
 # ---- araveia reinstall backup: secrets and app data, only the scripts are managed ----
 docs/backups/araveia/home
 docs/backups/araveia/root
@@ -117,6 +124,12 @@ docs/backups/araveia/reference
 .config/systemd/user/t3assistant-coursework.timer
 .config/systemd/user/t3assistant-email.service
 .config/systemd/user/t3assistant-email.timer
+# ComfyUI needs araveia's GPU and binds its tailnet IP.
+docs/host/comfyui
+.config/systemd/user/comfyui.service
+.config/systemd/user/comfyui-proxy.service
+.config/systemd/user/comfyui-proxy.socket
+.config/systemd/user/sockets.target.wants/comfyui-proxy.socket
 {{ end }}
 
 # syssec-canis has no mail installation; retain the skill source for mail-capable hosts.

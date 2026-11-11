@@ -1,0 +1,15 @@
+[Unit]
+Description=ComfyUI container (docker compose at ~/docs/host/comfyui), started on demand
+# Started only through comfyui-proxy.service; stopped as soon as nothing needs it.
+StopWhenUnneeded=yes
+
+[Service]
+Type=simple
+WorkingDirectory=%h/docs/host/comfyui
+TimeoutStartSec=300
+ExecStartPre=/bin/sh -c 'until docker info >/dev/null 2>&1; do sleep 2; done'
+# Foreground so systemd tracks the container and its logs land in the journal.
+ExecStart=docker compose up --no-log-prefix comfyui
+# Ready once the HTTP API answers; until then the socket holds incoming connections.
+ExecStartPost=/bin/sh -c 'for i in $$(seq 240); do curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:18188/system_stats && exit 0; sleep 1; done; exit 1'
+ExecStop=docker compose stop comfyui

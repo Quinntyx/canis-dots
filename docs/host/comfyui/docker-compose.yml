@@ -1,0 +1,49 @@
+# ComfyUI, started on demand and stopped when idle.
+#
+#   browser → gate (Caddy, always on, :8188 on loopback + tailnet)
+#           → 127.0.0.1:18189  comfyui-proxy.socket (systemd user unit; first connection starts comfyui.service)
+#           → 127.0.0.1:18188  comfyui container (GPU), stopped after 30 min with no connections
+#
+# Do not `docker compose up` the comfyui service by hand for normal use; systemd owns it:
+#   systemctl --user status comfyui-proxy.socket comfyui comfyui-proxy
+#   systemctl --user stop comfyui          # free VRAM now
+#   journalctl --user -u comfyui -f        # ComfyUI logs
+# The gate is started once with `docker compose up -d gate` and kept up by its restart policy.
+services:
+  comfyui:
+    build: .
+    image: local/comfyui:v0.45.0
+    container_name: comfyui
+    restart: "no"          # systemd starts/stops it; docker must not resurrect it at boot
+    user: "1000:1000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./models:/opt/ComfyUI/models
+      - ./input:/opt/ComfyUI/input
+      - ./output:/opt/ComfyUI/output
+      - ./user:/opt/ComfyUI/user
+      - ./custom_nodes:/opt/ComfyUI/custom_nodes
+    ports:
+      - "127.0.0.1:18188:8188"   # only the systemd socket proxy talks to this
+
+  gate:
+    image: caddy:2-alpine
+    container_name: comfyui-gate
+    restart: always            # retries until the tailnet IP exists at boot
+    network_mode: host         # binds the tailnet IP itself and reaches the loopback socket
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      - XDG_CONFIG_HOME=/tmp
+      - XDG_DATA_HOME=/tmp
+    volumes:
+      - ./gate/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./gate/loading.html:/srv/loading.html:ro

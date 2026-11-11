@@ -1,0 +1,9 @@
+[Unit]
+Description=On-demand entry point for ComfyUI (behind the comfyui-gate Caddy on :8188)
+
+[Socket]
+# Loopback only; the gate container (host network) is the public face on :8188.
+ListenStream=127.0.0.1:18189
+
+[Install]
+WantedBy=sockets.target

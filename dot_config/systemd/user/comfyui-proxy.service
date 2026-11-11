@@ -1,0 +1,10 @@
+[Unit]
+Description=Idle-aware relay from comfyui-proxy.socket to the ComfyUI container
+Requires=comfyui-proxy.socket
+BindsTo=comfyui.service
+After=comfyui.service
+
+[Service]
+# Exits after 30 min without any open connection (an open ComfyUI tab keeps its websocket open);
+# comfyui.service then becomes unneeded and stops the container, releasing all VRAM.
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd --exit-idle-time=30min 127.0.0.1:18188

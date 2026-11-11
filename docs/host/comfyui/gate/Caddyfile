@@ -1,0 +1,68 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+# Same addresses as forgejo: loopback, the "araveia" hostname (127.0.1.1), and the tailnet IP.
+http://:8188 {
+	bind 127.0.0.1 127.0.1.1 100.110.255.43
+
+	# Readiness probe for the loading page. Short timeouts so it never hangs while ComfyUI boots.
+	handle /__comfy_gate {
+		rewrite * /system_stats
+		reverse_proxy 127.0.0.1:18189 {
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 3s
+				keepalive 30s
+			}
+		}
+	}
+
+	# Top-level page load: wake ComfyUI, and show the loading page if it does not answer quickly.
+	@page {
+		method GET
+		path /
+	}
+	handle @page {
+		reverse_proxy 127.0.0.1:18189 {
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 3s
+				keepalive 30s
+			}
+		}
+	}
+
+	# Everything else (API, websocket, assets) waits normally. Short keepalive lets the idle timer run.
+	handle {
+		reverse_proxy 127.0.0.1:18189 {
+			transport http {
+				keepalive 30s
+			}
+		}
+	}
+
+	# 504: upstream accepted but has not answered yet, i.e. the container is starting.
+	handle_errors 504 {
+		root * /srv
+		rewrite * /loading.html
+		header Cache-Control no-store
+		header X-Comfy-Gate starting
+		file_server {
+			status 503
+		}
+	}
+
+	# Anything else (502 connection refused, reset): the on-demand chain itself is broken.
+	handle_errors {
+		root * /srv
+		rewrite * /loading.html
+		header Cache-Control no-store
+		header X-Comfy-Gate down
+		file_server {
+			status 502
+		}
+	}
+}

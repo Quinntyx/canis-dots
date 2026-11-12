@@ -1,4 +1,5 @@
 {
+  "VERSION_UID": "PY313",
   "forge_preset": "qwen21",
   "sd_model_checkpoint": "qwen_image_2.1_int8_convrot.safetensors",
   "forge_checkpoint_qwen21": "qwen_image_2.1_int8_convrot.safetensors",

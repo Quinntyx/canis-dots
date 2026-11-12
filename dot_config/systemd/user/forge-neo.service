@@ -4,6 +4,7 @@ StopWhenUnneeded=yes
 
 [Service]
 Type=simple
+SuccessExitStatus=130
 WorkingDirectory=%h/docs/host/forge-neo
 TimeoutStartSec=300
 ExecStartPre=/usr/bin/install -d -m0700 %h/docs/host/forge-neo/data %h/docs/host/forge-neo/output

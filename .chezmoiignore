@@ -52,6 +52,10 @@ docs/host/comfyui/user/
 docs/host/comfyui/custom_nodes/
 docs/host/comfyui/swarm/data/
 
+# ---- Forge Neo: user settings, caches, uploads, and generated images ----
+docs/host/forge-neo/data/
+docs/host/forge-neo/output/
+
 # ---- araveia reinstall backup: secrets and app data, only the scripts are managed ----
 docs/backups/araveia/home
 docs/backups/araveia/root
@@ -131,6 +135,12 @@ docs/host/comfyui
 .config/systemd/user/comfyui-proxy.service
 .config/systemd/user/comfyui-proxy.socket
 .config/systemd/user/sockets.target.wants/comfyui-proxy.socket
+# Forge Neo reuses the same host models and private Caddy listener.
+docs/host/forge-neo
+.config/systemd/user/forge-neo.service
+.config/systemd/user/forge-neo-proxy.service
+.config/systemd/user/forge-neo-proxy.socket
+.config/systemd/user/sockets.target.wants/forge-neo-proxy.socket
 {{ end }}
 
 # syssec-canis has no mail installation; retain the skill source for mail-capable hosts.

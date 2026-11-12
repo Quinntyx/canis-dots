@@ -70,5 +70,6 @@ services:
       - XDG_CONFIG_HOME=/tmp
       - XDG_DATA_HOME=/tmp
     volumes:
-      - ./gate/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./gate/loading.html:/srv/loading.html:ro
+      # Directory mounts keep chezmoi's atomic file replacements visible to Caddy.
+      - ./gate:/etc/caddy:ro
+      - ./gate:/srv:ro

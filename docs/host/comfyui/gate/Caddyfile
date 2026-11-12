@@ -8,6 +8,38 @@
 http://:8188 {
 	bind 127.0.0.1 127.0.1.1 100.110.255.43
 
+	# Forge Neo shares this private listener; SwarmUI remains at the root.
+	handle /forge {
+		redir /forge/ 308
+	}
+	handle /forge/__forge_gate {
+		rewrite * /
+		reverse_proxy 127.0.0.1:18190 {
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 3s
+				keepalive 30s
+			}
+		}
+	}
+	handle /forge/ {
+		uri strip_prefix /forge
+		reverse_proxy 127.0.0.1:18190 {
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 3s
+				keepalive 30s
+			}
+		}
+	}
+	handle_path /forge/* {
+		reverse_proxy 127.0.0.1:18190 {
+			transport http {
+				keepalive 30s
+			}
+		}
+	}
+
 	# Readiness probe for the loading page. Short timeouts so it never hangs while ComfyUI boots.
 	handle /__comfy_gate {
 		rewrite * /
@@ -44,25 +76,37 @@ http://:8188 {
 		}
 	}
 
-	# 504: upstream accepted but has not answered yet, i.e. the container is starting.
-	handle_errors 504 {
-		root * /srv
-		rewrite * /loading.html
-		header Cache-Control no-store
-		header X-Comfy-Gate starting
-		file_server {
-			status 503
-		}
-	}
-
-	# Anything else (502 connection refused, reset): the on-demand chain itself is broken.
 	handle_errors {
-		root * /srv
-		rewrite * /loading.html
-		header Cache-Control no-store
-		header X-Comfy-Gate down
-		file_server {
-			status 502
+		route {
+			# Never send Forge clients to the Swarm-specific loading-page probe.
+			@forge expression `{http.request.orig_uri.path}.startsWith('/forge/')`
+			handle @forge {
+				header Cache-Control no-store
+				header Content-Type "text/html; charset=utf-8"
+				header X-Forge-Gate unavailable
+				respond "<!doctype html><meta charset=utf-8><meta http-equiv=refresh content=5><title>Starting Forge Neo</title><h1>Forge Neo is starting or unavailable</h1><p>This page refreshes automatically.</p>" 503
+			}
+
+			# Preserve the existing Swarm startup and broken-chain responses.
+			@starting expression `{http.error.status_code} == 504`
+			handle @starting {
+				root * /srv
+				rewrite * /loading.html
+				header Cache-Control no-store
+				header X-Comfy-Gate starting
+				file_server {
+					status 503
+				}
+			}
+			handle {
+				root * /srv
+				rewrite * /loading.html
+				header Cache-Control no-store
+				header X-Comfy-Gate down
+				file_server {
+					status 502
+				}
+			}
 		}
 	}
 }

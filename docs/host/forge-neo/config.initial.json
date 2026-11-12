@@ -1,0 +1,30 @@
+{
+  "forge_preset": "qwen21",
+  "sd_model_checkpoint": "qwen_image_2.1_int8_convrot.safetensors",
+  "forge_checkpoint_qwen21": "qwen_image_2.1_int8_convrot.safetensors",
+  "forge_additional_modules": [
+    "/models/text_encoders/qwen3vl_8b_abliterated_int8_convrot.safetensors",
+    "/models/vae/QwenImage/qwen_image_2.1_vae_bf16.safetensors"
+  ],
+  "forge_additional_modules_qwen21": [
+    "/models/text_encoders/qwen3vl_8b_abliterated_int8_convrot.safetensors",
+    "/models/vae/QwenImage/qwen_image_2.1_vae_bf16.safetensors"
+  ],
+  "qwen21_t2i_width": 1024,
+  "qwen21_t2i_height": 1024,
+  "qwen21_i2i_width": 1024,
+  "qwen21_i2i_height": 1024,
+  "qwen21_t2i_step": 16,
+  "qwen21_i2i_step": 16,
+  "qwen21_t2i_cfg": 2.5,
+  "qwen21_i2i_cfg": 2.5,
+  "qwen21_do_reference": true,
+  "outdir_txt2img_samples": "/output/txt2img",
+  "outdir_img2img_samples": "/output/img2img",
+  "outdir_extras_samples": "/output/extras",
+  "outdir_txt2img_grids": "/output/grids/txt2img",
+  "outdir_img2img_grids": "/output/grids/img2img",
+  "outdir_save": "/output/saved",
+  "live_previews_enable": true,
+  "show_progress_type": "RGB"
+}

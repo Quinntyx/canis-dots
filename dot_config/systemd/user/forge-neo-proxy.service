@@ -1,0 +1,10 @@
+[Unit]
+Description=Idle-aware relay from forge-neo-proxy.socket to Forge Neo
+Requires=forge-neo-proxy.socket
+BindsTo=forge-neo.service
+After=forge-neo.service
+
+[Service]
+# Browser activity and active generation requests retain the container. Closing
+# all clients lets it stop after 30 minutes and release its GPU allocations.
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd --exit-idle-time=30min 127.0.0.1:17860

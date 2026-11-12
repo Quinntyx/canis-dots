@@ -1,0 +1,13 @@
+[Unit]
+Description=Forge Neo container (~/docs/host/forge-neo), started on demand
+StopWhenUnneeded=yes
+
+[Service]
+Type=simple
+WorkingDirectory=%h/docs/host/forge-neo
+TimeoutStartSec=300
+ExecStartPre=/usr/bin/install -d -m0700 %h/docs/host/forge-neo/data %h/docs/host/forge-neo/output
+ExecStartPre=/bin/sh -c 'until docker info >/dev/null 2>&1; do sleep 2; done'
+ExecStart=docker compose up --no-log-prefix --abort-on-container-exit forge-neo
+ExecStartPost=/bin/sh -c 'for i in $$(seq 240); do kill -0 "$$MAINPID" 2>/dev/null || exit 1; if curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:17860/sdapi/v1/options; then exit 0; fi; sleep 1; done; exit 1'
+ExecStop=docker compose stop forge-neo

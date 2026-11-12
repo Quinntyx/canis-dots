@@ -1,0 +1,8 @@
+[Unit]
+Description=On-demand Forge Neo entry point, behind the private /forge/ Caddy route
+
+[Socket]
+ListenStream=127.0.0.1:18190
+
+[Install]
+WantedBy=sockets.target

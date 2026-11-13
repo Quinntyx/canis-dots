@@ -56,7 +56,9 @@
     "git:git.quinntyx.dev/quinntyx/pi-opencode-zen-free@v0.2.0"
   ],
   "hideThinkingBlock": true,
-  "extensions": [],
+  "extensions": [
+    "./extensions/delegation-policy-guard.ts"
+  ],
   "compaction": {
     "reserveTokens": 0
   },

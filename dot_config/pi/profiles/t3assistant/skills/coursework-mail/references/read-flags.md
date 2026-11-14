@@ -26,9 +26,11 @@ what that helper enforces, not permission to bypass it with raw tag commands.
 
 Report JSON is `{summary, classifications: [{id, classification, summary, actions?}]}`;
 classification is `important`, `action`, `no_action` or `uncertain`. Classify only successful
-complete candidate reads. One immutable report lives at the returned per-run `report.json`;
-finish needed reads before committing it. Failed/unsupported MIME, unreviewed candidates and
-budget backlog stay unmarked for a later authorized review. Report save failure permits zero marks.
+complete candidate reads. Finish the entire unread set before saving the report at the returned
+`report_path`. Reports are immutable snapshots. A continuation may read remaining candidates and
+append classifications in a new snapshot while retaining previous classifications and marking outcomes;
+use the new returned path. Failed/unsupported MIME and unreviewed candidates stay unmarked, with
+explicit reasons in the report. Report save failure permits zero marks.
 
 ## Per-run execution
 
@@ -64,5 +66,6 @@ budget backlog stay unmarked for a later authorized review. Report save failure 
    if a concurrent change makes preservation uncertain, stop and report it, without reverting
    user state or declaring success. Record the observed result in the private receipt.
 6. Update the durable report/receipt with local marking outcomes and remote freshness limitations.
-   A retry uses only its persisted reviewed/pending-mark set under the same run identity and budget.
-   Unseen backlog, decoding failures and unrelated sent-message evidence remain unchanged.
+   A marking retry uses its persisted reviewed/pending-mark set under the same run identity.
+   Continue reading any remaining candidates through the helper and persist their classifications
+   before marking them. Decoding failures and unrelated sent-message evidence remain unchanged.

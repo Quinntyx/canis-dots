@@ -11,18 +11,19 @@ triage. Do not invent an unimplemented top-level `mail` section. The helper's ac
 defines its nested schema; inspect only the relevant private fields:
 
 - `email_digest.index_path`, `account_roots`, `account_queries`, `daily_accounts`,
-  `max_reviews`, `queued_ids` and `report_dir` are the helper contract.
+  `queued_ids` and `report_dir` are the helper contract. The entire unread scope is reviewed;
+  legacy `max_reviews` is ignored.
   The configured academic daily scope and wider assignment scope are different grants.
 - The coordinator supplies `run_id`, local date, `helper_cwd` and `helper_argv`. The base argv
   includes `--config`, `--run` and required `--day`; retain all three on every invocation.
-  `begin`/`report`/`status` return the actual private per-run `report.json` path.
+  `begin`/`report`/`status` return the actual private report snapshot path.
 
 ## Additional private evidence
 
 - Host/index identity and verified read-only access route; account names and notmuch path queries.
   Assignment searches cover all configured relevant accounts, not just the daily triage account.
 - Daily academic-account query, exact dedicated thread/project identity, timezone, private report
-  root, persistent run/continuation key and independent daily review budget. No thread creation
+  root and persistent run/continuation key. No message-count cap applies. No thread creation
   belongs to the mail skill.
 - Verified sent-folder queries for the scoped accounts and private own/correspondent aliases, used
   to identify actual replies rather than merely matching a sender.
@@ -36,7 +37,7 @@ defines its nested schema; inspect only the relevant private fields:
   private identities. Current purchase abstention is the conservative default pending an explicit
   user update; uncertain coverage/residence relevance is surfaced rather than suppressed.
 - Effective `maildir.synchronize_flags` and an actual helper entrypoint/schema for report storage,
-  bounded run receipts and read-flag changes. The supplied helper is
+  durable run receipts and read-flag changes. The supplied helper is
   `python -B -m t3assistant.mail_triage` from the coordinator's `helper_cwd`; verify its real help
   before use. It uses notmuch's native database locking; legacy `sync_lock` and
   `writer_lock_verified` fields are ignored. Missing account scope remains a named blocker.
@@ -44,4 +45,4 @@ defines its nested schema; inspect only the relevant private fields:
 Reports and receipts are private runtime files (owner-only directories/files), outside repositories.
 They retain exact IDs, relevant excerpts, query scope, read outcomes, priority decisions, durable
 review evidence and mark/pending/failure sets. Assignment evidence and daily run receipts are
-separate; reading a message for an assignment does not mark it triaged or consume the daily budget.
+separate; reading a message for an assignment does not mark it triaged.

@@ -1,9 +1,9 @@
 # Daily email triage: one existing thread
 
 1. Verify the configured dedicated email thread and the coordinator's claimed daily run ID in
-   America/Chicago. The coordinator owns persistent deduplication, continuation and a separate
-   email-review budget; assignment launch caps and attention gates do not consume this budget.
-   A duplicate/completed run returns its persisted receipt. A missing run claim is a blocker,
+   America/Chicago. The coordinator owns persistent deduplication and continuation; assignment
+   launch caps and attention gates are separate from email review. A resumed run loads its persisted
+   receipt and continues any unprocessed mail under the same identity. A missing run claim is a blocker,
    not authority to create another thread or start a scheduled job. Resolve the configured
    [run helper](read-flags.md) before selection; use its `begin`, `search` and exact `read`
    operations so successful candidate reads belong to the durable run.
@@ -11,12 +11,13 @@
    configured academic account by default, preserving the Omn triage account boundary. Other
    accounts require explicit triage configuration/authority. Use the existing index; sync,
    refresh/index hooks and interactive mail clients are outside this standing authority.
-3. Count unreviewed unread candidates in that scope and enumerate metadata-first batches of at
-   most 50 exact message IDs. Sort deterministically and retain pending IDs privately. On a
-   continuation, re-enumerate and exclude processed IDs; changing `unread` invalidates offsets.
-   Include any explicitly queued previously-read important item without restoring its unread tag.
-4. Select within the run's remaining review budget and use the helper's `read --id RAW_ID`
-   for each selected candidate. A direct `notmuch show` alone does not register a successful
+3. Use the helper's `search` to count and enumerate all unread candidates in that scope. Retain
+   every exact message ID privately. On continuation it excludes previously selected IDs; also
+   resume selected-but-unprocessed IDs from the receipt. Include any explicitly queued previously-read
+   important item without restoring its unread tag.
+4. Use the helper's `read --id RAW_ID` for every candidate. Continue until each has a classification
+   or an explicit read error and another `search` returns no unseen messages. There is no daily
+   message-count cutoff. A direct `notmuch show` alone does not register a successful
    read for marking. Related context uses `read --id RAW_ID --evidence`, never a candidate read.
    Parse the required MIME content; decoding
    failures, inaccessible attachments needed for classification and incomplete/truncated reads
@@ -39,7 +40,10 @@
 8. Persist the per-ID marking outcome and remaining backlog to the report/receipt and summarize it
    here. If marking fails, retain the report and pending-mark set for an idempotent retry under
    the same run identity. Never label mail clear while unreadable, unprocessed or unmarked work
-   remains. Stop at the separate daily budget; resume only through the coordinator's bounded run.
+   remains. For a continuation, retain previously committed classifications exactly and append
+   newly reviewed IDs in a new immutable report snapshot at the returned `report_path`. Preserve
+   earlier report files and marking outcomes. Report full coverage only after the entire authorized
+   unread set has been examined, listing every unreadable or unmarked exception.
 
 Urgent tasks are recommendations in this thread. They are not Taskwarrior/Omn/calendar writes,
 new assignment/task threads, drafts or sent replies. Completion of triage does not imply an

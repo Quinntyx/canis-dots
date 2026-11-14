@@ -11,7 +11,7 @@ compatibility: "Requires access to the user's existing configured mail host and 
 ## Input Contract
 
 - Assignment identity and preparation context, or the coordinator's dedicated daily email thread
-  with its persistent run identity and remaining mail-review budget.
+  with its persistent run identity and authorized account scope.
 - Existing configured mail-host access and private account/identity mappings. Read
   [private configuration](references/private-config.md) before either route.
 - Standing authority for daily triage to remove `unread` only from successfully reviewed messages
@@ -32,18 +32,19 @@ compatibility: "Requires access to the user's existing configured mail host and 
    [assignment context](references/assignment-context.md). A daily email run selects
    [daily triage](references/daily-triage.md) only in the configured dedicated email thread.
    Other requests return to the ordinary assistant or explicitly requested `aerc-email` route.
-2. Load `aerc-email` for capability discovery and existing-index query/read operations (Stages 1
-   and 3). Its refresh and interactive-client stages are not part of either route. Its global
+2. Load `aerc-email` for capability discovery; assignment context uses its existing-index queries
+   (Stages 1 and 3). Daily triage uses its own scoped helper to enumerate the entire unread inbox.
+   Refresh and interactive-client stages are outside both routes. The shared skill's global
    mutation prohibition remains unchanged; the separately authorized
    [read-flag procedure](references/read-flags.md) owns daily marking, not the shared skill.
 3. Verify existing host access, account/index paths and installed tools without credentials or
    broad configuration dumps. Use an already authorized host connection when needed. If login or
    setup is missing, report the exact blocker and stop that mail route; do not claim the mailbox
    is clear. Keep available coursework preparation distinct from blocked email coverage.
-4. Run the selected branch. Use configured normal spam/deleted exclusions, bounded metadata-first
-   batches (at most 50 selectors), and exact selected-message reads with
-   `--entire-thread=false`. A batch limit is not a mailbox-wide limit: retain counts and continuation
-   state, and report any remaining coverage rather than silently dropping it.
+4. Run the selected branch with configured normal spam/deleted exclusions and exact message reads
+   using `--entire-thread=false`. Assignment context selects only relevant messages. Daily triage
+   enumerates every unread message in its authorized scope and continues through the entire set;
+   completion accounts for each candidate as reviewed or explicitly unreadable.
 5. Finish in the invoking assignment thread or the existing daily email thread as appropriate.
    Keep private message IDs, sender identities, raw content, report paths and runtime receipts in
    private state. Public examples/source use generic decisions and private pointers only.

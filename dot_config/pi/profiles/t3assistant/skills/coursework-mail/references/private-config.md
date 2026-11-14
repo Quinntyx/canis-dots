@@ -13,7 +13,8 @@ defines its nested schema; inspect only the relevant private fields:
 - `email_digest.index_path`, `account_roots`, `account_queries`, `daily_accounts`,
   `queued_ids`, `refresh_argv` and `report_dir` are the helper contract. The entire selected unread
   scope is reviewed; legacy `max_reviews`, `sync_lock` and `writer_lock_verified` are ignored.
-  Preserve the configured default account selection. `accounts` returns composer-compatible
+  The scheduled default includes both academic and personal mappings; an explicit account request
+  can narrow a run. `accounts` returns composer-compatible
   account names/From identities; `--account NAME` selects the requested account. `accounts_file`
   may override discovery; otherwise use T3's `emailAccountsFile` setting and the same
   `$XDG_CONFIG_HOME/aerc/accounts.conf` fallback as the composer.
@@ -32,15 +33,21 @@ defines its nested schema; inspect only the relevant private fields:
   belongs to the mail skill.
 - Verified sent-folder queries for the scoped accounts and private own/correspondent aliases, used
   to identify actual replies rather than merely matching a sender.
-- Relevant course/term/platform aliases and important-person/office categories. Keep actual sender
-  addresses, student identifiers and message IDs private.
+- Relevant course/term/platform aliases, professor identities, important people/offices, the two
+  parent email addresses and the always-surface universities. Keep actual sender addresses,
+  student identifiers and message IDs private. Use these mappings for both mail accounts.
 - A private priority-evidence pointer, suggested location
   `~/.local/state/t3assistant/mail-evidence.private.md`, containing current effective overrides:
   purchase abstention/resumption, former/current residence and effective move, package return
   policy, important correspondents, already-covered payment obligations and interest exceptions.
-  The source-controlled [generic decisions](priorities.md) remain the policy, not a copy of those
-  private identities. Current purchase abstention is the conservative default pending an explicit
-  user update; uncertain coverage/residence relevance is surfaced rather than suppressed.
+  The source-controlled [priorities](priorities.md) own generic policy; the private profile resolves
+  parent addresses, academic/personal account roles and university identities without duplicating
+  public policy. New always-surface rules override older filters. Purchase abstention concerns
+  purchases, not reporting new Secret Lair drops.
+- The coordinator's `omn_export_argv` points to the actual Omn binary/database. Resolve existing
+  Google account/calendar and exam-event links through configured tools/private records. Daily
+  assignment/exam reconciliation follows [course records](course-records.md); other coursework
+  email context remains read-only.
 - Effective `maildir.synchronize_flags` and an actual helper entrypoint/schema for report storage,
   durable run receipts and read-flag changes. The supplied helper is
   `python -B -m t3assistant.mail_triage` from the coordinator's `helper_cwd`; verify its real help

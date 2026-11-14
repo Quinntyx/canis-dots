@@ -22,3 +22,33 @@ routing:
 observability:
   usage:
     usage-statistics-enabled: true
+
+# Native Codex and Claude accounts keep their existing routing above. Upstream
+# API credentials and model declarations live in the server-private providers.yaml.
+model-routes:
+  - alias: "deepseek-v4.1-flash-1017"
+    targets:
+      - provider: "opencode-go"
+        model: "deepseek-v4.1-flash"
+      - provider: "mistral"
+        model: "deepseek-v4-1-flash-1017"
+      - provider: "openrouter"
+        model: "deepseek/deepseek-v4.1-flash-1017"
+        params:
+          provider:
+            only: ["wafer", "relace"]
+            order: ["wafer", "relace"]
+            allow_fallbacks: true
+  - alias: "deepseek-v4.1-flash-1017:fast"
+    targets:
+      - provider: "inco"
+        model: "deepseek-v4.1-flash:fast"
+  - alias: "muse-ember"
+    targets:
+      - provider: "openrouter"
+        model: "meta/muse-ember"
+        params:
+          provider:
+            only: ["meta"]
+            order: ["meta"]
+            allow_fallbacks: false

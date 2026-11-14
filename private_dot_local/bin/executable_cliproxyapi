@@ -3,6 +3,7 @@ set -euo pipefail
 umask 077
 config="$HOME/.config/cliproxyapi/config.yaml"
 secrets="$HOME/.local/share/cliproxyapi/secrets.json"
+providers="$HOME/.local/share/cliproxyapi/providers.yaml"
 state="$HOME/.local/state/cliproxyapi"
 binary="$HOME/.local/lib/cliproxyapi/cli-proxy-api"
 [[ -x "$binary" ]] || { echo "Build the main branch with cliproxyapi-update first." >&2; exit 1; }
@@ -13,6 +14,10 @@ chmod 700 "$state"
 tmp=$(mktemp "$state/config.XXXXXX")
 trap 'if [[ -n "${tmp:-}" && -f "$tmp" ]]; then trash "$tmp"; fi' EXIT
 cat "$config" > "$tmp"
+if [[ -r "$providers" ]]; then
+  printf '\n' >> "$tmp"
+  cat "$providers" >> "$tmp"
+fi
 printf '
 access:
   api-keys: []

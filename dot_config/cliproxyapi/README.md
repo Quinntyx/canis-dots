@@ -47,6 +47,7 @@ Its private management key is NOT synced to clients. Read it on araveia only:
 
 - ~/.local/share/cliproxyapi/auths/: provider OAuth credentials, owner-only
 - ~/.local/share/cliproxyapi/secrets.json: private management_key; legacy client_key is unused
+- ~/.local/share/cliproxyapi/providers.yaml: owner-only upstream provider declarations and API keys, never synced
 - ~/.local/state/cliproxyapi/: generated configuration, quota history and build artifacts
 - ~/.local/lib/cliproxyapi/: compiled development binary
 
@@ -58,6 +59,29 @@ install -d -m 700 ~/.local/share/cliproxyapi/auths
 (umask 077; set -o noclobber; jq -n --arg management_key "$(openssl rand -hex 32)" \
   '{management_key:$management_key}' > ~/.local/share/cliproxyapi/secrets.json)
 ```
+
+## Unified model routes
+
+The tracked config defines `deepseek-v4.1-flash-1017` with ordered fallback through
+OpenCode Go, Mistral, then OpenRouter. OpenRouter is restricted to Wafer first and
+Relace second. `muse-ember` uses OpenRouter's Meta endpoint only (not Google).
+`deepseek-v4.1-flash-1017:fast` is an independent route to Inco AI; T3 Code pairs
+it with the base model in its existing Standard / Fast control.
+
+Provider declarations belong under `api-keys.openai-compatibility` in the private
+`~/.local/share/cliproxyapi/providers.yaml`, with the provider names `opencode-go`,
+`mistral`, `openrouter`, and `inco` matching the route targets. The launcher appends
+this file to its generated runtime config if present. Keep it mode 600 and out of
+version control; never put real API keys in the tracked config. Do not duplicate
+`api-keys`, `access`, or `management` sections across these inputs. An unconfigured
+upstream does not make a route available by itself. Restart the user service after
+editing either input so that the launcher regenerates the runtime configuration.
+
+The four existing Codex accounts, their session affinity and reset-pressure policy,
+and the one existing Claude account are unchanged. Native model IDs such as
+`gpt-6.1-sol` and `claude-opus-5-5` continue to use those accounts. The official
+model catalog supplies the newer Claude model IDs. No Google/Antigravity
+credentials are enrolled by this setup.
 
 Build with `cliproxyapi-update` after preparing the canonical main checkout.
 Chezmoi manages the secret-free config, service and helpers. Commit/push before

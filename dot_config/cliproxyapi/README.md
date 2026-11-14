@@ -74,8 +74,11 @@ Provider declarations belong under `api-keys.openai-compatibility` in the privat
 this file to its generated runtime config if present. Keep it mode 600 and out of
 version control; never put real API keys in the tracked config. Do not duplicate
 `api-keys`, `access`, or `management` sections across these inputs. An unconfigured
-upstream does not make a route available by itself. Restart the user service after
-editing either input so that the launcher regenerates the runtime configuration.
+upstream does not make a route available by itself. OpenCode Go requires a stable
+conversation ID; set `headers: {x-opencode-session: "$CPA-SESSION-ID"}` on that
+provider so the proxy forwards its existing per-conversation identity rather than
+sharing one static ID. Restart the user service after editing either input so
+that the launcher regenerates the runtime configuration.
 
 The four existing Codex accounts, their session affinity and reset-pressure policy,
 and the one existing Claude account are unchanged. Native model IDs such as

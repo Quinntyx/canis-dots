@@ -39,5 +39,5 @@ belong in [private configuration](private-config.md), not this source tree.
 
 Summarize urgent actions with evidence, real deadlines and unknowns. No rule above grants sending,
 replying, purchasing, unsubscribing, calendar/task writes or task-thread creation. Reviewed
-low-priority mail may be marked read by the daily procedure even when omitted from the short
-visible summary; its classification remains in the private report.
+low-priority mail may be marked read after review and classification, but it still appears in the
+thread's complete review checklist with its subject and no-action decision.

@@ -11,18 +11,23 @@ triage. Do not invent an unimplemented top-level `mail` section. The helper's ac
 defines its nested schema; inspect only the relevant private fields:
 
 - `email_digest.index_path`, `account_roots`, `account_queries`, `daily_accounts`,
-  `queued_ids` and `report_dir` are the helper contract. The entire unread scope is reviewed;
-  legacy `max_reviews` is ignored.
-  The configured academic daily scope and wider assignment scope are different grants.
+  `queued_ids`, `refresh_argv` and `report_dir` are the helper contract. The entire selected unread
+  scope is reviewed; legacy `max_reviews`, `sync_lock` and `writer_lock_verified` are ignored.
+  Preserve the configured default account selection. `accounts` returns composer-compatible
+  account names/From identities; `--account NAME` selects the requested account. `accounts_file`
+  may override discovery; otherwise use T3's `emailAccountsFile` setting and the same
+  `$XDG_CONFIG_HOME/aerc/accounts.conf` fallback as the composer.
 - The coordinator supplies `run_id`, local date, `helper_cwd` and `helper_argv`. The base argv
-  includes `--config`, `--run` and required `--day`; retain all three on every invocation.
+  includes `--config`, `--run` and `--day`; retain them when resuming that run. For an ad-hoc
+  account-specific review, omit `--run` and use the requested `--account` so the helper derives
+  an account-specific identity. `accounts` requires only `--config`.
   `begin`/`report`/`status` return the actual private report snapshot path.
 
 ## Additional private evidence
 
 - Host/index identity and verified read-only access route; account names and notmuch path queries.
   Assignment searches cover all configured relevant accounts, not just the daily triage account.
-- Daily academic-account query, exact dedicated thread/project identity, timezone, private report
+- Requested/default account queries, exact dedicated thread/project identity, timezone, private report
   root and persistent run/continuation key. No message-count cap applies. No thread creation
   belongs to the mail skill.
 - Verified sent-folder queries for the scoped accounts and private own/correspondent aliases, used

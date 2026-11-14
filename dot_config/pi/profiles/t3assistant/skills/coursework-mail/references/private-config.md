@@ -10,8 +10,8 @@ The coordinator supplies `assignment_email` for read-only context and `email_dig
 triage. Do not invent an unimplemented top-level `mail` section. The helper's actual `--help`
 defines its nested schema; inspect only the relevant private fields:
 
-- `email_digest.index_path`, `account_roots`, `account_queries`, `daily_accounts`, `sync_lock`,
-  `writer_lock_verified`, `max_reviews`, `queued_ids` and `report_dir` are the helper contract.
+- `email_digest.index_path`, `account_roots`, `account_queries`, `daily_accounts`,
+  `max_reviews`, `queued_ids` and `report_dir` are the helper contract.
   The configured academic daily scope and wider assignment scope are different grants.
 - The coordinator supplies `run_id`, local date, `helper_cwd` and `helper_argv`. The base argv
   includes `--config`, `--run` and required `--day`; retain all three on every invocation.
@@ -35,10 +35,11 @@ defines its nested schema; inspect only the relevant private fields:
   The source-controlled [generic decisions](priorities.md) remain the policy, not a copy of those
   private identities. Current purchase abstention is the conservative default pending an explicit
   user update; uncertain coverage/residence relevance is surfaced rather than suppressed.
-- Verified sync-writer lock/consistency procedure and, if supplied, an actual helper entrypoint and
-  schema for report storage, bounded run receipts and read-flag changes. The supplied helper is
+- Effective `maildir.synchronize_flags` and an actual helper entrypoint/schema for report storage,
+  bounded run receipts and read-flag changes. The supplied helper is
   `python -B -m t3assistant.mail_triage` from the coordinator's `helper_cwd`; verify its real help
-  before use. Missing scope or an unverified writer-lock attestation blocks marking honestly.
+  before use. It uses notmuch's native database locking; legacy `sync_lock` and
+  `writer_lock_verified` fields are ignored. Missing account scope remains a named blocker.
 
 Reports and receipts are private runtime files (owner-only directories/files), outside repositories.
 They retain exact IDs, relevant excerpts, query scope, read outcomes, priority decisions, durable

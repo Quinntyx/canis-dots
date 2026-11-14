@@ -36,10 +36,11 @@ budget backlog stay unmarked for a later authorized review. Report save failure 
    reviewed IDs. Resolve any offered mail helper through its actual schema/help; a suggested
    helper name is not proof that it exists. The helper must enforce this same procedure.
 2. Read the effective `database.path` and `maildir.synchronize_flags` narrowly and require the
-   verified intended index and `true`. Check index/Maildir consistency and serialize against the
-   configured sync/triage writer using its supported locking route. A stale mapping, unavailable
-   lock or unverifiable consistency blocks marking, leaving the report ready with pending IDs;
-   it does not authorize repair, configuration changes, refresh or raw Maildir edits.
+   verified intended index and `true`. Use notmuch's native database locking for tag changes;
+   daily review and marking work independently of other applications' sync locks. Legacy
+   `sync_lock` and `writer_lock_verified` settings are ignored by the helper. A stale mapping or
+   unverifiable consistency leaves affected IDs pending; it does not authorize repair,
+   configuration changes, refresh or raw Maildir edits.
 3. Preflight each reported ID immediately before changing it. Read current tags and all associated
    filenames/flags through the supported manager or a verified helper. notmuch IDs can cover
    duplicate copies: a matching account `path:` does not constrain which copies tag synchronization
@@ -61,7 +62,7 @@ budget backlog stay unmarked for a later authorized review. Report save failure 
    `S` on affected copies, with all other flags/tags preserved. Persist each success/no-op/failure
    and the still-pending set privately. If the command result is lost, inspect state before retry;
    if a concurrent change makes preservation uncertain, stop and report it, without reverting
-   user state or declaring success. Retain the writer lock through verification and receipt update.
+   user state or declaring success. Record the observed result in the private receipt.
 6. Update the durable report/receipt with local marking outcomes and remote freshness limitations.
    A retry uses only its persisted reviewed/pending-mark set under the same run identity and budget.
    Unseen backlog, decoding failures and unrelated sent-message evidence remain unchanged.

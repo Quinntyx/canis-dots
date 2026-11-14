@@ -22,6 +22,11 @@ routing:
 observability:
   usage:
     usage-statistics-enabled: true
+upstream:
+  claude:
+    # Pass every client's real request shape through (e.g. the t3-code entrypoint
+    # User-Agent) instead of cloaking non-native clients as claude-cli/2.1.280.
+    disable-claude-cloak-mode: true
 
 # Native Codex and Claude accounts keep their existing routing above. Upstream
 # API credentials and model declarations live in the server-private providers.yaml.

@@ -1,9 +1,16 @@
 {
-  "defaultProvider": "opencode-go",
-  "defaultModel": "glm-5.3-flash",
+  "defaultProvider": "cliproxyapi",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "low",
   "enabledModels": [
-    "opencode-go/glm-5.3-flash"
+    "cliproxyapi/gpt-6.1-sol",
+    "cliproxyapi/claude-opus-5-5",
+    "cliproxyapi/claude-fable-5-2",
+    "cliproxyapi/claude-sonnet-5-5",
+    "cliproxyapi/claude-haiku-5-5",
+    "cliproxyapi/deepseek-v4.1-flash-1017",
+    "cliproxyapi/deepseek-v4.1-flash-1017:fast",
+    "cliproxyapi/muse-ember"
   ],
   "defaultProjectTrust": "never",
   "hideThinkingBlock": true,

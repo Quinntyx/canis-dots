@@ -1,21 +1,24 @@
 {
   "groupToolCalls": true,
   "theme": "everforest-tui-light",
-  "defaultProvider": "opencode",
-  "defaultModel": "glm-5.3-flash",
+  "defaultProvider": "cliproxyapi",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "high",
   "enabledModels": [
-    "opencode/glm-5.3-flash",
-    "opencode-go/glm-5.3-flash",
-    "huggingface/zai-org/GLM-5.3-Flash",
-    "cliproxyapi/gpt-6.1-sol"
+    "cliproxyapi/gpt-6.1-sol",
+    "cliproxyapi/claude-opus-5-5",
+    "cliproxyapi/claude-fable-5-2",
+    "cliproxyapi/claude-sonnet-5-5",
+    "cliproxyapi/claude-haiku-5-5",
+    "cliproxyapi/deepseek-v4.1-flash-1017",
+    "cliproxyapi/deepseek-v4.1-flash-1017:fast",
+    "cliproxyapi/muse-ember"
   ],
   "packages": [
     "git:git.quinntyx.dev/quinntyx/pi-activity",
     "git:git.quinntyx.dev/quinntyx/pi-pycells@dev",
     "git:git.quinntyx.dev/quinntyx/pi-sock@dev",
     "npm:pi-everforest-tui",
-    "git:git.quinntyx.dev/quinntyx/pi-deepseek-router",
     "git:git.quinntyx.dev/quinntyx/pi-block-rm",
     "git:git.quinntyx.dev/quinntyx/pi-block-find-grep",
     "git:git.quinntyx.dev/quinntyx/pi-exit-command",

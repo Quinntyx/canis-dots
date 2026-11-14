@@ -3,7 +3,16 @@
   "defaultProvider": "cliproxyapi",
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "xhigh",
-  "enabledModels": ["cliproxyapi/gpt-6.1-sol"],
+  "enabledModels": [
+    "cliproxyapi/gpt-6.1-sol",
+    "cliproxyapi/claude-opus-5-5",
+    "cliproxyapi/claude-fable-5-2",
+    "cliproxyapi/claude-sonnet-5-5",
+    "cliproxyapi/claude-haiku-5-5",
+    "cliproxyapi/deepseek-v4.1-flash-1017",
+    "cliproxyapi/deepseek-v4.1-flash-1017:fast",
+    "cliproxyapi/muse-ember"
+  ],
   "defaultTools": ["read", "bash", "edit", "write", "tool_search", "questionnaire"],
   "packages": [
     {

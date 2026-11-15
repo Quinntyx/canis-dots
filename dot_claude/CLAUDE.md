@@ -118,3 +118,6 @@
 - Keep intermediate prose sparse: intent boundaries and progress every several calls, not low-level
   implementation chatter. The final reply must stand alone: outcome, paths, checks and material gaps.
 - Keep outputs compact. Never expose secrets or private transcript details in public artifacts.
+- Agent work takes minutes to hours, not days or weeks: across 256 measured tasks nine in ten
+  finished within three hours of active time. State durations and plan timelines in those units
+  and read the `estimate-time` skill before giving one.

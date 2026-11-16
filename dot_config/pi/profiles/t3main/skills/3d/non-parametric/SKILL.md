@@ -231,8 +231,10 @@ metadata:
    reopen that corrected file for the same observational check.
 2. Check evaluated geometry with modifiers and render settings accounted for. Apply manifoldness,
    normal, topology, or polygon-budget checks only where the deliverable requires them.
-3. When export is requested, use the installed Blender version's operators. Reimport into a
-   separate scene or inspect with an available reader; verify units, axes, bounds, and data.
+3. When export is requested, use the installed Blender version's operators. Prefer glTF-Binary
+   (`.glb`, `bpy.ops.export_scene.gltf(export_format='GLB')`) for a single-file model with
+   materials; use STL or OBJ when the consumer needs them. Reimport into a separate scene or
+   inspect with an available reader; verify units, axes, bounds, and data.
 4. Save the verification results, then continue in this task to Stage 7: Report and its final
    user handoff.
 

@@ -30,8 +30,13 @@ metadata:
 
 1. For a created or changed 3D model, deliver rendered still images by default, from complementary
    camera angles. Keep reproducible scripts, native models, and required exports as supporting
-   artifacts; a model-file path alone is not the default handoff. An explicit user deliverable
-   override, inspection-only request, or export-only request takes precedence.
+   artifacts; a model-file path alone is not the default handoff. Also deliver a self-contained
+   `.glb` as the primary model file: GLB carries geometry, materials, and hierarchy in one file,
+   and T3 Code previews it interactively. In a T3 Code response, embed it with Markdown image
+   syntax on its absolute path — `![name](/abs/path/name.glb)` — so the user can orbit it inline;
+   a bare path is not a preview. `.stl` and `.obj` also preview, so embed those when they are the
+   requested format. An explicit user deliverable override, inspection-only request, or export-only
+   request takes precedence.
 2. For a part or other parametric model, also include the first-angle multiview orthographic
    technical drawing sheet by default. Present that sheet before other images in the report and
    final handoff unless the user specifies a different order or explicitly omits the sheet.

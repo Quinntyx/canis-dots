@@ -188,8 +188,10 @@ metadata:
    did not leak into the production scene; verify image aspect ratio and multi-camera coverage.
 2. Check evaluated geometry with modifiers and render settings accounted for. Apply manifoldness,
    normal, topology, or polygon-budget checks only where the deliverable requires them.
-3. When export is requested, use the installed Blender version's operators. Reimport into a
-   separate scene or inspect with an available reader; verify units, axes, bounds, and data.
+3. When export is requested, use the installed Blender version's operators. Prefer glTF-Binary
+   (`.glb`, `bpy.ops.export_scene.gltf(export_format='GLB')`) for a single-file model with
+   materials; use STL or OBJ when the consumer needs them. Reimport into a separate scene or
+   inspect with an available reader; verify units, axes, bounds, and data.
 4. Proceed to Stage 7: Report.
 
 ## Stage 7: Report

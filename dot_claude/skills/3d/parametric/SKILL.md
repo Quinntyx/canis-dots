@@ -96,8 +96,10 @@ metadata:
 ## Stage 5: Export and round-trip check
 
 1. Export with the installed version's API (verified on build123d 0.13.0: `export_step(part,
-   path)`, `export_stl(part, path)`). STEP is the interchange format; export STL only when the
-   consumer slices it. Record units and orientation in the report.
+   path)`, `export_stl(part, path)`). STEP is the interchange format; export STL when the
+   consumer slices it or when it is the inline preview. STL previews directly in T3 Code; when
+   materials or assembly hierarchy matter, also export a self-contained `.glb` through the
+   rendering pipeline. Record units and orientation in the report.
 2. Re-import the exported STEP with `import_step` and re-measure volume and bounding box;
    require agreement with the built model within a stated small tolerance before the export is
    shipped.

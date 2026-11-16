@@ -22,7 +22,7 @@ excludes the time the tools themselves run.
 | Crouton alpha (max) | 7.6 [5.2–11.5] | about half of DeepSeek's steps on identical briefs |
 | GLM 5.3 flash | 8–11 | ~1.3×, erratic |
 | Muse Ember (max) | 3.4 [2.8–3.6] | ~2× |
-| Claude Fable 5.2 (high) | ~16 (few samples) | ~1× |
+| Claude Fable 5.2 (high) | use the Opus 5.5 cells (see below) | ~1× or fewer |
 
 Why they differ:
 
@@ -40,6 +40,11 @@ Why they differ:
   about 0.6× DeepSeek's time.
 - **GLM 5.3 flash** has the widest spread; widen the range by half again.
 - **Muse Ember** has the fastest steps measured.
+- **Fable 5.2** has no cells of its own in the tables below. It generates at Opus 5.5's token
+  speed (about 30% faster than Fable 5.1) and spends fewer tokens on the same work, so take the
+  Opus 5.5 cell as its figure and lean toward the lower half of the range. This rests on the
+  owner's note of 2026-11-15, not on measured runs; the few early samples read about 16 s per
+  step and are too thin to scale from.
 
 ## 2. Turns (one message to one reply)
 

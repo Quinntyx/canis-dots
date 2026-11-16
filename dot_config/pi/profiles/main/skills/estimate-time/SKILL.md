@@ -1,11 +1,12 @@
 ---
 name: estimate-time
-description: "Use when asked how long an agent task will take, before writing any duration,
-  timeline or schedule for agent work into a plan or reply, or when you need a predicted
-  completion time for yourself, a named model or a subagent. Agent work runs in minutes and
-  hours, not days or weeks; this gives measured per-model times and a reference-class method. Not
-  for choosing or launching delegates (use subagents), human effort estimates, cost or token
-  estimates, or measuring a run that already happened."
+description: "Use when you need to judge how long agent work will take: sizing or sequencing a
+  plan, deciding whether to delegate, predicting how long you, a named model or a subagent will
+  run, or because a duration is about to go into a plan or reply. It yields a working figure for
+  your own reasoning from measured per-model times and a reference-class method; agent work runs
+  in minutes and hours, not days or weeks. Not for choosing or launching delegates (use
+  subagents), human effort estimates, cost or token estimates, or measuring a run that already
+  happened."
 metadata:
   type: procedure
 ---
@@ -16,16 +17,21 @@ metadata:
 
 - The task text, and whatever it points at (brief files, repository, target area).
 - The executing model and effort setting. When estimating for yourself, use your own model. When
-  unknown, estimate for the model that would normally take the task and say which you assumed.
+  unknown, estimate for the model that would normally take the task and keep that assumption
+  with the figure.
 - The unit wanted: one turn, or the whole task through to settled. Default to the whole task for
   a fresh work request and to one turn for a follow-up message or a delegated brief.
 
 ## Output Contract
 
-- One point estimate of active time, a likely range (roughly the middle half of outcomes), and the
-  two or three assumptions that drive it: kind of work, size, slowest commands, delegation.
-- The unit and what is excluded, stated in one line.
-- When a parent is budgeting delegation: one line per child plus the wall-clock for the batch.
+- A working figure for your own reasoning: a centre for active time, a likely range (roughly the
+  middle half of outcomes), and the two or three assumptions that drive it: kind of work, size,
+  slowest commands, delegation.
+- The unit the figure is in and what it excludes.
+- For a parent budgeting delegation: a figure per child plus the wall-clock for the batch.
+- The figure is an input to the decision that prompted it: plan sizing, delegation, how long to
+  wait, or a duration the user asked for. A reply carries it only when that reply calls for a
+  duration, as a sentence in the reply's own style.
 
 # Entrypoint
 
@@ -33,11 +39,11 @@ metadata:
 
 Agent work is measured in minutes and hours. Of 256 measured tasks, half finished in under 30
 minutes of active time and nine in ten in under 3 hours; the largest, a 33,000-line migration
-with 27 delegates, took 27 hours. State durations and plan timelines for agent work in those
-units, and reserve days for clock time spent waiting on people, CI or quota.
+with 27 delegates, took 27 hours. Reason about durations and plan timelines for agent work in
+those units, and reserve days for clock time spent waiting on people, CI or quota.
 
 Active time is wall-clock while the agent or any of its delegates is working. It excludes waiting
-for CI, for the user and for quota resets. Choose one unit and name it in the answer:
+for CI, for the user and for quota resets. Choose one unit:
 
 - **Turn**: one message until the agent's reply. A delegated brief is one turn.
 - **Whole task**: first prompt until the work is settled (answer accepted, or PR merged). It
@@ -74,8 +80,7 @@ of the pooled cell. Take the cell's median as the starting estimate.
 
 Then position by the size found in Stage 2: small for its kind goes toward p25, large toward p75.
 A cell printed as a median only takes its range from the note under its table. Leave the range
-only for a concrete, named reason (a cold build, an unusually broad change, many delegates), and
-say what it is.
+only for a concrete, named reason (a cold build, an unusually broad change, many delegates).
 
 Measured agents take fewer steps than the material suggests: a reviewer samples and targets
 rather than reading every changed line, and a small change costs the fixed overhead of reading,
@@ -100,28 +105,17 @@ delegate_wait = longest child in each parallel batch, summed across sequential b
 
 Most commands finish in under a second, so only the named slow ones add command time. Compare
 `slow_commands + delegate_wait` with the anchor row's usual slow-command time. When yours is
-larger, add the excess to the anchor; otherwise report the anchor. The outcome distribution is
+larger, add the excess to the anchor; otherwise keep the anchor. The outcome distribution is
 right-skewed, so make the range wider above the estimate than below it.
 
 For a model with no row of its own, build the figure bottom-up instead:
 `turn = steps × seconds_per_step(model) + slow_commands + delegate_wait`, taking the steps from
 the Opus column for that kind of work and scaling by the model's steps-versus-Opus factor.
 
-Go to Stage 5.
-
-## Stage 5: Report
-
-Give the answer in this form. Use tenths of a minute below five minutes (1.4 min, not 1 or 2),
-whole minutes above:
-
-```
-Estimate: 24 min active (likely 15–40), whole task to merged PR, Sol 6.1 xhigh.
-Excludes CI waits, waits for you and quota pauses, which usually add hours of clock time.
-Drivers: ~250-line change across 4 files; lead works alone; gate runs 3× at ~1 min.
-```
-
-State the range honestly. Identical tasks rerun on the same model land within ±20% of their own
-median only about half the time, so a single number is a centre, not a promise.
+The procedure ends here with the working figure: a centre, its range, the unit and the drivers.
+Keep the range attached to the centre. Identical tasks rerun on the same model land within ±20%
+of their own median only about half the time, so the centre is where outcomes cluster and the
+range is what to plan around. Carry the figure into the decision that prompted it.
 
 # Estimating for another model
 

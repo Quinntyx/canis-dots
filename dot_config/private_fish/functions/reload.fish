@@ -3,11 +3,15 @@ function reload --description "Reload fish config"
     if set -q abbrs[1]
         abbr --erase $abbrs
     end
-    source ~/.config/fish/config.fish
+    # Drop cached functions before sourcing: config may explicitly define a prompt.
     for fn in (functions --names)
         set -l src (functions --details $fn)
-        if string match -q "$__fish_config_dir/functions/*" $src
+        if test "$fn" != reload; and string match -q "$__fish_config_dir/functions/*" $src
             functions --erase $fn
         end
+    end
+    source ~/.config/fish/config.fish
+    if type -q fish_user_key_bindings
+        fish_user_key_bindings
     end
 end

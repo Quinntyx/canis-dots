@@ -34,6 +34,12 @@ abbr -a lock swaylock
 abbr -a sch "task schedule"
 abbr -a t task
 
+# .. -> cd ../, ... -> cd ../../, and so on (commands only).
+function multicd
+    echo cd (string repeat -n (math (string length -- $argv[1]) - 1) ../)
+end
+abbr -a dotdot --position command --regex '^\.\.+$' --function multicd
+
 # Let /move (and other Pi session switches) hand the final cwd back to this shell.
 # Route through the `main` ppi profile; when already under a profile
 # (PI_CODING_AGENT_DIR set, e.g. from inside a ppi session), launch pi directly
@@ -93,6 +99,8 @@ set -g fish_pager_color_prefix 5b7fa6 --bold
 set -g fish_pager_color_progress fffff0 --background=5b7fa6
 
 starship init fish | source
+# Starship supports an explicit path, so dot navigation can preview its destination.
+source (status dirname)/functions/fish_prompt.fish
 
 if test (string match -r '^\d+' -- $version | string join '') -ge 4
     enable_transience

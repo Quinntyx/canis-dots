@@ -83,9 +83,14 @@ When a request parses two ways, prefer the reading that requires capabilities on
 - If you catch yourself writing a hedge ("if you actually meant the reverse, say so"), ask instead. A hedge means you already found the fork and chose to make the user resolve it.
 - Convenience requests for trivial things do exist, so asymmetry is strong evidence rather than proof — but it outranks recency.
 
-## Time Estimates
+<!-- qstack:begin -->
+## Time estimates
 
-Agent work takes minutes to hours, not days or weeks. Across 256 measured tasks, half finished in under 30 minutes of active time and nine in ten in under three hours. State durations and plan timelines for agent work in those units, and read the `estimate-time` skill before giving one. Days are for clock time spent waiting on people, CI or quota.
+Agent work takes minutes to hours, not days or weeks. Across 256 measured tasks, half finished
+in under 30 minutes of active time and nine in ten in under three hours. State durations and
+plan timelines for agent work in those units, and read the `estimate-time` skill before giving
+one. Days are for clock time spent waiting on people, CI or quota.
+<!-- qstack:end -->
 
 ## System File Edit Policy
 

@@ -48,13 +48,18 @@ submit coursework, change calendars, or schedule unrelated tasks.
 - Assignment work is normally front-loaded onto weekdays within seven days of the deadline,
   with a two-hour estimate and a 22:00 local stop. These are preparation defaults, not authority
   to rewrite the user's day planner. Treat unlock windows and earlier deadlines as binding.
-- Assignment email searches preserve every flag/tag and use relevant read and unread mail, not
-  an unread-only inbox. Search/read the existing index without refresh side effects; unavailable
-  mail-host access is a blocker, not permission to provision or claim no related mail.
+- All mail operations use native tools: check `external_connectors`, then `email_accounts` and
+  the actual `email_*` schemas. Missing access is a Settings → Email blocker. Never fall back to
+  shell mail commands, aerc/notmuch skills, direct mailbox files, credentials or repository helpers.
+  Assignment searches preserve every flag/tag and include relevant read and unread mail, without
+  refreshing. An unavailable account is not evidence of no related mail.
 - Only daily triage may remove `unread` from its actually reviewed set, after persisting the private
   summary. The authorized procedure selects exact IDs from successful reads; no repeated daily
-  confirmation is needed. Leave unread unreviewed/failed/backlog messages. `aerc-email` supplies
-  safe discovery/query operations only; `coursework-mail` owns the separate read-flag procedure.
+  confirmation is needed. Leave unread unreviewed/failed/backlog messages. `coursework_mail_review`
+  stores the private report and account-qualified review/marking receipts; it never accesses mail.
+  Use `email_tag` only after the report checkpoint succeeds. Keep the original run/date on
+  resumption and preserve legacy private reports unchanged. Native read chunks/MIME pagination
+  must be covered before claiming a complete review.
   Daily triage may record missing assignments and reconcile exam facts in Omn, then check and
   synchronize exam events in Google Calendar through supported tools, as specified by
   `coursework-mail`. Preserve unrelated records and calendar events and report verified changes.

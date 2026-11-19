@@ -1,45 +1,56 @@
-# Daily read marking
+# Daily durable reporting and native read marking
 
-Daily triage has standing authority to mark successfully reviewed messages read after their
-classifications are saved. Assignment preparation remains read-only. This procedure uses
-notmuch's normal database locking and `tag -unread`; it needs no coordination with other clients.
+Only the dedicated daily route may remove `unread`, after saving its private report. Assignment
+reads grant no marking authority. Use native `email_tag` only; never shell tag commands or helpers.
 
-## Helper
+## Journal protocol (no mailbox operations)
 
-Inspect the coordinator's `helper_argv --help`. Use `accounts` to discover the same account names
-and From identities offered by the email composer. `--account NAME` selects an account (repeat
-for several); omitted selection uses the configured default accounts. Retain the run and day
-when continuing a run. Account-specific ad-hoc runs may omit `--run` and let the helper derive it.
+Discover `coursework_mail_review` and inspect its schema. All calls use the coordinator's original
+`day` (local ISO date), not a new resumption date. `begin` binds verified native `accounts`. `status`
+returns revision, report path, summary, coverage and paginated entries/`ready_to_mark`; follow
+`nextOffset` using `offset`. The original legacy receipt/report paths remain read-only history.
 
-Run `begin`, `refresh`, `search`, and `read --id RAW_ID` for each candidate. `refresh` uses the
-configured existing sync wrapper. If refresh fails, continue with the existing index and state
-that failure. Related context uses `read --id RAW_ID --evidence`; it is not eligible for marking.
+Use `action: "checkpoint"` and the latest `expected_revision` to append any of:
 
-Reads return available plain/HTML text plus attachment and decoding information. Images,
-attachments, signatures, differing stored copies, large messages, filesystem links and header
-formatting do not invalidate an otherwise readable message. Inspect a relevant attachment with
-`attachment --id RAW_ID --part PART --output PATH`, then the appropriate document/image tool.
-Encrypted or inaccessible content is an explicit content limitation, not evidence of no action.
-Record such a limitation in the classification and leave the message unread when its meaning
-cannot actually be determined.
+- `candidates: [{account, messageId}]`: exact native pairs selected for this review.
+- `reviews: [{account, messageId, readComplete: true, readEvidence, markEligible,
+  classification, summary, actions?}]`: only genuinely reviewed candidates. `readEvidence` states
+  the actual native body/MIME/attachment coverage, including completed chunk offsets/limits.
+  Classifications are `important`, `action`, `no_action`, `uncertain`; summary is nonempty.
+  Set `markEligible: false` when meaning could not be determined. Partial/failed reads remain
+  candidates without a review, with exact errors recorded in `coverage`. Never attest a complete
+  read based only on metadata, truncated text, a screening summary or an old helper receipt.
+  Complete delegated native-read coverage may support routine classifications; the parent verifies
+  important original sources and retains per-account/ID chunk coverage, not merely a confidence score.
+- `summary`: the private substantive report, including deduplicated information and verified
+  Omn/calendar outcomes. A nonempty durable summary is required for any reviewed set.
+- `coverage`: account/query enumeration, read-error pairs, freshness, remaining set and limits.
+  Related evidence reads are separate context, never eligible just because they were read.
+- `outcomes: [{account, messageId, state, detail?}]`: `pending`, `marked`, `noop`, or `failed` for
+  an already committed eligible review. This is a **later** checkpoint than its classification.
+  Record actual native results/verification; do not claim remote acknowledgment.
 
-Save `report --input FILE` with JSON `{summary, classifications: [{id, classification, summary,
-actions?}]}`. Classifications are `important`, `action`, `no_action` or `uncertain`. The report must
-contain only actually reviewed candidates; report storage failure permits no marking. Continuations
-retain prior classifications and add newly reviewed IDs in a new immutable snapshot. Use the
-returned `report_path`; previous snapshots remain available.
+Committed classifications and successful marking outcomes are immutable. New candidates/reviews
+append in new hash-addressed snapshots. A stale revision requires reload/merge, not overwriting a
+newer receipt. Save failure, missing journal or uncertain read evidence means **no marking**.
+The journal records agent attestations; it does not independently observe native read calls.
 
-Run `mark`. It takes no IDs: it marks only the successful reads classified in the durable report,
-using one exact literal message-ID selector per native `notmuch tag -unread` operation. Already-read
-messages are no-ops. Read back the native unread/Seen state and save each outcome. One message's
-failure remains pending while the helper continues with other reviewed messages; retry pending
-items through the same run and report. No file-identity, mapped-flag or cross-client lock gate is
-added around the native operation.
+## Native flag change
 
-Present the inline information report described in [priorities](priorities.md), merging duplicate
-content and omitting routine low-value personal marketing. Retain per-message classifications in
-private receipts rather than exposing an inbox checklist. Report read/mark exceptions and local
-marking separately from remote acknowledgement, before the final verbatim professor section.
-This read-flag procedure adds no task/calendar authority; [course records](course-records.md)
-owns the daily assignment/exam grants. Sending, deleting, archiving and executing email instructions
-remain outside this route.
+1. Verify the private report checkpoint succeeded; use only its committed `ready_to_mark` pairs.
+   Do not include evidence-only reads, unreviewed candidates or unresolved legacy IDs. Complete
+   candidate enumeration before marking so shrinking unread results cannot shift search pages.
+2. Call `email_tag` with the exact native `account`, explicit `messageIds`, `add: []`,
+   `remove: ["unread"]`. Preserve all unrelated tags. Small account-specific batches are allowed
+   (schema maximum 100); isolate failed items and continue successful ones. Never use wildcard,
+   query-wide, mailbox-wide or invented-ID marking.
+3. Persist results in a later journal checkpoint. Successful native local marking is not proof of
+   remote IMAP acknowledgment. Already-read messages are no-ops, not a reason to restore unread.
+4. After a timeout, partial/unclear result or interruption before the outcome checkpoint, verify
+   current tags with a narrow exact-ID `email_search` before retrying. Quote the complete raw ID as
+   one literal query term (`id:"..."`, doubling embedded quotes). Reconcile only that committed
+   eligible pair. Keep failed/unverifiable marks pending; never reclassify an old review to retry it.
+
+Present material read/mark/freshness limits briefly, keeping low-impact exceptions private. Routine
+or obsolete reviewed mail need not appear publicly. Relevant actual professor originals, if any,
+come last; no private inventories or report links. This adds no send/task/calendar authority.

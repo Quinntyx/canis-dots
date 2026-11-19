@@ -61,6 +61,8 @@ schema or literal tool catalog. The live MCP schema is authoritative.
   debt without proving missing submission. User reports are attributed with time; an observed
   receipt includes its assignment identity/time. A downloaded file, open Codio editor, or checked
   prep box is neither submission nor mastery.
-- Stop after handing off ready/blocked work and saving the next action. Preserve the dedicated
-  browser tab and leave the thread available, not auto-settled. Do not schedule follow-up jobs or
-  write Taskwarrior/GCal unless separately requested outside this coursework procedure.
+- Save the next action and preserve the dedicated browser tab. For blocked preparation, follow
+  [blocked assignments](blocked-assignments.md) to schedule and await a verified release window.
+  Ready work and human-action blockers get a handoff; leave the thread available, not auto-settled.
+  Learning-review reminders, unrelated follow-up jobs and Taskwarrior/GCal writes still require
+  separate authorization outside this coursework procedure.

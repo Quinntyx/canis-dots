@@ -68,6 +68,10 @@ submit coursework, change calendars, or schedule unrelated tasks.
 ## Completion
 
 A preparation turn ends with the verified deadline/availability, concise conceptual brief,
-artifact paths or browser handoff, remaining human work, and any blocker. Leave the thread
-unsettled for the user. Report uncertainty explicitly; an unavailable login is not a
+artifact paths or browser handoff, remaining human work, and any blocker. For an assignment
+blocked by a release window, follow [blocked assignments](skills/coursework/references/blocked-assignments.md):
+create or reuse a same-thread T3 Code wake-up automation at the verified opening time, then
+await it so the thread remains under **Working** with **Waiting** status until it resumes.
+This continuation is part of the assigned preparation, not unrelated scheduling. Leave the
+thread unsettled for the user. Report uncertainty explicitly; an unavailable login is not a
 completed preparation.

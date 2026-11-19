@@ -72,8 +72,12 @@ An idle reminder alone does not authorize starting the activity.
    templates, cite actual materials, and keep independent practice separate from reference answers.
 2. Follow [artifacts and progress](references/progress-artifacts.md). Distinguish ready-to-work,
    human-confirmed submitted, and independently learned. A settled thread is none of those proofs.
-3. End with deadline, verified access, artifact paths or browser handoff, remaining human work,
-   and specific learning gaps. Leave the thread available for the user; stop on an access blocker.
+3. If preparation is blocked, follow [blocked assignments](references/blocked-assignments.md).
+   A verified release window gets a same-thread T3 Code automation and an awaited continuation;
+   human-action blockers get the appropriate handoff.
+4. End with deadline, verified access, artifact paths or browser handoff, remaining human work,
+   and specific learning gaps. Include the confirmed wake-up time when awaiting an automation.
+   Leave the thread available for the user, or Working/Waiting while awaiting its release window.
 
 ## Adjacent requests
 

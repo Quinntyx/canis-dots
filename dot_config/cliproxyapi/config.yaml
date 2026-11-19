@@ -43,8 +43,8 @@ model-routes:
         model: "z-ai/glm-5.3"
   - alias: "tidepool-alpha"
     targets:
-      - provider: "openrouter"
-        model: "openrouter/tidepool-alpha-free"
+      - provider: "opencode-zen"
+        model: "tidepool-alpha-free"
   - alias: "deepseek-v4.1-flash-1017"
     targets:
       - provider: "opencode-go"

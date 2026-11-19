@@ -35,6 +35,10 @@ schema or literal tool catalog. The live MCP schema is authoritative.
 - Keep `sources/`, `guide.md`, `practice.md`, `checkpoints.md`, optional `reference-answers.md`,
   `progress.md`, and `learning-gaps.md` as needed, not as an obligatory empty-file scaffold.
   Keep full reference answers separate from the concept guide and independently attempted work.
+  Separation is by artifact, not a Reference Answers/draft header: follow
+  [one-to-one submission format](reference-format.md). Put source keys/citations, preparation caveats,
+  review dates and learning state in companion notes rather than the solution document. Shared LaTeX
+  templates belong at course level; the populated solution must load the same layout/macros directly.
 - Directories/materials are private: use owner-only directory access and private file permissions
   when creating them. Keep restricted slides/textbooks local; never commit, publish, or upload
   course materials into a public repository or external sharing service.
@@ -43,8 +47,10 @@ schema or literal tool catalog. The live MCP schema is authoritative.
   stable source ID and then content hash. Reuse matching local material; a changed version gets
   a distinct hash/version and provenance, not an overwrite. Across assignments, reuse a verified
   private course `_materials/` copy by manifest path instead of downloading duplicates.
-- Cite the actual slide/page or textbook edition/section/page in each explanation. Downloading
-  without reading does not support a claim. Mark unavailable pages and missing OCR clearly;
+- Preserve actual slide/page or textbook edition/section/page citations in the concept guide and/or
+  private companion notes keyed to each explanation. Do not insert citations into a submission-format
+  reference unless explicitly requested or required. Downloading without reading does not support a
+  claim. Mark unavailable pages and missing OCR clearly in the preparation records;
   secondary public sources supplement rather than impersonate assigned materials.
 - Before calling an export ready, open/read its actual contents; render PDFs locally with available
   authorized tools to check pages, annotations and legibility. File existence alone is insufficient.

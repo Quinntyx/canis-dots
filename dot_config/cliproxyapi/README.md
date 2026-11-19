@@ -83,8 +83,19 @@ that the launcher regenerates the runtime configuration.
 The four existing Codex accounts, their session affinity and reset-pressure policy,
 and the one existing Claude account are unchanged. Native model IDs such as
 `gpt-6.1-sol` and `claude-opus-5-5` continue to use those accounts. The official
-model catalog supplies the newer Claude model IDs. No Google/Antigravity
-credentials are enrolled by this setup.
+model catalog supplies the newer Claude model IDs.
+
+## Google models: agy only, never through this proxy
+
+Google (Gemini) models run only through the official Antigravity CLI, `agy`
+(`~/.local/bin/agy`, self-updating), which T3 Code drives through its native
+Antigravity provider. agy alone holds the Google AI Pro login, in
+`~/.gemini/antigravity-cli/`. Do not run `--antigravity-login`, `--login`
+(Gemini CLI), or add AI Studio/Vertex keys here, and do not declare Gemini
+models for any upstream in `providers.yaml`. This proxy's Antigravity executor
+calls Google itself while claiming to be the desktop app, and a spoofed
+third-party client on the account is what gets Google accounts banned. The
+same rule removed Pi's `pi-antigravity-auth` extension and its token.
 
 Build with `cliproxyapi-update` after preparing the canonical main checkout.
 Chezmoi manages the secret-free config, service and helpers. Commit/push before

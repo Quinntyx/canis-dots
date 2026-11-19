@@ -109,7 +109,7 @@ A native equivalent below means its documented capability, not byte-identical Pi
 | pi-session-move | Retained in Pi only; no Claude relocation integration | Deliberately outside Claude scope |
 | billion-context-pi@dev | Retained in Pi only; no Claude ACP integration | Deliberately outside Claude scope |
 | pi-session-quota@dev | Removed from Pi's active profile and Claude migration metadata | Discontinued; no adapter or quota-aware wait work remains |
-| pi-antigravity-auth | Keep model/account routing in CLIProxyAPI/T3 where supported | Pi OAuth/provider commands are not Claude extensions |
+| pi-antigravity-auth | Removed. Google models run only through the real agy CLI (T3 Antigravity provider) | No Pi, CLIProxyAPI or Claude path may hold the Google account |
 | pi-opencode-zen-free@v0.2.0 | Eligible external-model children remain T3 targets | Native Agent does not acquire the free OpenCode provider/model catalog |
 | pi-codex-disconnect-retry | Claude/SDK transport retry behavior | Codex-specific Pi error rewrite is inapplicable |
 | pi-setup-command | Use existing/authorized project-local runner setup | Pi /setup and tmux kernel bootstrap not ported |

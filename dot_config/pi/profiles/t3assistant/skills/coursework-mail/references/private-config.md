@@ -34,13 +34,20 @@ configuration, inspect credential declarations or use private host/index paths a
 - Use the coordinator's original local date throughout resumption, even after midnight. The journal
   resolves the stable run ID from the existing daily coordinator record; never create another run
   or substitute today's date. `begin` binds verified native account names permanently for that run.
+  `begin`/`checkpoint` require the actual matching runtime `T3_THREAD_ID`; an unset identity blocks
+  writes (read-only operator status remains available). Never manufacture runtime identity.
 - `status` pages `entries` and `ready_to_mark` with `offset`/`limit` (maximum 100). Follow
   `nextOffset`. `checkpoint` needs `expected_revision` from the latest response; on a stale-revision
   failure reload and merge, never overwrite a newer receipt. All checkpoints are immutable private
-  snapshots; use the returned `report_path`. There is no daily review-count cutoff.
+  snapshots; `report_path` is the latest checkpoint. Save classifications first, then a separate
+  `finalize_report: true` checkpoint with the substantive report after reconciliation. Only that
+  committed set is mark-eligible; `final_report_path` retains the verified immutable final report.
+  Drafts and newly added unfinalized reviews are not ready to mark. There is no daily review-count cutoff.
 - Legacy `<report_root>/<run_id>/receipt.json`, `report.json`, `report-*.json` and other private
-  review artifacts stay untouched. `status` returns legacy report/receipt pointers and unresolved
-  IDs. Read relevant historical summaries to avoid reporting old information as new. Never rename,
+  review artifacts stay untouched. `status` discovers ordinary and account-scoped receipts for
+  the same project/local date in `legacy.runs`, verifies report filenames/content against hashes,
+  and returns each source's pointers and unresolved IDs. Read relevant historical summaries to
+  avoid reporting old information as new. Never rename,
   delete, rewrite or convert legacy history in place, and never import a legacy read as native
   marking authority. Resolve each unresolved ID's actual native account with narrow native searches,
   then reread it before a new classification/mark. Preserve already-committed legacy outcomes.

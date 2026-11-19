@@ -28,11 +28,15 @@ class NativeEmailProfileTests(unittest.TestCase):
         self.assertIn('No `email_refresh`, `email_tag`', assignment)
         flags = (MAIL / 'references/read-flags.md').read_text()
         for contract in ('expected_revision', 'readEvidence', 'markEligible', 'remove: ["unread"]',
-                         'add: []', 'nextOffset', 'later', 'Legacy'):
+                         'add: []', 'nextOffset', 'later', 'Legacy', 'finalize_report',
+                         'final_report_path', 'T3_THREAD_ID', '`uncertain`'):
             self.assertIn(contract.lower(), flags.lower())
         private = (MAIL / 'references/private-config.md').read_text()
         self.assertIn('even after midnight', private)
         self.assertIn('never import a legacy read as native', private)
+        self.assertIn('legacy.runs', private)
+        self.assertIn('account-scoped', private)
+        self.assertIn('an unset identity blocks', private)
 
     def test_referenced_skill_files_exist(self):
         for path in PROFILE.glob('skills/**/SKILL.md'):

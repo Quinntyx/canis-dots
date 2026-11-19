@@ -2,8 +2,10 @@
 
 1. Verify the coordinator's existing daily thread, stable run ID and original local date. Discover
    `coursework_mail_review`; use `status` to inspect private native and legacy history, then `begin`
-   with verified `email_accounts` names. Preserve the same date/accounts on continuation, including
-   after midnight. Never launch another digest or run coordinator ticks from the daily thread.
+   with verified `email_accounts` names. Writes require the matching runtime `T3_THREAD_ID`;
+   do not synthesize missing identity. Inspect ordinary and account-scoped history in `legacy.runs`.
+   Preserve the same date/accounts on continuation, including after midnight. Never launch another
+   digest or run coordinator ticks from the daily thread.
 2. Load [priorities](priorities.md) and private mappings. Verify all requested/default accounts.
    Use `email_refresh` under daily authority, recording its actual result/freshness in a journal
    checkpoint. On failure continue with existing-index native search and disclose the limitation.
@@ -22,9 +24,10 @@
    native-read evidence and return exact coverage; the parent rechecks important original messages.
    The parent owns all journal/mail/Omn/calendar mutations; screening summaries alone prove no review.
 5. Classify every fully reviewed candidate privately, including routine no-action mail. Use a
-   `checkpoint` with actual read evidence, classification, summary and `markEligible` (see
+   `checkpoint` with actual read evidence, per-message classification/summary and `markEligible` (see
    [read flags](read-flags.md)). Evidence-only related reads are never candidates. Record failed or
-   incomplete reads in coverage and leave them unreviewed. Merge duplicate announcements/shipments/
+   incomplete reads in coverage and leave them unreviewed. `uncertain` reviews stay ineligible;
+   no global report or placeholder summary is needed yet. Merge duplicate announcements/shipments/
    obligations across accounts in the visible report; retain each account/ID's private receipt.
    Check narrow native sent-mail evidence before claiming a reply is owed.
 6. Follow [course records](course-records.md) for daily assignment/exam reconciliation. Check before
@@ -33,8 +36,10 @@
 7. Finish enumerating before marking (removing unread changes search offsets). After a complete
    pass, rescan from offset zero and deduplicate by account/ID; continue until no unseen messages
    appear. Every selected candidate must have a review or explicit read error. Coverage stays
-   incomplete for missing accounts/pages/content. Persist the private information report, exact
-   classifications, read limits, freshness and Omn/calendar results before any read-flag change.
+   incomplete for missing accounts/pages/content. After classification/reconciliation, use a separate
+   `checkpoint` with `finalize_report: true`, the substantive private `summary`, coverage, read limits,
+   freshness and Omn/calendar results. No new `reviews` or `outcomes` in that checkpoint. Only its
+   reported eligible set may be marked; drafts and newly appended unfinalized reviews grant no marks.
 8. Follow [read flags](read-flags.md) using only `email_tag` on the committed eligible set, isolating
    failures and checkpointing outcomes. Resume pending marks from durable state; do not discard
    earlier classifications or receipts. Continue other items after an individual failure.

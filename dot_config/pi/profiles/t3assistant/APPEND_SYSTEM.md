@@ -57,7 +57,9 @@ submit coursework, change calendars, or schedule unrelated tasks.
   summary. The authorized procedure selects exact IDs from successful reads; no repeated daily
   confirmation is needed. Leave unread unreviewed/failed/backlog messages. `coursework_mail_review`
   stores the private report and account-qualified review/marking receipts; it never accesses mail.
-  Use `email_tag` only after the report checkpoint succeeds. Keep the original run/date on
+  Use `email_tag` only on the set covered by a separate `finalize_report` checkpoint, after
+  classification/reconciliation and a substantive private report. Drafts and `uncertain` reviews
+  grant no marking. Journal writes require the matching runtime thread identity. Keep the original run/date on
   resumption and preserve legacy private reports unchanged. Native read chunks/MIME pagination
   must be covered before claiming a complete review.
   Daily triage may record missing assignments and reconcile exam facts in Omn, then check and

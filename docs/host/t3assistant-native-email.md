@@ -34,14 +34,20 @@ module, their obsolete tests, and t3assistant's aerc-email skill symlink are ret
 ## History and resumption
 
 Legacy `<report_root>/<run_id>/receipt.json`, `report.json`, immutable report snapshots and supporting
-private evidence stay byte-for-byte unchanged. The journal returns their pointers and unresolved IDs;
-legacy reads never confer new native marking authority. Identify actual accounts and reread unresolved
+private evidence stay byte-for-byte unchanged. The journal discovers both ordinary and account-scoped
+receipts matching the project/local date, verifies report filenames/content against hashes, and returns
+all source pointers/unresolved IDs in `legacy.runs`. Legacy reads confer no native marking authority. Identify actual accounts and reread unresolved
 messages natively before a new mark. Historical summaries remain useful deduplication evidence.
 
 New state is separate under `<run_id>/native-v1/`, with owner-only immutable hash-addressed reports
-and an atomic, fsynced HEAD. `begin` binds verified accounts to the existing daily run; `checkpoint`
-uses a CAS revision. Complete native-read attestations, classifications and private summary must be
-committed before tagging. Tag outcomes are a later checkpoint. A timeout/crash after tagging but
+and an atomic, fsynced HEAD. `begin` binds verified accounts to the existing daily run; writes require
+the actual matching runtime `T3_THREAD_ID` (absent identity blocks writes, not read-only status).
+`checkpoint` uses a CAS revision. Save complete native-read attestations/classifications first; no
+placeholder global summary is required. After reconciliation, use a separate `finalize_report: true`
+checkpoint with the substantive summary; only that set becomes `ready_to_mark`. Drafts, `uncertain`
+reviews and newly added unfinalized reviews grant no marking. `final_report_path` points to the
+verified immutable final report; `report_path` is the latest checkpoint. Tag outcomes are a later
+checkpoint than both reviews and finalization. Nested entry fields are strictly validated. A timeout/crash after tagging but
 before saving outcomes requires native tag verification before retrying. Resume with the original
 local date/run ID after midnight; page all journal entries and preserve committed classifications.
 The journal records attestations, not independent proof of native calls.

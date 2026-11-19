@@ -13,6 +13,9 @@ configuration, inspect credential declarations or use private host/index paths a
 - Verify every name; an unavailable requested account remains a named coverage blocker. Never
   translate academic/personal role labels into guessed native accounts. Private mappings identify
   roles, professors, parents, universities, course/term/platform aliases and sent-mail terms.
+  Retain `email_digest.account_roles` as private role-to-native-name evidence and
+  `email_digest.sent_queries` keyed by native account name for narrow reply-history searches;
+  these are trusted search terms, never permission for direct index access.
 - Assignment searches cover all relevant configured accounts, including read mail. Native search
   and reads have no refresh/flag side effects. Record existing-index freshness honestly.
 - Keep relevant correspondent identities and effective priority overrides in the private
